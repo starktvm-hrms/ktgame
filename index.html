@@ -98,7 +98,7 @@
           <button id="btn-continue" class="btn hidden">Continue</button>
           <button id="btn-save-look" class="btn primary hidden">Save appearance</button>
         </div>
-        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Drag mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; Esc: pause</p>
+        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; Esc: pause</p>
       </div>
       <div class="menu-right">
         <canvas id="preview"></canvas>
@@ -201,7 +201,7 @@
         <label>Sound effects <input type="range" id="set-sfx" min="0" max="1" step="0.05"></label>
         <label>Look sensitivity <input type="range" id="set-sens" min="0.3" max="2.5" step="0.1"></label>
         <label class="check"><input type="checkbox" id="set-invert"> Invert vertical look</label>
-        <label class="check"><input type="checkbox" id="set-lock"> Capture mouse when clicking (pointer lock)</label>
+        <label class="check"><input type="checkbox" id="set-lock"> Mouse look: move the mouse to look around (Esc frees the cursor)</label>
         <label>Graphics quality
           <select id="set-quality">
             <option value="low">Low (fast)</option>
@@ -214,7 +214,7 @@
       <h3>Controls</h3>
       <table class="controls">
         <tr><td>Move</td><td>W A S D / Arrow keys / left joystick</td></tr>
-        <tr><td>Look</td><td>Drag mouse / drag right side of screen &middot; wheel to zoom</td></tr>
+        <tr><td>Look</td><td>Move the mouse (Esc frees the cursor) / drag right side of screen &middot; wheel to zoom</td></tr>
         <tr><td>Run / Jump</td><td>Shift / Space</td></tr>
         <tr><td>Interact, talk, canoe</td><td>E</td></tr>
         <tr><td>Camera mode</td><td>C &middot; snap with C or Space</td></tr>
@@ -271,6 +271,7 @@
     </div>
   </div>
 
+  <div id="mouse-hint" class="hidden">Click the game to look around with the mouse</div>
   <div id="fade" class="hidden"><div id="fade-text"></div></div>
 
   <!-- Certificate -->
@@ -298,11 +299,13 @@
   <script src="assets/models/characters.js"></script>
   <script src="assets/models/kerala.js"></script>
   <script src="assets/models/bus.js"></script>
+  <script src="assets/models/traffic.js"></script>
   <script src="js/districts.js"></script>
   <script src="js/terrain.js"></script>
   <script src="js/world.js"></script>
   <script src="js/entities.js"></script>
   <script src="js/highway.js"></script>
+  <script src="js/traffic.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/fx.js"></script>

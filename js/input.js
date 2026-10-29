@@ -13,7 +13,9 @@
     enabled: false,
     touch: false,
     sensitivity: 1,
-    invertY: false
+    invertY: false,
+    mouseLook: true,   // look around by moving the mouse (pointer lock), no button needed
+    locked: false
   };
 
   const CODES = {
@@ -44,21 +46,48 @@
     });
     window.addEventListener('blur', () => { I.keys = {}; });
 
-    // mouse drag to look
-    let dragging = false, lx = 0, ly = 0;
+    // Mouse look: the pointer is captured (pointer lock) so moving the mouse
+    // turns the camera without holding a button; Esc frees the cursor.
+    // If the browser refuses the lock, moving the mouse over the game still
+    // looks around, and dragging always works.
+    I.canvas = canvas;
+    I.lockPointer = function () {
+      if (!I.mouseLook || I.touch || !canvas.requestPointerLock || document.pointerLockElement === canvas) return;
+      try {
+        const r = canvas.requestPointerLock();
+        if (r && r.catch) r.catch(() => { I.lockFailed = true; });
+      } catch (e) { I.lockFailed = true; }
+    };
+    I.unlockPointer = function () {
+      if (document.pointerLockElement === canvas && document.exitPointerLock) document.exitPointerLock();
+    };
+    document.addEventListener('pointerlockchange', () => {
+      const was = I.locked;
+      I.locked = document.pointerLockElement === canvas;
+      if (I.locked) I.lockFailed = false;
+      // Esc released the cursor: drop that key press so it doesn't also
+      // toggle the pause menu straight back off
+      if (was && !I.locked) { I.pressed.pause = false; if (I.onUnlock) I.onUnlock(); }
+    });
+    document.addEventListener('pointerlockerror', () => { I.lockFailed = true; });
+    let dragging = false, lx = 0, ly = 0, hx = null, hy = null;
     canvas.addEventListener('mousedown', (e) => {
       if (!I.enabled) return;
       dragging = true; lx = e.clientX; ly = e.clientY;
-      if (I.pointerLock && canvas.requestPointerLock) canvas.requestPointerLock();
+      I.lockPointer();
     });
     window.addEventListener('mouseup', () => { dragging = false; });
+    canvas.addEventListener('mouseleave', () => { hx = hy = null; });
     window.addEventListener('mousemove', (e) => {
-      if (!I.enabled) return;
+      if (!I.enabled) { hx = hy = null; return; }
       if (document.pointerLockElement === canvas) {
         I.look.dx += e.movementX; I.look.dy += e.movementY;
       } else if (dragging) {
         I.look.dx += e.clientX - lx; I.look.dy += e.clientY - ly;
         lx = e.clientX; ly = e.clientY;
+      } else if (I.mouseLook && I.lockFailed && e.target === canvas) {
+        if (hx !== null) { I.look.dx += e.clientX - hx; I.look.dy += e.clientY - hy; }
+        hx = e.clientX; hy = e.clientY;
       }
     });
     canvas.addEventListener('wheel', (e) => {

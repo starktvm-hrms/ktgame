@@ -136,6 +136,15 @@
           o.connect(f); f.connect(gn); gn.connect(sfxBus); o.start(t); o.stop(t + 0.75);
         });
         break;
+      case 'carHorn': // a passing car or auto honking: shorter, higher, quieter
+        [[520, 0], [655, 0]].forEach((h) => {
+          const o = A.ctx.createOscillator(); o.type = 'square'; o.frequency.value = h[0];
+          const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1800;
+          const gn = A.ctx.createGain(); gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(0.025, t + 0.02);
+          gn.gain.setValueAtTime(0.025, t + 0.22); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+          o.connect(f); f.connect(gn); gn.connect(sfxBus); o.start(t); o.stop(t + 0.32);
+        });
+        break;
       case 'door': noise(t, 0.5, 0.16, 'highpass', 1800, 0.6); tone(180, 'sine', t + 0.35, 0.12, 0.12, sfxBus, 90); break;
       default: break;
     }

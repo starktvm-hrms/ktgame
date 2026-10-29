@@ -9,7 +9,7 @@
   const Game = KT.Game = {
     state: 'loading',
     data: null,
-    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, pointerLock: false },
+    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true },
     cfg: { gender: 'male', outfit: 'casual', hair: 'default', acc: { backpack: true, camera: false, hat: false, sunglasses: false } }
   };
 
@@ -57,6 +57,8 @@
     decorateMap();
     setupTowers();
     setupHomeBus(scene);
+    KT.Traffic.initHome(scene);
+    setupHomeShops(scene);
     Game.homeScene = scene;
     Game.level = 'home';
     const saved = load(SAVE_KEY);
@@ -232,8 +234,17 @@
         (id === 'profile-page' && s === 'profile') || (id === 'players' && s === 'players') || (id === 'district' && s === 'district');
       el.classList.toggle('hidden', !on);
     });
-    if (s !== 'playing' && document.pointerLockElement) document.exitPointerLock();
+    // capture the mouse while playing so moving it looks around; free it
+    // on screens that need the cursor (travel fades keep it captured)
+    if (s === 'playing' || s === 'photo') KT.Input.lockPointer();
+    else if (s !== 'travel') KT.Input.unlockPointer();
+    updateMouseHint();
   };
+  function updateMouseHint() {
+    const I = KT.Input;
+    const show = Game.state === 'playing' && I.mouseLook && !I.touch && !I.locked && !I.lockFailed;
+    $('mouse-hint').classList.toggle('hidden', !show);
+  }
 
   Game.start = function (continueGame) {
     if (!continueGame && savedProgress() && !window.confirm('Start a new journey? Your saved progress will be replaced.')) return;
@@ -255,7 +266,7 @@
     KT.CameraRig.pitch = 0.22;
     KT.Input.sensitivity = Game.settings.sensitivity;
     KT.Input.invertY = Game.settings.invertY;
-    KT.Input.pointerLock = Game.settings.pointerLock;
+    KT.Input.mouseLook = Game.settings.mouseLook !== false;
     KT.UI.updateStats(Game.data);
     KT.UI.updateMission(KT.Missions.current());
     makePortrait();
@@ -371,6 +382,7 @@
     if ((st === 'menu' || st === 'auth') && !Game.creatorInGame) {
       menuCamera(dt);
       KT.World.update(dt, { pos: Game.camera.position }, Game.camera);
+      KT.Traffic.updateHome(dt, Game.camera.position);
       if (st === 'menu') KT.Preview.render(dt);
     } else if (st === 'menu') {
       KT.Preview.render(dt);
@@ -389,6 +401,7 @@
       KT.CameraRig.update(dt, Game.camera, input);
       if (Game.level === 'home') {
         KT.World.update(dt, KT.Player, Game.camera);
+        KT.Traffic.updateHome(dt, Game.camera.position);
         KT.World.followSun(KT.Player.pos);
       } else {
         KT.Highway.update(dt, KT.Player, Game.camera);
@@ -535,6 +548,48 @@
     KT.World.LANDMARKS.push({ id: 'ksrtc-stand', name: 'KSRTC Bus Stand', icon: 'bus', x: best.cx, z: best.cz, r: 9, desc: 'Board the bus to travel the Kerala highway through all 14 districts.' });
   }
 
+  // Small Kerala shops facing the village roads near the plaza.
+  function setupHomeShops(scene) {
+    const W = KT.World, J = KT.Traffic.HOME_JUNCTION;
+    const roads = [[[-45, 30], [-38, 80]], [[-45, 30], [-90, 40]], [[-10, 36], [-45, 30]], [[-38, 80], [-25, 130]]];
+    const rows = [];
+    const fits = (x, z, rot) => {
+      const c = Math.cos(rot), s = Math.sin(rot);
+      let hmin = 1e9, hmax = -1e9;
+      for (const [lx, lz] of [[0, 0], [-2.3, -2.2], [2.3, -2.2], [-2.3, 3.2], [2.3, 3.2], [0, 3.2]]) {
+        const wx = x + lx * c + lz * s, wz = z - lx * s + lz * c;
+        if (W.isBlocked(wx, wz, lz > 2 ? 0.6 : 1.4) || W.isWater(wx, wz)) return false;
+        const h = KT.Geo.height(wx, wz); hmin = Math.min(hmin, h); hmax = Math.max(hmax, h);
+      }
+      return hmax - hmin < 0.9 && hmin > 0.3;
+    };
+    roads.forEach(([a, b]) => {
+      if (rows.length >= 3) return;
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const fx = (b[0] - a[0]) / len, fz = (b[1] - a[1]) / len;
+      for (let t = 10; t < len - 16 && rows.length < 3; t += 2) {
+        for (const side of [-1, 1]) {
+          const px = -fz * side, pz = fx * side; // away from the road
+          const rot = Math.atan2(-px, -pz);      // shop front faces the road
+          const spots = [];
+          for (let i = 0; i < 3; i++) {
+            const tt = t + i * 4.8;
+            const x = a[0] + fx * tt + px * 5.7, z = a[1] + fz * tt + pz * 5.7;
+            if (Math.hypot(x - J.x, z - J.z) < 14 || !fits(x, z, rot)) break;
+            spots.push({ x, z, rot });
+          }
+          if (spots.length < 3 || rows.some((r) => Math.hypot(r[0].x - spots[0].x, r[0].z - spots[0].z) < 40)) continue;
+          rows.push(spots);
+          spots.forEach((sp, i) => {
+            const type = KT.Models.SHOP_TYPES[(rows.length * 3 + i) % KT.Models.SHOP_TYPES.length];
+            W.place(KT.Models.shop(type), sp.x, sp.z, sp.rot, { y: KT.Geo.height(sp.x, sp.z) - 0.05 });
+          });
+          break;
+        }
+      }
+    });
+  }
+
   // ------------------------------------------------------ level switching
   function fade(on, text) {
     const f = $('fade');
@@ -602,11 +657,12 @@
       KT.Vehicle.settle(Hw.bus);
     }
     const P = KT.Player;
-    const foot = Hw.at(hub.s + 4, -7.5);
+    const foot = Hw.at(hub.s, -10.2);
     P.pos.set(foot.x, Hw.groundY(foot.x, foot.z).y, foot.z);
     P.heading = hub.stopHeading;
     P.vy = 0;
     switchLevel(Hw, Hw.scene);
+    KT.Traffic.initHighway();
     if (opts.board !== false) P.boardBus(Hw.bus);
     KT.CameraRig.yaw = hub.stopHeading + Math.PI;
     Game.lastHub = idx;
@@ -885,13 +941,18 @@
     const s = Game.settings;
     $('set-music').value = s.music; $('set-sfx').value = s.sfx;
     $('set-sens').value = s.sensitivity; $('set-invert').checked = s.invertY;
-    $('set-quality').value = s.quality; $('set-lock').checked = s.pointerLock;
+    $('set-quality').value = s.quality; $('set-lock').checked = s.mouseLook !== false;
+    KT.Input.mouseLook = s.mouseLook !== false;
+    // Esc freed the cursor while playing: open the pause menu
+    KT.Input.onUnlock = () => { if (Game.state === 'playing') Game.setState('paused'); updateMouseHint(); };
+    document.addEventListener('pointerlockchange', updateMouseHint);
+    $('mouse-hint').onclick = () => KT.Input.lockPointer();
     const saveSettings = () => store(SETTINGS_KEY, s);
     $('set-music').oninput = (e) => { s.music = +e.target.value; KT.Audio.setVolumes(s.music, s.sfx); saveSettings(); };
     $('set-sfx').oninput = (e) => { s.sfx = +e.target.value; KT.Audio.setVolumes(s.music, s.sfx); saveSettings(); };
     $('set-sens').oninput = (e) => { s.sensitivity = +e.target.value; KT.Input.sensitivity = s.sensitivity; saveSettings(); };
     $('set-invert').onchange = (e) => { s.invertY = e.target.checked; KT.Input.invertY = s.invertY; saveSettings(); };
-    $('set-lock').onchange = (e) => { s.pointerLock = e.target.checked; KT.Input.pointerLock = s.pointerLock; saveSettings(); };
+    $('set-lock').onchange = (e) => { s.mouseLook = e.target.checked; KT.Input.mouseLook = s.mouseLook; saveSettings(); };
     $('set-quality').onchange = (e) => {
       s.quality = e.target.value; saveSettings();
       $('quality-note').classList.remove('hidden');

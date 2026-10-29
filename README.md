@@ -36,7 +36,7 @@ Progress is then saved in the browser only.
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
 | Move | W A S D / arrows | Left joystick |
-| Look / zoom | Drag mouse / wheel | Drag right side |
+| Look / zoom | Move the mouse (the cursor is captured; Esc frees it) / wheel | Drag right side |
 | Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
 | Talk, canoe, climb, board / leave the bus | E | E button |
 | Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view | Joystick |
@@ -76,6 +76,14 @@ districts, and rivers are crossed on bridges. The route bar, speedometer
 and minimap show where you are. Get off the bus anywhere (stop first) and
 call it back at any bus stand. The Alappuzha centre has a path back to the
 backwaters.
+
+The roads are busy: cars, Kerala autorickshaws, scooters, lorries and other
+KSRTC buses keep to the left, follow each other, stop for people and at red
+lights, honk when blocked and overtake parked vehicles. Every district centre
+has a signalled zebra crossing (jumping a red light costs a fine) and rows
+of roadside shops: tea stalls, fruit stalls, bakeries, stores, textile and
+medical shops, hotels and mobile shops. More shops line the highway between
+towns, and the village has its own traffic through a four-way signal.
 
 ## Project layout
 

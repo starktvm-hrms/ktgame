@@ -9,6 +9,7 @@
   const Hw = KT.Highway = {
     id: 'highway', code: 1, built: false, animTime: 0,
     SPACING: 3000, START: 400,
+    CROSSING: -17, // zebra crossing and signals, relative to each district centre
     colliders: [], grid: new Map(), cell: 32, interactables: [], hubs: [], npcs: [],
     tiles: new Map(), segs: new Map(), lastS: -1e9
   };
@@ -137,7 +138,8 @@
   Hw.bounds = { minX: -1e6, maxX: 1e6, minZ: -1e6, maxZ: 1e6 };
   Hw.agentColliders = function (pos) {
     return Hw.npcs.filter((w) => w.obj.visible && Math.abs(w.obj.position.x - pos.x) < 6 && Math.abs(w.obj.position.z - pos.z) < 6)
-      .map((w) => ({ type: 'circle', x: w.obj.position.x, z: w.obj.position.z, r: 0.35 }));
+      .map((w) => ({ type: 'circle', x: w.obj.position.x, z: w.obj.position.z, r: 0.35 }))
+      .concat(KT.Traffic.highwayColliders(pos, 10));
   };
 
   // ------------------------------------------------------------ materials
@@ -191,6 +193,7 @@
     this.meshes.forEach((im) => {
       for (let i = 0; i < n; i++) im.setMatrixAt(i, list[i]);
       im.count = n;
+      im.visible = n > 0;
       im.instanceMatrix.needsUpdate = true;
     });
   };
@@ -207,6 +210,41 @@
     pools.pole = new Pool(scene, Models.electricPole(), 400, true);
     pools.stone = new Pool(scene, Models.milestone(), 120, false);
     pools.rock = new Pool(scene, Models.rock(5), 200, true);
+    Models.SHOP_TYPES.forEach((t) => { pools['shop_' + t] = new Pool(scene, Models.shop(t), 40, true); });
+  }
+
+  // ------------------------------------------------- roadside shop clusters
+  // A few small shops face the road every now and then between towns.
+  // Deterministic per 200 m road segment, so terrain tiles can keep their
+  // trees out of the way.
+  const shopCache = new Map();
+  function shopClusters(k) {
+    if (shopCache.has(k)) return shopCache.get(k);
+    const rng = KT.makeRng(k * 7919 + 13);
+    const out = [];
+    const s0 = k * SEG_LEN;
+    for (let c = 0; c < 2; c++) {
+      if (rng() > 0.42) continue;
+      const side = rng() < 0.5 ? -1 : 1;
+      const n = 2 + Math.floor(rng() * 3);
+      const start = s0 + 15 + rng() * (SEG_LEN - 30 - n * 4.8);
+      const end = start + n * 4.8;
+      const hi = Math.round((start - Hw.START) / Hw.SPACING);
+      if (hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(start - Hw.hubS(hi)) < 230) continue;
+      if (RIVERS.some((r) => r.s > start - 90 && r.s < end + 90)) continue;
+      if (Math.floor((start - 14) / 500) !== Math.floor((end + 14) / 500)) continue; // keep clear of direction signs
+      if (out.some((o) => o.side === side && Math.abs(o.s - start) < 30)) continue;
+      for (let i = 0; i < n; i++) out.push({ s: start + i * 4.8 + 2.4, lat: side * 11.8, side, type: Models.SHOP_TYPES[Math.floor(rng() * Models.SHOP_TYPES.length)] });
+    }
+    shopCache.set(k, out);
+    return out;
+  }
+  function nearShop(s, lat) {
+    const k = Math.floor(s / SEG_LEN);
+    for (let kk = k - 1; kk <= k + 1; kk++) {
+      if (shopClusters(kk).some((o) => Math.abs(o.s - s) < 4 && Math.abs(o.lat - lat) < 5)) return true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------- tiles
@@ -260,6 +298,7 @@
       const hi = Math.round((p.s - Hw.START) / Hw.SPACING);
       if (hi >= 0 && hi < KT.DISTRICTS.length && Math.hypot(p.s - Hw.hubS(hi), p.lat) < 175) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
+      if (Math.abs(p.lat) < 20 && nearShop(p.s, p.lat)) return null;
       return p;
     };
     for (let i = 0; i < 26; i++) {
@@ -345,6 +384,16 @@
       sign.rotation.y = Hw.frame(s).heading + Math.PI;
       group.add(sign);
     }
+    // roadside shops
+    shopClusters(k).forEach((o, i) => {
+      const f = Hw.frame(o.s);
+      const q = Hw.at(o.s, o.lat);
+      const rot = f.heading + faceRoad(o.lat);
+      let y = 1e9;
+      [[0, 0], [2, 2], [-2, 2], [2, -2], [-2, -2]].forEach((c) => { y = Math.min(y, Hw.height(q.x + c[0], q.z + c[1])); });
+      items.push({ key: 'shop_' + o.type, m: new T.Matrix4().compose(new T.Vector3(q.x, y, q.z), new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), rot), new T.Vector3(1, 1, 1)), s: o.s });
+      if (!Hw.tileColliders.has('shop' + k + '-' + i)) { Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 2.3, hd: 2.2, rot }); Hw.tileColliders.add('shop' + k + '-' + i); }
+    });
     // bridges over rivers
     RIVERS.forEach((r) => {
       if (r.s < s0 - 60 || r.s >= s1 - 60 + SEG_LEN && r.s > s1) return;
@@ -428,8 +477,8 @@
     });
     return obj;
   }
-  // face the road from either side
-  const faceRoad = (lat) => (lat < 0 ? Math.PI / 2 : -Math.PI / 2);
+  // turn a model whose front is +z to face the road from either side
+  const faceRoad = (lat) => (lat < 0 ? -Math.PI / 2 : Math.PI / 2);
 
   function buildHub(hub) {
     const d = hub.district;
@@ -441,7 +490,7 @@
     hubPlace(hub, Models.districtGate(d), 75, 0, 0);
     // bus stand on the western (left) side
     const stand = hubPlace(hub, Models.busStand(d.name), 0, -15, faceRoad(-15));
-    hub.stop = Hw.at(hub.s + 6, -3.2);
+    hub.stop = Hw.at(hub.s + 10, -8); // bus bay beside the carriageway
     hub.stopHeading = Hw.frame(hub.s).heading;
     // info board
     const board = hubPlace(hub, Models.signboard([d.name, 'District of Kerala']), -20, -11, faceRoad(-11));
@@ -459,7 +508,27 @@
       hubPlace(hub, obj, p[0], p[1], faceRoad(p[1]));
     });
     // lamp posts & palms
-    for (let a = -60; a <= 60; a += 20) [-1, 1].forEach((sd) => hubPlace(hub, Models.lampPost(), a, sd * 8.5, sd > 0 ? 0 : Math.PI));
+    for (let a = -60; a <= 60; a += 20) [-1, 1].forEach((sd) => { if (sd < 0 && (a === 0 || a === 20)) return; hubPlace(hub, Models.lampPost(), a, sd * 8.5, sd > 0 ? 0 : Math.PI); });
+    // zebra crossing with traffic signals (signals stand on the left kerb
+    // of the traffic they control, lamps facing the approaching vehicles)
+    const cs = hub.s + Hw.CROSSING, cf = Hw.frame(cs);
+    const zebra = Models.zebraCrossing(ROAD_HALF * 2 - 0.6, 3.2);
+    zebra.position.set(cf.x, roadY(cs) + 0.075, cf.z);
+    zebra.rotation.y = cf.heading;
+    hub.group.add(zebra);
+    hub.signals = [
+      hubPlace(hub, Models.trafficSignal(4.2), Hw.CROSSING - 5, -6.9, Math.PI),
+      hubPlace(hub, Models.trafficSignal(4.2), Hw.CROSSING + 5, 6.9, 0)
+    ];
+    hub.signalShown = null;
+    // rows of shops facing the road
+    const srng = KT.makeRng(hub.index * 131 + 5);
+    const shopRow = (from, n, lat) => {
+      for (let i = 0; i < n; i++) hubPlace(hub, Models.shop(Models.SHOP_TYPES[Math.floor(srng() * Models.SHOP_TYPES.length)]), from + i * 4.8, lat, faceRoad(lat));
+    };
+    shopRow(26, 4, -16.5);
+    shopRow(-48, 4, 16.5);
+    shopRow(14, 3, 16.5);
     const rng = KT.makeRng(hub.index * 991 + 7);
     for (let i = 0; i < 28; i++) {
       const along = (rng() - 0.5) * 300, lat = (rng() < 0.5 ? -1 : 1) * (40 + rng() * 100);
@@ -692,7 +761,7 @@
     KT.UI.toast('Your KSRTC bus has arrived at the ' + hub.district.name + ' bus stand.');
   };
 
-  Hw.vehicleObstacles = function () { return null; };
+  Hw.vehicleObstacles = function (bus) { return KT.Traffic.highwayColliders(bus.obj.position, 16); };
 
   Hw.followSun = function (focus) {
     const snap = 4;
@@ -708,6 +777,7 @@
     if (camera) { Hw.sky.position.copy(camera.position); Hw.horizon.position.set(camera.position.x, 0, camera.position.z); Hw.clouds.position.set(camera.position.x, 0, camera.position.z); }
     if (mats.water.userData.normal) mats.water.userData.normal.offset.set(Hw.animTime * 0.01, Hw.animTime * 0.006);
     Hw.stream(player.pos, 2);
+    KT.Traffic.updateHighway(dt, camera ? camera.position : null);
     const pp = player.pos;
     Hw.hubs.forEach((h) => {
       if (!h.group || !h.group.visible) return;

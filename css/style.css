@@ -293,3 +293,5 @@ body[data-state="profile"] #hud, body[data-state="players"] #hud, body[data-stat
   .pf-stats { grid-template-columns: repeat(2, 1fr); }
   .pf-head { flex-direction: column; text-align: center; }
 }
+/* shown when the mouse is not captured yet */
+#mouse-hint { position: fixed; left: 50%; top: 42%; transform: translateX(-50%); z-index: 30; padding: 0.6rem 1.1rem; border-radius: 999px; background: rgba(10, 30, 22, 0.78); color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
