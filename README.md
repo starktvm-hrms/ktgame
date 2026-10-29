@@ -26,7 +26,7 @@ cd server && npm install && npm start
 ```
 
 then visit http://localhost:8080 in Chrome, Edge, Brave or Firefox, and
-register with your name, mobile number and password (tick *Remember me* to
+register with your name, a username, your mobile number and a password (tick *Remember me* to
 stay signed in on that device). See [server/README.md](server/README.md)
 for production deployment and scaling to lakhs of concurrent players.
 
@@ -41,10 +41,11 @@ Progress is then saved in the browser only.
 | Talk, canoe, climb, board / leave the bus | E | E button |
 | Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view | Joystick |
 | Profile · Players nearby · My vehicles | J · O · G | Portrait · online counter · 🚲 |
+| Groups & chat · Mic on / mute | T (Enter to type in the chat bar) · B | 👥 · 🎤 in the chat bar |
 | Fishing (Kochi) | E at a Fishing Point, E / Space to haul | E · Haul button |
 | Camera mode (photos) | C, snap with C / Space | Eye button |
 | Namaskaram · Wave | N · Q | 🙏 button |
-| Map · First/third person | M · V | Minimap · 🎥 |
+| Map (wheel / pinch to zoom, drag to move) · First/third person | M · V | Minimap · 🎥 |
 | Pause & settings | Esc | ⚙ |
 
 ## Missions
@@ -108,6 +109,57 @@ Press G (or the 🚲 button) to open My Vehicles and ride one, on the
 backwaters map or along the highway between districts. Other players see
 you riding it.
 
+## Groups, chat and voice
+
+Every player picks a **username** (like `@anjali_nair`) when they register;
+others use it to find and invite them. Players who signed up before
+usernames existed are asked to choose one the next time they sign in.
+
+Press **T** (or 👥) to open Groups:
+
+- **Create** a group. A **public** group can be found and joined by anyone
+  from the *Discover* tab. A **private** group is invitation only.
+- **Invite** friends by username. They see the invitation under *Invites*
+  (with a badge on 👥) and can accept or decline.
+- **Chat**: the group screen has the full chat. While you play, the chat bar
+  at the bottom shows your active group's latest messages; press Enter to
+  type.
+- **Play together**: the member list shows where each online member is
+  (backwaters, highway district or the lighthouse). Press *Go to* to join
+  them. Group friends appear as purple markers on the minimap and the map.
+- **Voice**: press *Join voice* in the group (or B, or 🎤 in the chat bar)
+  and allow the microphone to talk with group members who are in voice too.
+  B mutes and unmutes. Audio goes directly between players (WebRTC,
+  peer-to-peer) with echo cancellation. A few strict networks block direct
+  connections; add a TURN server to `KT.CONFIG.turn` in `js/config.js` for
+  those.
+
+On Supabase, chat, member positions and voice signalling use Realtime
+broadcast channels. With the Node server, chat is checked every few seconds
+and voice is not available.
+
+## Kovalam lighthouse
+
+The red and white Vizhinjam lighthouse stands on the headland above Kovalam
+beach. Press E at its door to go inside: read the exhibits about its
+history and the great Fresnel lens, ring the ship's bell, and talk to Abdul
+the keeper. Then take the spiral stairs up to the gallery at the top for the
+view over the Arabian Sea.
+
+## Live time and weather
+
+The sky follows the clock on your device: sunrise, golden hour, sunset, a
+starry night with the moon, the lighthouse beam sweeping in the dark,
+glowing lamps and crickets after dark. The weather is the real current
+weather where you are in the game: Alappuzha on the backwaters map, the
+nearest district on the highway. It comes from [Open-Meteo](https://open-meteo.com)
+(free, no key) and is refreshed every 15 minutes, so you'll see clouds, rain,
+mist and monsoon thunderstorms with lightning when they really happen. If the
+weather can't be fetched, a believable stand-in is used (wetter in the
+monsoon months). The chip at the top right shows the time and weather; click
+it for details. Pause → Settings → *Time & weather* can switch to clear skies
+or to an always sunny day.
+
 ## Project layout
 
 ```
@@ -115,7 +167,9 @@ index.html            entry point
 css/style.css         HUD and menus
 lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
 js/                   game code (terrain, world, highway, vehicle, entities, player,
-                      missions, UI, audio, net = multiplayer client, account = sign-in & profiles)
+                      missions, UI, audio, net = multiplayer client, account = sign-in & profiles,
+                      groups = groups & chat, voice = WebRTC voice chat,
+                      lighthouse = Kovalam lighthouse interior, sky = time of day & weather)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function
 lib/supabase.min.js   supabase-js 2.117.3 (MIT, vendored) for Supabase Realtime

@@ -387,12 +387,14 @@
       part(g, G.cyl(r1, r0, h, 8), i % 2 ? M().white : M().red, 0, 1.2 + h * (i + 0.5), 0);
     }
     const top = 1.2 + H;
-    part(g, G.cyl(2.8, 2.6, 0.4, 16), M().darkGrey, 0, top + 0.2, 0);
-    for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
-      part(g, G.box(0.06, 1, 0.06), M().darkGrey, Math.cos(a) * 2.6, top + 0.9, Math.sin(a) * 2.6);
+    // gallery: a walkable balcony around the lantern room
+    part(g, G.cyl(3.3, 2.4, 0.4, 24), M().darkGrey, 0, top + 0.2, 0);
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2;
+      part(g, G.box(0.06, 1.1, 0.06), M().darkGrey, Math.cos(a) * 3.2, top + 0.95, Math.sin(a) * 3.2);
     }
-    part(g, G.torus(2.6, 0.05, 4, 24), M().darkGrey, 0, top + 1.4, 0, Math.PI / 2);
+    part(g, G.torus(3.2, 0.05, 4, 32), M().darkGrey, 0, top + 1.5, 0, Math.PI / 2);
+    part(g, G.torus(3.2, 0.03, 4, 32), M().darkGrey, 0, top + 0.95, 0, Math.PI / 2);
     part(g, G.cyl(1.4, 1.4, 2.2, 12), M().glass, 0, top + 1.5, 0);
     part(g, G.sph(0.6, 10, 8), M().lampGlow, 0, top + 1.5, 0);
     part(g, G.cone(1.8, 1.4, 12), M().red, 0, top + 3.3, 0);
@@ -412,6 +414,7 @@
     baked.userData.beam = beam;
     baked.userData.colliders = [{ type: 'circle', x: 0, z: 0, r: 5 }];
     baked.userData.top = top;
+    baked.userData.deck = top + 0.4;
     return baked;
   };
 

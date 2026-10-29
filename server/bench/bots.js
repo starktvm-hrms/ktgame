@@ -24,7 +24,7 @@ async function register(i) {
   const phone = '+9190' + String(10000000 + i).slice(-8);
   const base = servers[i % servers.length];
   let r = await fetch(base + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password: 'botpass1', remember: true }) });
-  if (r.status === 401) r = await fetch(base + '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Bot ' + i, phone, password: 'botpass1', remember: true }) });
+  if (r.status === 401) r = await fetch(base + '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Bot ' + i, username: 'bot' + i, phone, password: 'botpass1', remember: true }) });
   const b = await r.json();
   if (!b.token) throw new Error('auth failed for bot ' + i + ': ' + JSON.stringify(b));
   return b.token;

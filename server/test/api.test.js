@@ -51,18 +51,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const inst = await startInstance();
   const phoneA = '98' + String(Date.now()).slice(-8);
   const phoneB = '97' + String(Date.now()).slice(-8);
+  const tag = String(Date.now()).slice(-7); // unique usernames per run
   try {
     // validation
     let r = await api('POST', '/api/register', { name: 'A', phone: '123', password: 'x' });
     assert.strictEqual(r.status, 400);
+    r = await api('POST', '/api/register', { name: 'Anjali Nair', username: '9bad', phone: '+91 ' + phoneA, password: 'secret123' });
+    assert.strictEqual(r.body.error, 'BAD_USERNAME');
     // register
-    r = await api('POST', '/api/register', { name: 'Anjali Nair', phone: '+91 ' + phoneA, password: 'secret123', remember: true });
+    r = await api('POST', '/api/register', { name: 'Anjali Nair', username: '@Anjali_' + tag, phone: '+91 ' + phoneA, password: 'secret123', remember: true });
     assert.strictEqual(r.status, 201, JSON.stringify(r.body));
     const tokA = r.body.token;
     assert.ok(r.body.user.phone.includes('•'), 'phone is masked');
-    // duplicate phone
-    r = await api('POST', '/api/register', { name: 'Someone', phone: '0' + phoneA, password: 'secret123' });
-    assert.strictEqual(r.status, 409);
+    assert.strictEqual(r.body.user.username, 'anjali_' + tag, 'username is normalised');
+    // duplicate phone, duplicate username
+    r = await api('POST', '/api/register', { name: 'Someone', username: 'someone_' + tag, phone: '0' + phoneA, password: 'secret123' });
+    assert.strictEqual(r.body.error, 'PHONE_TAKEN');
+    r = await api('POST', '/api/register', { name: 'Someone', username: 'ANJALI_' + tag, phone: '95' + tag + '1', password: 'secret123' });
+    assert.strictEqual(r.body.error, 'USERNAME_TAKEN');
     // login wrong / right
     r = await api('POST', '/api/login', { phone: phoneA, password: 'nope' });
     assert.strictEqual(r.status, 401);
@@ -83,9 +89,42 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     r = await api('GET', '/api/me', null, 'forged.token');
     assert.strictEqual(r.status, 401);
     // realtime: two players near each other see each other, a far one does not
-    const tokB = (await api('POST', '/api/register', { name: 'Biju', phone: phoneB, password: 'secret123' })).body.token;
+    const tokB = (await api('POST', '/api/register', { name: 'Biju', username: 'biju_' + tag, phone: phoneB, password: 'secret123' })).body.token;
     const phoneC = '96' + String(Date.now()).slice(-8);
-    const tokC = (await api('POST', '/api/register', { name: 'Chinnu', phone: phoneC, password: 'secret123' })).body.token;
+    const tokC = (await api('POST', '/api/register', { name: 'Chinnu', username: 'chinnu_' + tag, phone: phoneC, password: 'secret123' })).body.token;
+    // groups: private group, invite by username, accept, chat
+    r = await api('GET', '/api/players/search?q=biju_' + tag, null, tokA);
+    assert.strictEqual(r.body.players[0].username, 'biju_' + tag);
+    r = await api('POST', '/api/groups', { name: 'Backwater Crew', visibility: 'private', description: 'Test' }, tokA);
+    assert.strictEqual(r.status, 201, JSON.stringify(r.body));
+    const gid = r.body.group.id;
+    assert.ok(r.body.group.channel, 'members get the channel key');
+    r = await api('POST', '/api/groups/' + gid + '/join', {}, tokB);
+    assert.strictEqual(r.body.error, 'INVITE_ONLY');
+    r = await api('GET', '/api/groups/' + gid, null, tokC);
+    assert.strictEqual(r.status, 404, 'private groups are hidden from non-members');
+    r = await api('POST', '/api/groups/' + gid + '/invite', { username: '@Biju_' + tag }, tokA);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    r = await api('GET', '/api/invites', null, tokB);
+    assert.strictEqual(r.body.invites[0].group.name, 'Backwater Crew');
+    r = await api('POST', '/api/invites/' + r.body.invites[0].id + '/accept', {}, tokB);
+    assert.strictEqual(r.body.group.memberCount, 2);
+    r = await api('POST', '/api/groups/' + gid + '/messages', { text: 'Namaskaram!' }, tokA);
+    assert.strictEqual(r.status, 201);
+    r = await api('GET', '/api/groups/' + gid + '/messages?after=0', null, tokB);
+    assert.strictEqual(r.body.messages[r.body.messages.length - 1].text, 'Namaskaram!');
+    r = await api('GET', '/api/groups/' + gid + '/messages', null, tokC);
+    assert.strictEqual(r.status, 403, 'non-members cannot read the chat');
+    r = await api('POST', '/api/groups', { name: 'Kerala Explorers ' + tag.slice(-3), visibility: 'public' }, tokB);
+    r = await api('GET', '/api/groups/public?q=Kerala Explorers ' + tag.slice(-3), null, tokC);
+    assert.strictEqual(r.body.groups.length, 1);
+    r = await api('POST', '/api/groups/' + r.body.groups[0].id + '/join', {}, tokC);
+    assert.strictEqual(r.body.group.memberCount, 2);
+    r = await api('GET', '/api/groups', null, tokB);
+    assert.strictEqual(r.body.groups.length, 2);
+    r = await api('POST', '/api/groups/' + gid + '/leave', {}, tokA);
+    r = await api('GET', '/api/groups/' + gid, null, tokB);
+    assert.strictEqual(r.body.group.role, 'owner', 'ownership passes on when the owner leaves');
     const a = await connect(tokA), b = await connect(tokB), c = await connect(tokC);
     for (let i = 0; i < 8; i++) {
       a.send(stateMsg(0, 10, 1, 20)); b.send(stateMsg(0, 15, 1, 25)); c.send(stateMsg(0, 2000, 1, 2000));

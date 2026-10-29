@@ -20,7 +20,8 @@ somewhere else (another host, or `file://`), the client talks to
 
 | Feature | Details |
 | --- | --- |
-| Register | name, mobile number, password. Numbers are normalised to `+91…` (E.164), one account per number |
+| Register | name, username, mobile number, password. Numbers are normalised to `+91…` (E.164), one account per number. Usernames are unique: 3–20 characters, lowercase letters, digits, `_` and `.`, starting with a letter |
+| Groups | public or private groups (up to 20 per player), invitations by username, group chat (checked by the game every few seconds). Owners can remove members; if the owner leaves, the longest-standing member takes over |
 | Log in / Remember me | 30-day token with *Remember me* (kept in `localStorage`), 12-hour session token without it (`sessionStorage`) |
 | Passwords | scrypt with a per-user salt. Plain passwords are never stored or logged |
 | Profiles | `GET /api/profile/:id`: name, portrait character, level, coins, places, districts visited, km travelled by KSRTC bus, play time. Phone numbers are only shown, masked, to their owner |
@@ -32,10 +33,22 @@ somewhere else (another host, or `file://`), the client talks to
 ### HTTP API
 
 ```
-POST /api/register  {name, phone, password, remember}  -> {token, user}
+POST /api/register  {name, username, phone, password, remember} -> {token, user}
 POST /api/login     {phone, password, remember}        -> {token, user}
 GET  /api/me                                            -> {user}
-PUT  /api/me        {name?, character?}                 -> {user}
+PUT  /api/me        {name?, username?, character?}      -> {user}
+GET  /api/players/search?q=                             -> {players}
+GET  /api/groups                                        -> {groups}   (mine)
+POST /api/groups    {name, description?, visibility}    -> {group}
+GET  /api/groups/public?q=                              -> {groups}
+GET  /api/groups/:id                                    -> {group, members}
+POST /api/groups/:id/join | /leave                      -> {group} | {ok}
+POST /api/groups/:id/invite {username}                  -> {ok, player}
+POST /api/groups/:id/kick   {userId}  (owner only)      -> {ok}
+GET  /api/groups/:id/messages?after=                    -> {messages}
+POST /api/groups/:id/messages {text}                    -> {message}
+GET  /api/invites                                       -> {invites}
+POST /api/invites/:id/accept | /decline                 -> {group} | {ok}
 PUT  /api/progress  {progress}                          -> {ok}
 GET  /api/profile/:id                                   -> {profile}
 GET  /api/health                                        -> {online, players, ...}

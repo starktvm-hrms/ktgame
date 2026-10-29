@@ -1,9 +1,11 @@
 // HTTP API (JSON) and static file server for the game client.
 //
-//   POST /api/register   {name, phone, password, remember}  -> {token, user}
+//   POST /api/register   {name, username, phone, password, remember} -> {token, user}
 //   POST /api/login      {phone, password, remember}        -> {token, user}
 //   GET  /api/me                                            -> {user}
-//   PUT  /api/me         {name?, character?}                -> {user}
+//   PUT  /api/me         {name?, username?, character?}     -> {user}
+//   GET  /api/players/search?q=                             -> {players}
+//   groups, invitations and chat: see groups.js
 //   PUT  /api/progress   {progress}                         -> {ok}
 //   POST /api/ping                                          -> {online}
 //   GET  /api/profile/:id                                   -> {profile}
@@ -12,6 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const auth = require('./auth');
+const { createGroupRoutes } = require('./groups');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -31,6 +34,7 @@ function publicUser(u, self) {
   const out = {
     id: u.id,
     name: u.name,
+    username: u.username || null,
     memberSince: u.createdAt,
     character: u.character || null,
     stats: {
@@ -118,12 +122,13 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
       if (!name) throw new auth.AppError(400, 'BAD_NAME', 'Name must be 2–24 letters or numbers.');
       if (!phone) throw new auth.AppError(400, 'BAD_PHONE', 'Enter a valid mobile number (e.g. 98765 43210).');
       if (!auth.validatePassword(b.password)) throw new auth.AppError(400, 'BAD_PASSWORD', 'Password must be at least 6 characters.');
+      const username = auth.validateUsername(b.username);
+      if (!username) throw new auth.AppError(400, 'BAD_USERNAME', auth.USERNAME_RULES);
       let user;
       try {
-        user = await store.createUser({ name, phone, passHash: await auth.hashPassword(b.password) });
+        user = await store.createUser({ name, username, phone, passHash: await auth.hashPassword(b.password) });
       } catch (e) {
-        if (e.code === 'PHONE_TAKEN') throw new auth.AppError(409, 'PHONE_TAKEN', 'This phone number is already registered. Please log in.');
-        throw e;
+        throw takenError(e);
       }
       log.info('register', user.id);
       return [201, { token: auth.issueToken(user.id, !!b.remember), user: publicUser(user, true) }];
@@ -151,10 +156,22 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
         if (!name) throw new auth.AppError(400, 'BAD_NAME', 'Name must be 2–24 letters or numbers.');
         patch.name = name;
       }
+      if (b.username !== undefined && b.username !== user.username) {
+        const username = auth.validateUsername(b.username);
+        if (!username) throw new auth.AppError(400, 'BAD_USERNAME', auth.USERNAME_RULES);
+        patch.username = username;
+      }
       if (b.character !== undefined) patch.character = cleanCharacter(b.character);
-      const updated = await store.updateUser(user.id, patch);
+      let updated;
+      try { updated = await store.updateUser(user.id, patch); } catch (e) { throw takenError(e); }
       realtime.updateMeta(updated);
       return [200, { user: publicUser(updated, true) }];
+    },
+    'GET /api/players/search': async (req, url) => {
+      const user = await requireUser(req);
+      const q = (url.searchParams.get('q') || '').trim().replace(/^@/, '').toLowerCase();
+      if (q.length < 2) return [200, { players: [] }];
+      return [200, { players: await store.searchPlayers(q.slice(0, 24), user.id) }];
     },
     'PUT /api/progress': async (req) => {
       const user = await requireUser(req);
@@ -169,6 +186,13 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
     },
     'GET /api/health': async () => [200, { ok: true, online: realtime.online || realtime.sessions.size, players: await store.count(), store: store.kind, bus: bus.kind, uptime: Math.round(process.uptime()) }]
   };
+
+  const groupRoutes = createGroupRoutes({ store, readBody, requireUser, limit });
+  function takenError(e) {
+    if (e.code === 'USERNAME_TAKEN') return new auth.AppError(409, 'USERNAME_TAKEN', 'That username is taken. Please choose another.');
+    if (e.code === 'PHONE_TAKEN') return new auth.AppError(409, 'PHONE_TAKEN', 'This phone number is already registered. Please log in.');
+    return e;
+  }
 
   function corsHeaders(req) {
     const origin = req.headers.origin;
@@ -221,9 +245,12 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
           if (!u) throw new auth.AppError(404, 'NOT_FOUND', 'Player not found');
           return json(res, 200, { profile: publicUser(u, false) }, cors);
         }
+        const full = new URL(req.url, 'http://local');
+        const grouped = await groupRoutes(req, full);
+        if (grouped) return json(res, grouped[0], grouped[1], cors);
         const route = routes[req.method + ' ' + url];
         if (!route) throw new auth.AppError(404, 'NOT_FOUND', 'Unknown endpoint');
-        const [status, body] = await route(req);
+        const [status, body] = await route(req, full);
         return json(res, status, body, cors);
       }
       if (req.method === 'GET' || req.method === 'HEAD') return serveStatic(req, res);

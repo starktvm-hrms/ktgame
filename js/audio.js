@@ -31,10 +31,10 @@
     A.ready = true;
   };
 
-  function loopNoise(freq, gain) {
+  function loopNoise(freq, gain, type) {
     const src = A.ctx.createBufferSource();
     src.buffer = noiseBuf; src.loop = true;
-    const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+    const f = A.ctx.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq;
     const g = A.ctx.createGain(); g.gain.value = gain;
     src.connect(f); f.connect(g); g.connect(ambBus);
     src.start();
@@ -147,6 +147,12 @@
         break;
       case 'bell': [0, 0.16].forEach((d) => { tone(2350, 'sine', t + d, 0.35, 0.09); tone(3110, 'sine', t + d, 0.25, 0.04); }); break;
       case 'splash2': noise(t, 0.6, 0.3, 'lowpass', 900, 0.9); noise(t + 0.05, 0.4, 0.12, 'highpass', 3000, 0.6); break;
+      case 'thunder': { // distant rumble: a crack, then a long low roll
+        noise(t, 0.25, 0.25, 'bandpass', 900, 0.8, ambBus);
+        noise(t + 0.08, 3.2, 0.55, 'lowpass', 140, 0.7, ambBus);
+        noise(t + 0.6, 2.4, 0.35, 'lowpass', 90, 0.7, ambBus);
+        break;
+      }
       case 'door': noise(t, 0.5, 0.16, 'highpass', 1800, 0.6); tone(180, 'sine', t + 0.35, 0.12, 0.12, sfxBus, 90); break;
       default: break;
     }
@@ -159,6 +165,22 @@
   }
 
   // Ambience mix follows the player's surroundings.
+  // Rain on the leaves (0..1), set by the weather.
+  let rainGain = null, rainHiss = null;
+  A.setRain = function (v) {
+    if (!A.ready) return;
+    if (!rainGain) { rainGain = loopNoise(1400, 0, 'bandpass'); rainHiss = loopNoise(5200, 0, 'highpass'); }
+    const t = A.ctx.currentTime;
+    rainGain.gain.setTargetAtTime(v * 0.5, t, 1.2);
+    rainHiss.gain.setTargetAtTime(v * 0.12, t, 1.2);
+  };
+  // crickets instead of birdsong after dark
+  function cricket(t) {
+    const f = 4200 + Math.random() * 600;
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) tone(f, 'sine', t + i * 0.07, 0.04, 0.012, ambBus);
+  }
+  A.night = false;
+
   A.updateAmbience = function (dt, p) {
     if (!A.ready) return;
     const t = A.ctx.currentTime;
@@ -169,8 +191,9 @@
     waveGain.gain.setTargetAtTime(sea * 0.5 * (0.6 + 0.4 * Math.sin(t * 0.5)), t, 0.4);
     birdTimer -= dt;
     if (birdTimer <= 0) {
-      birdTimer = 1.5 + Math.random() * 4;
-      if (p.z < 200) chirp(t);
+      birdTimer = A.night ? 0.6 + Math.random() * 1.6 : 1.5 + Math.random() * 4;
+      if (A.night) cricket(t);
+      else if (p.z < 200 && !(KT.Sky && KT.Sky.rain > 0.4)) chirp(t);
     }
     bellTimer -= dt;
     if (bellTimer <= 0) {

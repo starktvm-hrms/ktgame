@@ -12,6 +12,8 @@ The hosted game (GitHub Pages) uses the Supabase project **KT Browser Game**
 | Rate limits | `kt_rate_hit()` on table `rate_hits`: sign-ups per IP, log-ins per IP and per number |
 | Multiplayer | Supabase Realtime broadcast. The map is split into 120 m cells (`kt-<map>-<x>-<z>`). Players publish to their cell about 5 times a second while moving and listen to the 3×3 cells around them |
 | Online count | players who pinged in the last 2 minutes (`kt_online()`) |
+| Usernames, groups, chat | tables `groups`, `group_members`, `group_invites`, `group_messages` and `players.username`; same routes as the Node server (`/api/groups…`, `/api/invites…`, `/api/players/search`) |
+| Group realtime | each group has a secret channel key that only members receive (`kt-grp-<key>`): new chat messages, members' positions for the map, and WebRTC voice signalling. `kt-usr-<id>` nudges a player when they are invited |
 
 The browser only holds the project's publishable key (`js/config.js`),
 which is meant to be public.

@@ -108,7 +108,7 @@ class Realtime {
       rateT: Date.now(), rateN: 0
     };
     this.sessions.set(user.id, s);
-    this.metaCache.set(user.id, { name: user.name, character: user.character });
+    this.metaCache.set(user.id, { name: user.name, username: user.username, character: user.character });
     this.send(s, { t: 'hello', id: user.id, online: this.online || this.sessions.size, tickHz: this.cfg.tickHz });
     return s;
   }
@@ -154,7 +154,7 @@ class Realtime {
     } else if (msg.t === 'profile' && (msg.name || msg.character)) {
       // the player changed their look or name: refresh cached metadata
       const u = await this.store.findById(s.id).catch(() => null);
-      if (u) { s.name = u.name; s.character = u.character; this.metaCache.set(s.id, { name: u.name, character: u.character }); }
+      if (u) { s.name = u.name; s.character = u.character; this.metaCache.set(s.id, { name: u.name, username: u.username, character: u.character }); }
     }
   }
 
@@ -162,15 +162,15 @@ class Realtime {
     const out = [], missing = [];
     ids.forEach((id) => {
       const m = this.metaCache.get(id);
-      if (m) out.push({ id, name: m.name, character: m.character });
+      if (m) out.push({ id, name: m.name, username: m.username, character: m.character });
       else missing.push(id);
     });
     if (missing.length) {
       const users = await this.store.findManyByIds(missing).catch(() => []);
       users.forEach((u) => {
         if (this.metaCache.size > 50000) this.metaCache.delete(this.metaCache.keys().next().value);
-        this.metaCache.set(u.id, { name: u.name, character: u.character });
-        out.push({ id: u.id, name: u.name, character: u.character });
+        this.metaCache.set(u.id, { name: u.name, username: u.username, character: u.character });
+        out.push({ id: u.id, name: u.name, username: u.username, character: u.character });
       });
     }
     return out;
@@ -309,7 +309,7 @@ class Realtime {
 
   // Called when a player's profile changes through the HTTP API.
   updateMeta(user) {
-    this.metaCache.set(user.id, { name: user.name, character: user.character });
+    this.metaCache.set(user.id, { name: user.name, username: user.username, character: user.character });
     const s = this.sessions.get(user.id);
     if (s) { s.name = user.name; s.character = user.character; }
   }

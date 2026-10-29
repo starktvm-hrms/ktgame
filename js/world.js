@@ -202,7 +202,7 @@
     site('coastalHouse', 160, 207, 0, 8);
     site('thatchedHut', -22, 213, 0, 4);
     site('thatchedHut', 2, 214, 0, 4);
-    site('lighthouse', 118, 246, 0);
+    site('lighthouse', 118, 246, Math.PI); // door faces the beach (north)
     // Periyar
     site('entranceArch', -168, 49, HP + 0.08, 0, 0, { lines: ['Periyar Tiger Reserve', 'Thekkady'] });
     site('watchTowerForest', -262, 104, 0.4, 5);
@@ -541,7 +541,8 @@
     progress(0.4, 'Filling the backwaters...');
     World.sunDir = new T.Vector3(-0.45, 0.62, 0.55).normalize();
     scene.add(Geo.buildWater(World.sunDir));
-    scene.add(Geo.buildSky(World.sunDir));
+    World.sky = Geo.buildSky(World.sunDir);
+    scene.add(World.sky);
     World.clouds = Geo.buildClouds();
     scene.add(World.clouds);
     await tick();
@@ -575,7 +576,7 @@
   };
 
   World.buildLights = function (scene, quality) {
-    const hemi = new T.HemisphereLight(0xd6ecff, 0x6b7a3c, 0.75);
+    const hemi = World.hemi = new T.HemisphereLight(0xd6ecff, 0x6b7a3c, 0.75);
     scene.add(hemi);
     const sun = new T.DirectionalLight(0xfff0d6, 2.1);
     sun.position.copy(World.sunDir).multiplyScalar(150);

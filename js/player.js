@@ -397,6 +397,7 @@
     const gy = KT.L.groundY(desired.x, desired.z).y;
     const minY = Math.max(gy, 0) + 0.5;
     if (desired.y < minY) desired.y = minY;
+    if (KT.L.clampCamera) KT.L.clampCamera(desired, target);
     // avoid clipping into big colliders (pull in towards the player)
     // pull the camera in front of any wall or trunk between it and the player
     const steps = 16;

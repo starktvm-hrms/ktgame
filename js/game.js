@@ -9,7 +9,7 @@
   const Game = KT.Game = {
     state: 'loading',
     data: null,
-    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true },
+    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true, sky: 'live' },
     cfg: { gender: 'male', outfit: 'casual', hair: 'default', acc: { backpack: true, camera: false, hat: false, sunglasses: false } }
   };
 
@@ -57,11 +57,13 @@
     await KT.World.build(scene, { quality: Game.settings.quality }, KT.UI.progress);
     decorateMap();
     setupTowers();
+    KT.Lighthouse.setupGallery();
     setupHomeBus(scene);
     KT.Traffic.initHome(scene);
     setupHomeShops(scene);
     Game.homeScene = scene;
     Game.level = 'home';
+    KT.Sky.init();
     const saved = load(SAVE_KEY);
     if (saved && saved.cfg) Game.cfg = saved.cfg;
     const start = startPoint(null);
@@ -225,10 +227,10 @@
     Game.state = s;
     document.body.dataset.state = s;
     KT.Input.enabled = s === 'playing';
-    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage'].forEach((id) => {
+    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage', 'groups'].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') ||
+      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') || (id === 'groups' && s === 'groups') ||
         (id === 'pause' && s === 'paused') || (id === 'bigmap' && s === 'map') || (id === 'photo-ui' && s === 'photo') ||
         (id === 'album' && s === 'album') || (id === 'certificate' && s === 'certificate') ||
         (id === 'profile-page' && s === 'profile') || (id === 'players' && s === 'players') || (id === 'district' && s === 'district');
@@ -297,8 +299,13 @@
     if (Game.level === 'home') {
       if (P.mode === 'foot') d.pos = { x: P.pos.x, y: P.pos.y, z: P.pos.z };
       d.heading = P.heading;
+    } else if (Game.level === 'lighthouse') {
+      // inside the lighthouse: resume just outside its door
+      const o = KT.Lighthouse.outside;
+      d.pos = { x: o.x, y: KT.Geo.height(o.x, o.z), z: o.z };
+      d.heading = o.heading;
     } else d.hwHub = KT.Highway.status(P.pos).nearest;
-    d.map = Game.level;
+    d.map = Game.level === 'lighthouse' ? 'home' : Game.level;
     d.cfg = Game.cfg;
     d.playTime = Math.round(d.playTime * 10) / 10;
     if (Game.user) {
@@ -374,6 +381,7 @@
     const P = KT.Player;
     if (P.mode === 'bus' && P.bus && P.bus.type === id) { Game.setState('playing'); return; }
     if (P.mode !== 'foot') { KT.UI.toast('Get off the ' + (P.bus ? P.bus.spec.name : 'canoe') + ' first.'); Game.setState('playing'); return; }
+    if (KT.L.noVehicles || (KT.Lighthouse.onGallery && KT.Lighthouse.onGallery())) { KT.UI.toast('No vehicles up here! Go outside first.'); Game.setState('playing'); return; }
     if (Game.ride) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
     const L = KT.L, h = P.heading;
     const cands = [[1.8, 0], [-1.8, 0], [0, 2.5], [0, -2.5], [2.6, 1.5], [-2.6, 1.5]];
@@ -493,19 +501,32 @@
         KT.World.update(dt, KT.Player, Game.camera);
         KT.Traffic.updateHome(dt, Game.camera.position);
         KT.World.followSun(KT.Player.pos);
+      } else if (Game.level === 'lighthouse') {
+        KT.Lighthouse.update(dt, KT.Player);
       } else {
         KT.Highway.update(dt, KT.Player, Game.camera);
         KT.Highway.followSun(KT.Player.pos);
       }
       KT.FX.update(dt);
-      if (Game.level === 'home') gameplay(dt); else highwayGameplay(dt);
+      if (Game.level === 'home') gameplay(dt); else if (Game.level === 'lighthouse') lighthouseGameplay(dt); else highwayGameplay(dt);
       Game.data.playTime += dt;
       saveTimer += dt;
       if (saveTimer > 20) { saveTimer = 0; Game.save(); }
-    } else if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage') {
-      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage'))) Game.setState('playing');
+    } else if (st === 'map' && (mapRedrawT -= dt) <= 0 && !input.pressed.map && !input.pressed.pause) {
+      mapRedrawT = 0.5;
+      drawMap();
     }
-    if (Game.data && st !== 'menu' && st !== 'auth') network(dt);
+    if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage' || st === 'groups') {
+      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage'))) {
+        if (st === 'groups') KT.Groups.close(); else Game.setState('playing');
+      }
+    }
+    if (Game.data && st !== 'menu' && st !== 'auth') {
+      network(dt);
+      KT.Groups.update(dt);
+      KT.Voice.update(dt);
+    }
+    KT.Sky.update(Math.min(dt, 0.1));
     KT.Audio.updateMusic();
     if (Game.state !== 'menu' && Game.state !== 'loading' && Game.state !== 'auth' && Game.level === 'home') KT.Audio.updateAmbience(dt, KT.Player.pos);
     Game.renderer.render(Game.scene, Game.camera);
@@ -522,11 +543,29 @@
     KT.World.followSun(new T.Vector3(cx, 0, cz));
   }
 
-  Game.openMap = function () {
+  // The big map opens centred on the player at the last zoom level; it can
+  // be zoomed and dragged (KT.UI.bindMapZoom) and repaints while open.
+  let mapRedrawT = 0;
+  function drawMap() {
     const P = KT.Player;
+    const o = P.mode === 'bus' && P.bus ? P.bus.obj.position : P.pos;
+    const h = P.mode === 'bus' && P.bus ? P.bus.heading : P.heading;
+    if (Game.level === 'highway') KT.UI.drawBigMapHighway(o, h);
+    else KT.UI.drawBigMap(Game.level === 'home' ? o : Game.mapPos(), h, KT.Missions.target(), Game.data.stars);
+  }
+  Game.mapPos = function () { return KT.Lighthouse && KT.Lighthouse.mapPos ? KT.Lighthouse.mapPos() : KT.Player.pos; };
+  Game.openMap = function () {
     Game.setState('map');
-    if (Game.level === 'home') KT.UI.drawBigMap(P.pos, P.heading, KT.Missions.target(), Game.data.stars);
-    else KT.UI.drawBigMapHighway(P.pos, P.heading);
+    KT.UI.mapLevel(Game.level === 'highway' ? 'highway' : 'home');
+    KT.UI.mapRecenter = () => {
+      drawMap(); // sets the projection for this level
+      const P = KT.Player;
+      const o = Game.level === 'highway' ? (P.mode === 'bus' && P.bus ? P.bus.obj.position : P.pos) : Game.level === 'home' ? P.pos : Game.mapPos();
+      KT.UI.centerMapOn(o.x, o.z);
+    };
+    KT.UI.mapRecenter();
+    drawMap();
+    mapRedrawT = 0.5;
   };
 
   function handleActions() {
@@ -536,6 +575,8 @@
     if (I.consume('profile')) { KT.Account.openProfile(); return; }
     if (I.consume('players')) { KT.Account.openPlayers(); return; }
     if (I.consume('garage')) { Game.openGarage(); return; }
+    if (I.consume('groups')) { KT.Groups.open(); return; }
+    if (I.consume('mic')) KT.Voice.toggle(KT.Groups.active);
     if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
     if (I.consume('photo')) { Game.setState('photo'); KT.UI.toast('Camera mode: frame your shot and press C / Space to snap. Esc to exit.'); return; }
     if (I.consume('help')) { Game.setState('paused'); return; }
@@ -732,7 +773,10 @@
     Game.switching = true;
     const Hw = KT.Highway;
     const homeIdx = KT.DISTRICTS.findIndex((d) => d.home);
-    const idx = opts.hub !== undefined && opts.hub !== null ? KT.clamp(opts.hub, 0, KT.DISTRICTS.length - 1) : homeIdx;
+    // opts.at: arrive at a spot on the highway (joining a friend), the bus
+    // waits at the nearest district bus stand
+    const idx = opts.at ? Hw.status(opts.at).nearest
+      : opts.hub !== undefined && opts.hub !== null ? KT.clamp(opts.hub, 0, KT.DISTRICTS.length - 1) : homeIdx;
     if (!opts.quiet) KT.Audio.play('door');
     Game.setState('travel');
     await fade(true, 'KSRTC \u2022 Kerala Highway');
@@ -751,7 +795,8 @@
       KT.Vehicle.settle(Hw.bus);
     }
     const P = KT.Player;
-    const foot = Hw.at(hub.s, -10.2);
+    const foot = opts.at ? Hw.at(Hw.project(opts.at.x, opts.at.z).s, Hw.project(opts.at.x, opts.at.z).lat) : Hw.at(hub.s, -10.2);
+    if (opts.at) Hw.stream(foot, 999);
     P.pos.set(foot.x, Hw.groundY(foot.x, foot.z).y, foot.z);
     P.heading = hub.stopHeading;
     P.vy = 0;
@@ -773,15 +818,16 @@
   };
 
   // Back to the Alleppey backwaters map, beside the village bus stand.
-  Game.goHome = async function () {
+  Game.goHome = async function (opts) {
+    opts = opts || {};
     if (Game.switching) return;
     Game.switching = true;
     Game.setState('travel');
-    await fade(true, 'Alleppey Backwaters');
+    await fade(true, opts.title || 'Alleppey Backwaters');
     const P = KT.Player;
-    const st = Game.homeStop || startPoint(null).pos;
-    P.pos.set(st.x, KT.World.groundY(st.x, st.z).y, st.z);
-    P.heading = Game.homeStop ? Game.homeStop.heading : Math.PI;
+    const st = opts.at || Game.homeStop || startPoint(null).pos;
+    P.pos.set(st.x, KT.World.groundY(st.x, st.z, opts.y).y, st.z);
+    P.heading = opts.heading !== undefined ? opts.heading : Game.homeStop ? Game.homeStop.heading : Math.PI;
     P.vy = 0;
     switchLevel(KT.World, Game.homeScene);
     KT.CameraRig.yaw = P.heading + Math.PI;
@@ -789,8 +835,92 @@
     Game.setState('playing');
     await fade(false);
     Game.switching = false;
-    KT.UI.toast('Welcome back to the backwaters! The KSRTC bus waits at the stand whenever you want to travel again.', 'info');
+    if (!opts.quiet) KT.UI.toast('Welcome back to the backwaters! The KSRTC bus waits at the stand whenever you want to travel again.', 'info');
     Game.save(true);
+  };
+
+  // ---------------------------------------------- Kovalam lighthouse
+  // Step inside (a level of its own), climb to the gallery at the top of
+  // the tower on the home map, or go back out to the beach.
+  Game.enterLighthouse = async function (opts) {
+    opts = opts || {};
+    if (Game.switching) return;
+    const LH = KT.Lighthouse;
+    Game.switching = true;
+    KT.Audio.play('door');
+    Game.setState('travel');
+    await fade(true, opts.from === 'gallery' ? 'Down the spiral stairs\u2026' : 'Vizhinjam Lighthouse');
+    await nextFrame();
+    LH.build();
+    const sp = opts.at || (opts.from === 'gallery' ? LH.spawnStairs : LH.spawnIn);
+    const P = KT.Player;
+    P.pos.set(sp.x, 0, sp.z);
+    P.heading = sp.heading !== undefined ? sp.heading : LH.spawnIn.heading;
+    P.vy = 0;
+    switchLevel(LH, LH.scene);
+    KT.CameraRig.yaw = P.heading + Math.PI;
+    LH.update(0.016, P);
+    await nextFrame();
+    Game.setState('playing');
+    await fade(false);
+    Game.switching = false;
+    if (!opts.quiet && opts.from !== 'gallery') {
+      KT.UI.banner('Vizhinjam Lighthouse', 'വിഴിഞ്ഞം വിളക്കുമാടം  \u2022  Kovalam', 'title');
+      const d = Game.data;
+      if (!d.lhVisited) { d.lhVisited = true; Game.addXP(20); setTimeout(() => KT.UI.toast('Read the exhibits and climb the spiral stairs to the gallery at the top!', 'info'), 1500); }
+    }
+  };
+  Game.leaveLighthouse = function () {
+    const o = KT.Lighthouse.outside;
+    return Game.goHome({ at: o, heading: o.heading, quiet: true, title: 'Kovalam Beach' });
+  };
+  Game.climbLighthouse = async function () {
+    const LH = KT.Lighthouse, g = LH.galleryAt;
+    await Game.goHome({ at: g, heading: g.heading, y: LH.deckY + 0.3, quiet: true, title: '142 steps up\u2026' });
+    KT.CameraRig.yaw = g.camYaw; KT.CameraRig.snap = true;
+    const d = Game.data;
+    KT.UI.toast('What a view over the Arabian Sea! Press E by the door to go back down.', 'info');
+    if (!d.lhTop) { d.lhTop = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the Vizhinjam lighthouse! +20 coins', 'star'); }
+  };
+  function lighthouseGameplay(dt) {
+    const P = KT.Player, LH = KT.Lighthouse;
+    const best = pickInteract(LH.interactables);
+    Game.nearInteract = best;
+    showPrompt(best);
+    $('speedo').classList.add('hidden');
+    KT.UI.drawCompass(-KT.CameraRig.yaw, null, P.pos);
+    lhUiT += dt;
+    if (lhUiT > 0.1) { lhUiT = 0; KT.UI.drawMinimap(LH.mapPos(), P.heading, null, 'Vizhinjam Lighthouse \u2022 inside'); }
+  }
+  let lhUiT = 0;
+
+  // Join a group member where they are (any map).
+  Game.goToFriend = async function (p) {
+    const P = KT.Player;
+    if (Game.switching) return;
+    if (P.mode !== 'foot') { KT.UI.toast('Get off your ' + (P.bus ? P.bus.spec.name : 'canoe') + ' first, then try again.'); return; }
+    Game.setState('playing');
+    // land a couple of metres from them, somewhere free
+    const L = p.l === 1 ? KT.Highway : p.l === 2 ? KT.Lighthouse : KT.World;
+    let x = p.x + 2, z = p.z;
+    for (let a = 0; a < 8; a++) {
+      const tx = p.x + Math.cos(a * 0.785) * 2.2, tz = p.z + Math.sin(a * 0.785) * 2.2;
+      if (L && L.built !== false && !L.isBlocked(tx, tz, 0.5)) { x = tx; z = tz; break; }
+    }
+    const face = Math.atan2(p.x - x, p.z - z);
+    if (p.l === 2) {
+      if (Game.level === 'lighthouse') P.pos.set(x, 0, z);
+      else { await Game.enterLighthouse({ at: { x, z, heading: face }, quiet: true }); return; }
+    } else if (p.l === 1) {
+      if (Game.level === 'highway') {
+        KT.Highway.stream({ x, z }, 999);
+        P.pos.set(x, KT.Highway.groundY(x, z).y, z);
+      } else await Game.goHighway({ at: { x, z }, board: false, quiet: true });
+    } else if (Game.level === 'home') P.pos.set(x, KT.World.groundY(x, z).y, z);
+    else await Game.goHome({ at: { x, z }, quiet: true });
+    P.heading = face; P.vy = 0;
+    KT.CameraRig.yaw = face + Math.PI; KT.CameraRig.snap = true;
+    KT.UI.toast('You joined ' + p.n + '. Namaskaram! \u{1F64F}', 'info');
   };
 
   // --------------------------------------------------- highway gameplay
@@ -1004,6 +1134,7 @@
     $('btn-district-close').onclick = () => Game.setState('playing');
     $('btn-garage').onclick = () => { if (Game.state === 'playing') Game.openGarage(); };
     $('btn-garage-close').onclick = () => Game.setState('playing');
+    KT.Groups.bindUI();
     KT.Fishing.bindUI();
     $('btn-continue').onclick = () => Game.start(true);
     $('btn-settings').onclick = () => { if (Game.state === 'playing') Game.setState('paused'); };
@@ -1012,6 +1143,7 @@
     $('btn-album-close').onclick = () => Game.setState('playing');
     $('btn-map').onclick = () => Game.openMap();
     $('minimap-wrap').onclick = $('btn-map').onclick;
+    KT.UI.bindMapZoom(drawMap);
     $('btn-map-close').onclick = () => Game.setState('playing');
     $('btn-photo-close').onclick = () => Game.setState('playing');
     $('btn-shutter').onclick = () => Game.takePhoto();
@@ -1035,6 +1167,9 @@
     $('set-music').value = s.music; $('set-sfx').value = s.sfx;
     $('set-sens').value = s.sensitivity; $('set-invert').checked = s.invertY;
     $('set-quality').value = s.quality; $('set-lock').checked = s.mouseLook !== false;
+    $('set-sky').value = s.sky || 'live';
+    $('set-sky').onchange = (e) => { s.sky = e.target.value; KT.Sky.setMode(s.sky); saveSettings(); };
+    $('weather-chip').onclick = () => KT.UI.toast(KT.Sky.describe(), 'info');
     KT.Input.mouseLook = s.mouseLook !== false;
     // Esc freed the cursor while playing: open the pause menu
     KT.Input.onUnlock = () => { if (Game.state === 'playing') Game.setState('paused'); updateMouseHint(); };

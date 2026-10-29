@@ -43,12 +43,20 @@
       </form>
       <form id="form-register" class="auth-form hidden" autocomplete="on" novalidate>
         <label>Your name<input id="reg-name" maxlength="24" autocomplete="name" placeholder="e.g. Anjali" required></label>
+        <label>Username <small class="muted">(friends invite you with this)</small><span class="at-wrap"><span class="at">@</span><input id="reg-username" maxlength="21" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="anjali_kerala" required></span></label>
         <label>Mobile number<input id="reg-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="98765 43210" required></label>
         <label>Password<span class="pw-wrap"><input id="reg-password" type="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required><button type="button" class="pw-toggle" data-for="reg-password">Show</button></span></label>
         <label>Confirm password<input id="reg-password2" type="password" autocomplete="new-password" required></label>
         <label class="check"><input id="reg-remember" type="checkbox" checked> Remember me on this device</label>
         <p id="register-error" class="auth-error hidden"></p>
         <button class="btn primary" type="submit">Create account</button>
+      </form>
+      <form id="form-username" class="auth-form hidden" novalidate>
+        <h3>Choose your username</h3>
+        <p class="muted small-print">Friends find you and invite you to groups with your username. You can change it later on your profile.</p>
+        <label>Username<span class="at-wrap"><span class="at">@</span><input id="set-username" maxlength="21" autocapitalize="off" spellcheck="false" required></span></label>
+        <p id="username-error" class="auth-error hidden"></p>
+        <button class="btn primary" type="submit">Save username</button>
       </form>
       <div class="auth-foot">
         <button id="btn-guest" class="linkish">Play offline as a guest</button>
@@ -132,16 +140,19 @@
     </div>
 
     <div id="topright">
+      <button id="weather-chip" class="chip-stat weather-chip" title="Time and weather"><span class="ic">&#x2600;&#xFE0F;</span><span>--:--</span></button>
       <div class="chip-stat"><span class="ic coin"></span><span id="coins">0</span></div>
       <div class="chip-stat"><span class="ic">&#x2B50;</span><span id="stars">0</span></div>
       <div class="chip-stat"><span class="ic">&#x1F343;</span><span id="leaves">0</span></div>
       <button id="btn-online" class="chip-stat online-chip" title="Players online (O)"><span class="net-dot"></span><span id="online-count">offline</span></button>
+      <button id="btn-groups" class="icon-btn" title="Groups &amp; chat (T)">&#x1F465;<span id="groups-badge" class="badge hidden"></span></button>
       <button id="btn-garage" class="icon-btn" title="My vehicles (G)">&#x1F6B2;</button>
       <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
     </div>
 
     <div id="minimap-wrap" class="panel" title="Open map (M)">
       <canvas id="minimap" width="240" height="240"></canvas>
+      <div class="mm-zoom"><button id="mm-zoom-in" title="Zoom in">+</button><button id="mm-zoom-out" title="Zoom out">&minus;</button></div>
       <div id="location-row"><span class="pin">&#x1F4CD;</span><span id="location">Alleppey</span></div>
       <span class="expand">&#x26F6;</span>
     </div>
@@ -203,6 +214,13 @@
         <label>Look sensitivity <input type="range" id="set-sens" min="0.3" max="2.5" step="0.1"></label>
         <label class="check"><input type="checkbox" id="set-invert"> Invert vertical look</label>
         <label class="check"><input type="checkbox" id="set-lock"> Mouse look: move the mouse to look around (Esc frees the cursor)</label>
+        <label>Time &amp; weather
+          <select id="set-sky">
+            <option value="live">Live: your clock + real weather</option>
+            <option value="time">Your clock, always clear skies</option>
+            <option value="day">Always sunny daytime</option>
+          </select>
+        </label>
         <label>Graphics quality
           <select id="set-quality">
             <option value="low">Low (fast)</option>
@@ -236,7 +254,15 @@
   <div id="bigmap" class="screen hidden">
     <div class="modal map-modal">
       <div class="modal-head"><h2>Map of Kerala Explorer</h2><button id="btn-map-close" class="btn small">&#x2715; Close</button></div>
-      <canvas id="bigmap-canvas" width="900" height="900"></canvas>
+      <div class="map-stage">
+        <canvas id="bigmap-canvas" width="900" height="900"></canvas>
+        <div class="map-zoom">
+          <button id="map-zoom-in" class="btn small" title="Zoom in">+</button>
+          <button id="map-zoom-out" class="btn small" title="Zoom out">&minus;</button>
+          <button id="map-zoom-me" class="btn small" title="Centre on me">&#x25CE;</button>
+        </div>
+        <p class="map-hint muted">Scroll or pinch to zoom &bull; drag to move &bull; <span class="legend-me">&#x25B2;</span> you &bull; <span class="legend-friend">&#x25CF;</span> group friends &bull; <span class="legend-player">&#x25CF;</span> other players</p>
+      </div>
     </div>
   </div>
 
@@ -281,6 +307,27 @@
       <div id="garage-list"></div>
     </div>
   </div>
+
+  <!-- Groups, invitations and chat -->
+  <div id="groups" class="screen hidden">
+    <div class="modal groups-modal">
+      <div class="modal-head"><h2>Groups <small class="muted">(T)</small></h2><button id="btn-groups-close" class="btn small">&#x2715; Close</button></div>
+      <div class="tabs">
+        <button data-gtab="mine">My groups</button>
+        <button data-gtab="discover">Discover</button>
+        <button data-gtab="invites">Invites <span id="invite-count" class="badge hidden"></span></button>
+        <button data-gtab="create">+ Create</button>
+      </div>
+      <div id="groups-body"></div>
+    </div>
+  </div>
+  <!-- in-game chat for the active group: Enter to type -->
+  <div id="chat-dock" class="panel hidden">
+    <div class="dock-head"><button id="dock-open" class="linkish" title="Open the group (T)"><span id="dock-group"></span></button><button id="dock-voice" class="icon-btn small" title="Voice chat: join / mute (B)">&#x1F3A4;</button></div>
+    <div id="dock-messages"></div>
+    <input id="dock-input" maxlength="300" placeholder="Press Enter to chat with your group" autocomplete="off">
+  </div>
+  <div id="voice-audio" hidden></div>
 
   <!-- Fishing at Kochi -->
   <div id="fishing" class="panel hidden">
@@ -334,10 +381,14 @@
   <script src="js/player.js"></script>
   <script src="js/missions.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/lighthouse.js"></script>
+  <script src="js/sky.js"></script>
   <script src="js/preview.js"></script>
   <script src="lib/supabase.min.js"></script>
   <script src="js/net.js"></script>
   <script src="js/account.js"></script>
+  <script src="js/groups.js"></script>
+  <script src="js/voice.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

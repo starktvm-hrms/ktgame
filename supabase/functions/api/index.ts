@@ -2,14 +2,22 @@
 // responses as the Node server (server/src/http.js), so the game client
 // works with either backend:
 //
-//   POST /api/register  {name, phone, password, remember} -> {token, user}
+//   POST /api/register  {name, username, phone, password, remember} -> {token, user}
 //   POST /api/login     {phone, password, remember}       -> {token, user}
 //   GET  /api/me                                           -> {user}
-//   PUT  /api/me        {name?, character?}                -> {user}
+//   PUT  /api/me        {name?, username?, character?}     -> {user}
 //   PUT  /api/progress  {progress}                         -> {ok}
 //   POST /api/ping                                         -> {online}
 //   GET  /api/profile/:id                                  -> {profile}
+//   GET  /api/players/search?q=                            -> {players}
 //   GET  /api/health                                       -> {ok, online, players}
+// Groups (public / private), invitations and chat:
+//   GET  /api/groups                      my groups      POST /api/groups {name, visibility, description}
+//   GET  /api/groups/public?q=            browse         GET  /api/groups/:id  details + members
+//   POST /api/groups/:id/join | leave     POST /api/groups/:id/invite {username}
+//   POST /api/groups/:id/kick {userId}    (owner)
+//   GET  /api/groups/:id/messages?after=  POST /api/groups/:id/messages {text}
+//   GET  /api/invites                     POST /api/invites/:id/accept | decline
 //
 // Deployed with verify_jwt = false: requests carry the game's own signed
 // session token, checked below.
@@ -25,6 +33,7 @@ const PBKDF2_ITER = 150000;
 const ONLINE_WINDOW = 120; // seconds since the last ping
 const DISTRICT_IDS = ['tvm', 'klm', 'pta', 'alp', 'ktm', 'idk', 'ekm', 'tsr', 'pkd', 'mlp', 'kkd', 'wyd', 'knr', 'ksd'];
 const VEHICLE_IDS = ['bicycle', 'auto', 'scooter', 'car'];
+const MAX_GROUPS = 20; // memberships per player
 
 class AppError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -106,6 +115,17 @@ function validateName(input: unknown) {
   const name = input.trim().replace(/\s+/g, ' ');
   return /^[\p{L}\p{M}\p{N} .'_-]{2,24}$/u.test(name) ? name : null;
 }
+// usernames: 3-20 characters, a letter first, then letters, digits, _ or .
+function validateUsername(input: unknown) {
+  if (typeof input !== 'string') return null;
+  const u = input.trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z][a-z0-9_.]{2,19}$/.test(u) ? u : null;
+}
+function validateGroupName(input: unknown) {
+  if (typeof input !== 'string') return null;
+  const n = input.trim().replace(/\s+/g, ' ');
+  return /^[\p{L}\p{M}\p{N} .'&!_-]{3,30}$/u.test(n) ? n : null;
+}
 const validPassword = (pw: unknown) => typeof pw === 'string' && pw.length >= 6 && pw.length <= 128;
 function maskPhone(phone: string) {
   if (!phone) return '';
@@ -126,6 +146,7 @@ function publicUser(u: any, self: boolean) {
   const out: any = {
     id: u.id,
     name: u.name,
+    username: u.username || null,
     memberSince: u.created_at,
     character: u.character || null,
     stats: {
@@ -152,7 +173,7 @@ function publicUser(u: any, self: boolean) {
 }
 
 // ------------------------------------------------------------- database
-const COLS = 'id, name, phone, pass_hash, created_at, last_login, character, progress';
+const COLS = 'id, name, username, phone, pass_hash, created_at, last_login, character, progress';
 async function findBy(col: string, val: unknown) {
   const { data, error } = await db.from('players').select(COLS).eq(col, val).maybeSingle();
   if (error) throw error;
@@ -196,12 +217,14 @@ const routes: Record<string, Route> = {
     await limit('reg:' + ipOf(req), 20, 3600);
     const name = validateName(b.name);
     const phone = normalizePhone(b.phone);
+    const username = validateUsername(b.username);
     if (!name) throw new AppError(400, 'BAD_NAME', 'Name must be 2–24 letters or numbers.');
+    if (!username) throw new AppError(400, 'BAD_USERNAME', USERNAME_RULES);
     if (!phone) throw new AppError(400, 'BAD_PHONE', 'Enter a valid mobile number (e.g. 98765 43210).');
     if (!validPassword(b.password)) throw new AppError(400, 'BAD_PASSWORD', 'Password must be at least 6 characters.');
-    const { data, error } = await db.from('players').insert({ name, phone, pass_hash: await hashPassword(b.password) }).select(COLS).single();
+    const { data, error } = await db.from('players').insert({ name, username, phone, pass_hash: await hashPassword(b.password) }).select(COLS).single();
     if (error) {
-      if (error.code === '23505') throw new AppError(409, 'PHONE_TAKEN', 'This phone number is already registered. Please log in.');
+      if (error.code === '23505') throw uniqueError(error);
       throw error;
     }
     return [201, { token: await issueToken(data.id, !!b.remember), user: publicUser(data, true) }];
@@ -227,8 +250,61 @@ const routes: Record<string, Route> = {
       if (!name) throw new AppError(400, 'BAD_NAME', 'Name must be 2–24 letters or numbers.');
       patch.name = name;
     }
+    if (b.username !== undefined && b.username !== user.username) {
+      const username = validateUsername(b.username);
+      if (!username) throw new AppError(400, 'BAD_USERNAME', USERNAME_RULES);
+      patch.username = username;
+    }
     if (b.character !== undefined) patch.character = cleanCharacter(b.character);
-    return [200, { user: publicUser(Object.keys(patch).length ? await update(user.id, patch) : user, true) }];
+    if (!Object.keys(patch).length) return [200, { user: publicUser(user, true) }];
+    const { data, error } = await db.from('players').update(patch).eq('id', user.id).select(COLS).single();
+    if (error) { if (error.code === '23505') throw uniqueError(error); throw error; }
+    return [200, { user: publicUser(data, true) }];
+  },
+  'GET /api/players/search': async (req) => {
+    const user = await requireUser(req);
+    const q = (new URL(req.url).searchParams.get('q') || '').trim().replace(/^@/, '').toLowerCase().replace(/[%_,()]/g, '');
+    if (q.length < 2) return [200, { players: [] }];
+    const { data, error } = await db.from('players').select('id, name, username').or('username.ilike.' + q + '%,name.ilike.%' + q + '%').neq('id', user.id).limit(10);
+    if (error) throw error;
+    return [200, { players: data.map((p) => ({ id: p.id, name: p.name, username: p.username })) }];
+  },
+
+  // ------------------------------------------------------------ groups
+  'GET /api/groups': async (req) => {
+    const user = await requireUser(req);
+    const { data, error } = await db.rpc('kt_my_groups', { p_uid: user.id });
+    if (error) throw error;
+    return [200, { groups: data.map((g: any) => groupOut(g, true)) }];
+  },
+  'POST /api/groups': async (req) => {
+    const user = await requireUser(req);
+    const b = await readBody(req);
+    const name = validateGroupName(b.name);
+    if (!name) throw new AppError(400, 'BAD_GROUP_NAME', 'Group names are 3–30 letters, numbers or spaces.');
+    const visibility = b.visibility === 'private' ? 'private' : 'public';
+    const description = typeof b.description === 'string' ? b.description.trim().slice(0, 140) : '';
+    await limit('grp:' + user.id, 10, 3600);
+    await checkGroupLimit(user.id);
+    const { data: g, error } = await db.from('groups').insert({ name, visibility, description, owner_id: user.id }).select('*').single();
+    if (error) throw error;
+    await must(db.from('group_members').insert({ group_id: g.id, player_id: user.id, role: 'owner' }));
+    return [201, { group: groupOut({ ...g, role: 'owner', member_count: 1 }, true) }];
+  },
+  'GET /api/groups/public': async (req) => {
+    const user = await requireUser(req);
+    const q = (new URL(req.url).searchParams.get('q') || '').trim().slice(0, 30);
+    const { data, error } = await db.rpc('kt_public_groups', { p_q: q, p_uid: user.id });
+    if (error) throw error;
+    return [200, { groups: data.map((g: any) => ({ ...groupOut(g, false), joined: g.joined })) }];
+  },
+  'GET /api/invites': async (req) => {
+    const user = await requireUser(req);
+    const { data, error } = await db.from('group_invites')
+      .select('id, created_at, group:groups(id, name, visibility, description), from:players!group_invites_from_id_fkey(name, username)')
+      .eq('to_id', user.id).order('id', { ascending: false }).limit(30);
+    if (error) throw error;
+    return [200, { invites: data.map((i: any) => ({ id: i.id, createdAt: i.created_at, group: i.group, from: i.from })) }];
   },
   'PUT /api/progress': async (req) => {
     const user = await requireUser(req);
@@ -247,6 +323,147 @@ const routes: Record<string, Route> = {
     return [200, { ok: true, online: await online(), players: count || 0, store: 'supabase', bus: 'supabase-realtime' }];
   }
 };
+
+const USERNAME_RULES = 'Usernames are 3–20 characters: a letter first, then letters, numbers, _ or .';
+function uniqueError(error: any) {
+  const text = (error.message || '') + ' ' + (error.details || '');
+  if (/username/.test(text)) return new AppError(409, 'USERNAME_TAKEN', 'That username is taken. Please choose another.');
+  return new AppError(409, 'PHONE_TAKEN', 'This phone number is already registered. Please log in.');
+}
+async function must(q: any) {
+  const { data, error } = await q;
+  if (error) throw error;
+  return data;
+}
+function groupOut(g: any, member: boolean) {
+  return {
+    id: Number(g.id), name: g.name, description: g.description || '', visibility: g.visibility,
+    ownerId: Number(g.owner_id), memberCount: Number(g.member_count || 0), role: g.role || null,
+    channel: member ? g.channel_key : undefined, lastMessageId: Number(g.last_message_id || 0), createdAt: g.created_at
+  };
+}
+async function roleIn(gid: number, uid: number) {
+  const { data, error } = await db.from('group_members').select('role').eq('group_id', gid).eq('player_id', uid).maybeSingle();
+  if (error) throw error;
+  return data ? data.role : null;
+}
+async function loadGroup(gid: number) {
+  const { data, error } = await db.from('groups').select('*').eq('id', gid).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new AppError(404, 'NOT_FOUND', 'That group no longer exists.');
+  return data;
+}
+async function checkGroupLimit(uid: number) {
+  const { count } = await db.from('group_members').select('group_id', { count: 'exact', head: true }).eq('player_id', uid);
+  if ((count || 0) >= MAX_GROUPS) throw new AppError(400, 'TOO_MANY_GROUPS', 'You can be in at most ' + MAX_GROUPS + ' groups.');
+}
+async function memberCount(gid: number) {
+  const { count } = await db.from('group_members').select('player_id', { count: 'exact', head: true }).eq('group_id', gid);
+  return count || 0;
+}
+const MSG_COLS = 'id, text, created_at, player_id, players(name, username)';
+const msgOut = (m: any) => ({ id: Number(m.id), userId: Number(m.player_id), name: m.players ? m.players.name : '', username: m.players ? m.players.username : '', text: m.text, at: m.created_at });
+
+// /api/groups/:id/... and /api/invites/:id/...
+async function groupRoute(req: Request, gid: number, action: string): Promise<[number, unknown]> {
+  const user = await requireUser(req);
+  const g = await loadGroup(gid);
+  const role = await roleIn(gid, user.id);
+  const method = req.method;
+  if (method === 'GET' && action === '') {
+    let invited = false;
+    if (!role && g.visibility === 'private') {
+      const { data } = await db.from('group_invites').select('id').eq('group_id', gid).eq('to_id', user.id).maybeSingle();
+      invited = !!data;
+      if (!invited) throw new AppError(404, 'NOT_FOUND', 'That group is private.');
+    }
+    const { data: mem, error } = await db.from('group_members').select('role, joined_at, players(id, name, username, character)').eq('group_id', gid).order('joined_at');
+    if (error) throw error;
+    const members = mem.map((m: any) => ({ id: m.players.id, name: m.players.name, username: m.players.username, character: m.players.character, role: m.role }));
+    return [200, { group: { ...groupOut({ ...g, role, member_count: members.length }, !!role) }, members }];
+  }
+  if (method === 'POST' && action === 'join') {
+    if (role) return [200, { group: groupOut({ ...g, role, member_count: await memberCount(gid) }, true) }];
+    if (g.visibility === 'private') {
+      const { data } = await db.from('group_invites').select('id').eq('group_id', gid).eq('to_id', user.id).maybeSingle();
+      if (!data) throw new AppError(403, 'INVITE_ONLY', 'This is a private group. Ask a member to invite you.');
+    }
+    await checkGroupLimit(user.id);
+    await must(db.from('group_members').insert({ group_id: gid, player_id: user.id, role: 'member' }));
+    await db.from('group_invites').delete().eq('group_id', gid).eq('to_id', user.id);
+    return [200, { group: groupOut({ ...g, role: 'member', member_count: await memberCount(gid) }, true) }];
+  }
+  if (!role) throw new AppError(403, 'NOT_MEMBER', 'You are not a member of this group.');
+  if (method === 'POST' && action === 'leave') {
+    await must(db.from('group_members').delete().eq('group_id', gid).eq('player_id', user.id));
+    if (role === 'owner') {
+      // hand the group to the longest-standing member, or close it
+      const { data: next } = await db.from('group_members').select('player_id').eq('group_id', gid).order('joined_at').limit(1).maybeSingle();
+      if (next) {
+        await must(db.from('group_members').update({ role: 'owner' }).eq('group_id', gid).eq('player_id', next.player_id));
+        await must(db.from('groups').update({ owner_id: next.player_id }).eq('id', gid));
+      } else await must(db.from('groups').delete().eq('id', gid));
+    }
+    return [200, { ok: true }];
+  }
+  if (method === 'POST' && action === 'invite') {
+    const b = await readBody(req);
+    const username = validateUsername(b.username);
+    if (!username) throw new AppError(400, 'BAD_USERNAME', USERNAME_RULES);
+    await limit('inv:' + user.id, 40, 3600);
+    const { data: to } = await db.from('players').select('id, name, username').eq('username', username).maybeSingle();
+    if (!to) throw new AppError(404, 'NO_PLAYER', 'No traveller has the username @' + username + '.');
+    if (await roleIn(gid, to.id)) throw new AppError(409, 'ALREADY_MEMBER', '@' + username + ' is already in this group.');
+    const { error } = await db.from('group_invites').upsert({ group_id: gid, from_id: user.id, to_id: to.id }, { onConflict: 'group_id,to_id', ignoreDuplicates: true });
+    if (error) throw error;
+    return [200, { ok: true, player: to }];
+  }
+  if (method === 'POST' && action === 'kick') {
+    const b = await readBody(req);
+    if (role !== 'owner') throw new AppError(403, 'NOT_OWNER', 'Only the group owner can remove members.');
+    const target = Number(b.userId);
+    if (!target || target === user.id) throw new AppError(400, 'BAD_USER', 'Choose a member to remove.');
+    await must(db.from('group_members').delete().eq('group_id', gid).eq('player_id', target));
+    return [200, { ok: true }];
+  }
+  if (method === 'GET' && action === 'messages') {
+    const after = Number(new URL(req.url).searchParams.get('after') || 0);
+    let q = db.from('group_messages').select(MSG_COLS).eq('group_id', gid).order('id', { ascending: false }).limit(50);
+    if (after > 0) q = q.gt('id', after);
+    const { data, error } = await q;
+    if (error) throw error;
+    return [200, { messages: data.reverse().map(msgOut) }];
+  }
+  if (method === 'POST' && action === 'messages') {
+    const b = await readBody(req);
+    const text = typeof b.text === 'string' ? b.text.trim().slice(0, 300) : '';
+    if (!text) throw new AppError(400, 'EMPTY', 'Type a message first.');
+    await limit('msg:' + user.id, 30, 60);
+    const { data, error } = await db.from('group_messages').insert({ group_id: gid, player_id: user.id, text }).select(MSG_COLS).single();
+    if (error) throw error;
+    return [201, { message: msgOut(data) }];
+  }
+  throw new AppError(404, 'NOT_FOUND', 'Unknown endpoint');
+}
+async function inviteRoute(req: Request, id: number, action: string): Promise<[number, unknown]> {
+  const user = await requireUser(req);
+  const { data: inv } = await db.from('group_invites').select('id, group_id, to_id').eq('id', id).maybeSingle();
+  if (!inv || inv.to_id !== user.id) throw new AppError(404, 'NOT_FOUND', 'That invitation is no longer available.');
+  if (action === 'decline') {
+    await must(db.from('group_invites').delete().eq('id', id));
+    return [200, { ok: true }];
+  }
+  if (action === 'accept') {
+    const g = await loadGroup(inv.group_id);
+    if (!(await roleIn(g.id, user.id))) {
+      await checkGroupLimit(user.id);
+      await must(db.from('group_members').insert({ group_id: g.id, player_id: user.id, role: 'member' }));
+    }
+    await must(db.from('group_invites').delete().eq('id', id));
+    return [200, { group: groupOut({ ...g, role: 'member', member_count: await memberCount(g.id) }, true) }];
+  }
+  throw new AppError(404, 'NOT_FOUND', 'Unknown endpoint');
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -267,6 +484,16 @@ Deno.serve(async (req) => {
       const u = await findBy('id', Number(m[1]));
       if (!u) throw new AppError(404, 'NOT_FOUND', 'Player not found');
       return json(200, { profile: publicUser(u, false) });
+    }
+    const gm = path.match(/^\/api\/groups\/(\d{1,15})(?:\/(join|leave|invite|kick|messages))?$/);
+    if (gm) {
+      const [status, body] = await groupRoute(req, Number(gm[1]), gm[2] || '');
+      return json(status, body);
+    }
+    const im = path.match(/^\/api\/invites\/(\d{1,15})\/(accept|decline)$/);
+    if (im && req.method === 'POST') {
+      const [status, body] = await inviteRoute(req, Number(im[1]), im[2]);
+      return json(status, body);
     }
     const route = routes[req.method + ' ' + path];
     if (!route) throw new AppError(404, 'NOT_FOUND', 'Unknown endpoint');

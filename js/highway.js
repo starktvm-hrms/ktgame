@@ -655,7 +655,8 @@
     scene.add(Hw.clouds);
     Hw.horizon = buildHorizon();
     scene.add(Hw.horizon);
-    scene.add(new T.HemisphereLight(0xd6ecff, 0x6b7a3c, 0.75));
+    Hw.hemi = new T.HemisphereLight(0xd6ecff, 0x6b7a3c, 0.75);
+    scene.add(Hw.hemi);
     const sun = Hw.sun = new T.DirectionalLight(0xfff0d6, 2.1);
     if (quality !== 'low') {
       sun.castShadow = true;

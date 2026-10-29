@@ -4,6 +4,17 @@
   const $ = (id) => document.getElementById(id);
   const A = KT.Account = {};
 
+  // usernames: 3-20 characters, a letter first, then letters, digits, _ or .
+  A.USERNAME_RULES = 'Usernames are 3–20 characters: a letter first, then letters, numbers, _ or .';
+  A.cleanUsername = (s) => String(s || '').trim().replace(/^@/, '').toLowerCase();
+  A.validUsername = (u) => /^[a-z][a-z0-9_.]{2,19}$/.test(u);
+  // a suggestion from the player's name: "Anjali Nair" -> "anjali_nair"
+  A.suggestUsername = (name) => {
+    let u = String(name || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20);
+    if (!/^[a-z]/.test(u)) u = 'traveller_' + u;
+    return u.length >= 3 ? u.slice(0, 20) : '';
+  };
+
   function setError(id, msg) {
     const el = $(id);
     el.textContent = msg || '';
@@ -62,18 +73,41 @@
         e.preventDefault();
         setError('register-error');
         const name = $('reg-name').value.trim(), phone = $('reg-phone').value.trim(), pw = $('reg-password').value;
+        const username = A.cleanUsername($('reg-username').value);
         if (name.length < 2) return setError('register-error', 'Please enter your name (at least 2 letters).');
+        if (!A.validUsername(username)) return setError('register-error', A.USERNAME_RULES);
         if (!/^(\+?\d[\d\s-]{8,16})$/.test(phone)) return setError('register-error', 'Please enter a valid mobile number.');
         if (pw.length < 6) return setError('register-error', 'Password must be at least 6 characters.');
         if (pw !== $('reg-password2').value) return setError('register-error', 'The two passwords do not match.');
         const form = $('form-register');
         busy(form, true);
         try {
-          const user = await KT.Net.register({ name, phone, password: pw, remember: $('reg-remember').checked });
+          const user = await KT.Net.register({ name, username, phone, password: pw, remember: $('reg-remember').checked });
           $('reg-password').value = $('reg-password2').value = '';
           KT.UI.toast('Welcome to Kerala, ' + user.name + '!', 'info');
           done(user);
         } catch (err) { setError('register-error', err.message); }
+        busy(form, false);
+      };
+      // suggest a username from the name until the player types their own
+      let ownUsername = false;
+      $('reg-name').addEventListener('input', () => { if (!ownUsername) $('reg-username').value = A.suggestUsername($('reg-name').value); });
+      $('reg-username').addEventListener('input', (e) => {
+        ownUsername = true;
+        const v = e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+        if (v !== e.target.value) e.target.value = v;
+      });
+      $('form-username').onsubmit = async (e) => {
+        e.preventDefault();
+        setError('username-error');
+        const u = A.cleanUsername($('set-username').value);
+        if (!A.validUsername(u)) return setError('username-error', A.USERNAME_RULES);
+        const form = $('form-username');
+        busy(form, true);
+        try {
+          const user = await KT.Net.updateMe({ username: u });
+          if (A.usernameDone) A.usernameDone(user);
+        } catch (err) { setError('username-error', err.message); }
         busy(form, false);
       };
       $('btn-guest').onclick = () => done(null);
@@ -98,9 +132,25 @@
     KT.UI.show('auth');
     checkServer();
   }
-  function done(user) {
+  async function done(user) {
+    if (user && !user.username) user = await askUsername(user);
     KT.UI.hide('auth');
     if (A.resolve) { const r = A.resolve; A.resolve = null; r(user); }
+  }
+  // Players who registered before usernames existed choose one once.
+  function askUsername(user) {
+    return new Promise((resolve) => {
+      document.querySelectorAll('.auth-tabs, #form-login, #form-register, .auth-foot').forEach((el) => el.classList.add('hidden'));
+      $('form-username').classList.remove('hidden');
+      $('set-username').value = A.suggestUsername(user.name);
+      KT.UI.show('auth');
+      A.usernameDone = (u) => {
+        A.usernameDone = null;
+        $('form-username').classList.add('hidden');
+        document.querySelectorAll('.auth-tabs, .auth-foot').forEach((el) => el.classList.remove('hidden'));
+        resolve(u);
+      };
+    });
   }
 
   // ------------------------------------------------------------- profile
@@ -162,6 +212,7 @@
       '<div class="pf-id">',
       '<h2 id="pf-name">' + esc(p.name) + '</h2>',
       self && !p.guest ? '<button class="btn small" id="pf-edit-name">Edit name</button>' : '',
+      p.username ? '<div class="pf-username"><span id="pf-username">@' + esc(p.username) + '</span>' + (self ? ' <button class="linkish small" id="pf-edit-username">change</button>' : '') + '</div>' : '',
       '<div class="pf-meta">',
       p.guest ? 'Guest explorer — progress saved on this device only' : 'Member since ' + fmtDate(p.memberSince),
       self && p.phone ? ' • ' + esc(p.phone) : '',
@@ -191,6 +242,17 @@
         KT.UI.toast('Name updated.');
       }).catch((e) => KT.UI.toast(e.message));
     };
+    const eu = $('pf-edit-username');
+    if (eu) eu.onclick = () => {
+      const u = A.cleanUsername(window.prompt('Your username (3–20 letters, numbers, _ or .)', p.username) || '');
+      if (!u || u === p.username) return;
+      if (!A.validUsername(u)) { KT.UI.toast(A.USERNAME_RULES); return; }
+      KT.Net.updateMe({ username: u }).then((user) => {
+        p.username = user.username;
+        $('pf-username').textContent = '@' + user.username;
+        KT.UI.toast('Username changed to @' + user.username + '.');
+      }).catch((e) => KT.UI.toast(e.message));
+    };
     const lo = $('pf-logout');
     if (lo) lo.onclick = () => { KT.Game.save(true); KT.Net.flushProgress(true); setTimeout(() => { KT.Net.logout(); location.reload(); }, 300); };
     const lk = $('pf-look');
@@ -211,8 +273,9 @@
       list.slice(0, 40).forEach((p) => {
         const row = document.createElement('div');
         row.className = 'player-row';
-        row.innerHTML = '<span>' + (p.inBus ? '\u{1F68C} ' : '\u{1F9CD} ') + '<b></b></span><small>' + Math.round(p.dist) + ' m</small>';
+        row.innerHTML = '<span>' + (p.inBus ? '\u{1F68C} ' : '\u{1F9CD} ') + '<b></b> <small class="muted"></small></span><small>' + Math.round(p.dist) + ' m</small>';
         row.querySelector('b').textContent = p.name;
+        row.querySelector('span small').textContent = p.username ? '@' + p.username : '';
         const btn = document.createElement('button');
         btn.className = 'btn small';
         btn.textContent = 'Profile';

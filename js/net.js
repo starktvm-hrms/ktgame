@@ -220,15 +220,24 @@
   // publish to their own cell and listen to the 3x3 cells around them, so
   // traffic stays local however many people are online.
   const CELL = 120;
-  let sb = null, sbCell = '', sbOwn = '', pingTimer = null, metaT = 0;
+  let sb = null, live = false, sbCell = '', sbOwn = '', pingTimer = null, metaT = 0;
   const sbChannels = new Map();
   const r2 = (v) => Math.round(v * 100) / 100;
+  // The Supabase client, shared with groups (chat, presence and voice).
+  Net.realtime = function () {
+    if (Net.mode() !== 'supabase') return null;
+    if (!sb) {
+      sb = window.supabase.createClient(C.supabaseUrl, C.supabaseKey, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        realtime: { params: { eventsPerSecond: 20 } }
+      });
+    }
+    return sb;
+  };
   function sbConnect() {
-    if (!Net.token || !Net.user || sb) return;
-    sb = window.supabase.createClient(C.supabaseUrl, C.supabaseKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      realtime: { params: { eventsPerSecond: 20 } }
-    });
+    if (!Net.token || !Net.user || live) return;
+    live = true;
+    Net.realtime();
     Net.myId = Net.user.id;
     ping();
     pingTimer = setInterval(ping, 45000);
@@ -237,7 +246,7 @@
     clearInterval(pingTimer); pingTimer = null;
     if (sb) sb.removeAllChannels();
     sbChannels.clear();
-    sb = null; sbCell = ''; sbOwn = '';
+    sb = null; live = false; sbCell = ''; sbOwn = '';
     Net.connected = false;
   }
   async function ping() {
@@ -283,8 +292,8 @@
     if (!p || !finite(p.i) || p.i === Net.myId || typeof p.n !== 'string') return;
     const r = Net.remotes.get(p.i);
     if (!r) return;
-    const m = { id: p.i, name: p.n.slice(0, 24), character: p.c && typeof p.c === 'object' ? p.c : null };
-    if (r.meta && r.meta.name === m.name && JSON.stringify(r.meta.character) === JSON.stringify(m.character)) return;
+    const m = { id: p.i, name: p.n.slice(0, 24), username: typeof p.u === 'string' ? p.u.slice(0, 20) : null, character: p.c && typeof p.c === 'object' ? p.c : null };
+    if (r.meta && r.meta.name === m.name && r.meta.username === m.username && JSON.stringify(r.meta.character) === JSON.stringify(m.character)) return;
     applyMeta(m);
   }
   function sbSend(st, dt) {
@@ -296,7 +305,7 @@
     metaT -= dt;
     if (metaT <= 0) {
       metaT = 5;
-      ch.send({ type: 'broadcast', event: 'm', payload: { i: Net.myId, n: Net.user.name, c: Net.user.character || null } });
+      ch.send({ type: 'broadcast', event: 'm', payload: { i: Net.myId, n: Net.user.name, u: Net.user.username || null, c: Net.user.character || null } });
     }
   }
 
@@ -318,7 +327,7 @@
   let lastSent = null;
   Net.update = function (dt, scene, camera, st) {
     Net.sendT -= dt;
-    if (sb) {
+    if (live) {
       // ~5 updates a second while moving, one a second when standing still
       if (st && Net.sendT <= 0) {
         const still = lastSent && Math.abs(st.speed || 0) < 0.05 && st.anim === lastSent.anim && Math.hypot(st.x - lastSent.x, st.z - lastSent.z) < 0.05;
@@ -331,7 +340,7 @@
       Net.ws.send(JSON.stringify({ t: 'who', ids: Array.from(Net.wantWho).slice(0, 60) }));
       Net.wantWho.clear();
     }
-    const now = performance.now(), rt = now - (sb ? 320 : 150);
+    const now = performance.now(), rt = now - (live ? 320 : 150);
     Net.remotes.forEach((r, id) => {
       if (now - r.last > 3000) {
         if (r.obj && r.obj.parent) r.obj.parent.remove(r.obj);
@@ -393,7 +402,7 @@
     Net.remotes.forEach((r) => {
       const s = r.snaps[r.snaps.length - 1];
       if (!s) return;
-      out.push({ id: r.id, name: r.meta ? r.meta.name : 'Traveller', dist: Math.hypot(s.x - pos.x, s.z - pos.z), inBus: (s.flags & 1) === 1 });
+      out.push({ id: r.id, name: r.meta ? r.meta.name : 'Traveller', username: r.meta ? r.meta.username : null, dist: Math.hypot(s.x - pos.x, s.z - pos.z), inBus: (s.flags & 1) === 1 });
     });
     return out.sort((a, b) => a.dist - b.dist);
   };

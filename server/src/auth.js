@@ -30,6 +30,20 @@ function validateName(input) {
   return name;
 }
 
+// usernames: 3-20 characters, a letter first, then letters, digits, _ or .
+const USERNAME_RULES = 'Usernames are 3–20 characters: a letter first, then letters, numbers, _ or .';
+function validateUsername(input) {
+  if (typeof input !== 'string') return null;
+  const u = input.trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z][a-z0-9_.]{2,19}$/.test(u) ? u : null;
+}
+
+function validateGroupName(input) {
+  if (typeof input !== 'string') return null;
+  const n = input.trim().replace(/\s+/g, ' ');
+  return /^[\p{L}\p{M}\p{N} .'&!_-]{3,30}$/u.test(n) ? n : null;
+}
+
 function validatePassword(pw) {
   return typeof pw === 'string' && pw.length >= 6 && pw.length <= 128;
 }
@@ -92,4 +106,4 @@ function verifyToken(token) {
   }
 }
 
-module.exports = { AppError, normalizePhone, validateName, validatePassword, maskPhone, hashPassword, verifyPassword, issueToken, verifyToken };
+module.exports = { AppError, normalizePhone, validateName, validateUsername, validateGroupName, USERNAME_RULES, validatePassword, maskPhone, hashPassword, verifyPassword, issueToken, verifyToken };

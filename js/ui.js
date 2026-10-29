@@ -130,8 +130,72 @@
     g.restore();
   };
 
+  // ------------------------------------------------------- map zooming
+  // The minimap has a zoom factor (+/- buttons, mouse wheel); the big map
+  // can be zoomed (wheel, pinch, buttons) and dragged around.
+  const MM_ZOOM_MIN = 0.35, MM_ZOOM_MAX = 3;
+  let mmZoom = 1;
+  try { mmZoom = KT.clamp(parseFloat(localStorage.getItem('kt-mm-zoom')) || 1, MM_ZOOM_MIN, MM_ZOOM_MAX); } catch (e) { /* storage blocked */ }
+  UI.zoomMinimap = function (f) {
+    mmZoom = KT.clamp(mmZoom * f, MM_ZOOM_MIN, MM_ZOOM_MAX);
+    try { localStorage.setItem('kt-mm-zoom', String(mmZoom)); } catch (e) { /* ignore */ }
+  };
+  // view of the big map: zoom and centre, in un-zoomed canvas pixels; the
+  // home map is a 1024px painting, the highway map is drawn as vectors
+  const view = UI.mapView = { zoom: 1, cx: 450, cy: 450, max: 4, level: null };
+  UI.mapLevel = function (level) {
+    if (view.level !== level) { view.level = level; view.zoom = level === 'highway' ? 2 : 1.5; }
+    view.max = level === 'highway' ? 12 : 4;
+  };
+  function clampView(W, H) {
+    view.zoom = KT.clamp(view.zoom, 1, view.max);
+    const hw = W / 2 / view.zoom, hh = H / 2 / view.zoom;
+    view.cx = KT.clamp(view.cx, hw, W - hw);
+    view.cy = KT.clamp(view.cy, hh, H - hh);
+  }
+  // wrap a "world -> whole-map canvas" projection with the zoom and pan
+  function viewed(base, W, H) {
+    return (x, z) => { const m = base(x, z); return [(m[0] - view.cx) * view.zoom + W / 2, (m[1] - view.cy) * view.zoom + H / 2]; };
+  }
+  function applyView(g, W, H) { g.setTransform(view.zoom, 0, 0, view.zoom, W / 2 - view.cx * view.zoom, H / 2 - view.cy * view.zoom); }
+
+  // other players and the active group's members
+  function drawPeople(g, toMap, W, H, big) {
+    const marks = KT.Groups ? KT.Groups.mapMarkers() : [];
+    const friends = new Set(marks.map((m) => m.i));
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (KT.Net && KT.Net.remotes) {
+      KT.Net.remotes.forEach((r) => {
+        if (friends.has(r.id)) return;
+        const sn = r.snaps[r.snaps.length - 1];
+        if (!sn) return;
+        const m = toMap(sn.x, sn.z);
+        if (m[0] < -6 || m[0] > W + 6 || m[1] < -6 || m[1] > H + 6) return;
+        g.fillStyle = '#5ec8ff'; g.strokeStyle = '#0b2a3d'; g.lineWidth = 1.5;
+        g.beginPath(); g.arc(m[0], m[1], big ? 5 : 3.5, 0, Math.PI * 2); g.fill(); g.stroke();
+      });
+    }
+    marks.forEach((f) => {
+      let m = toMap(f.x, f.z);
+      const inside = m[0] > 10 && m[0] < W - 10 && m[1] > 10 && m[1] < H - 10;
+      if (!inside && big) return;
+      m = [KT.clamp(m[0], 11, W - 11), KT.clamp(m[1], 11, H - 11)];
+      g.fillStyle = '#b26bff'; g.strokeStyle = '#fff'; g.lineWidth = 2;
+      g.beginPath(); g.arc(m[0], m[1], big ? 11 : 8, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.fillStyle = '#fff'; g.font = 'bold ' + (big ? 12 : 10) + 'px system-ui, sans-serif';
+      g.fillText((f.n || '?').charAt(0).toUpperCase(), m[0], m[1] + 0.5);
+      if (big) {
+        g.font = 'bold 13px system-ui, sans-serif';
+        g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,0.65)';
+        g.strokeText(f.n, m[0], m[1] - 20);
+        g.fillStyle = '#e9d7ff';
+        g.fillText(f.n, m[0], m[1] - 20);
+      }
+    });
+  }
+
   // ------------------------------------------------------------- minimap
-  const MM_SCALE = 1.8; // pixels per metre on the minimap
+  const MM_SCALE = 1.8; // pixels per metre on the minimap at zoom 1
   UI.drawMinimap = function (p, heading, target, zone) {
     const c = $('minimap');
     const g = c.getContext('2d');
@@ -139,14 +203,15 @@
     const mc = KT.Geo.mapCanvas;
     const N = KT.Geo.mapSize, size = KT.Geo.HALF * 2;
     const ppm = N / size;
-    const viewM = W / MM_SCALE;
+    const scale = MM_SCALE * mmZoom;
+    const viewM = W / scale;
     const sx = (p.x + KT.Geo.HALF) * ppm - (viewM * ppm) / 2;
     const sy = (p.z + KT.Geo.HALF) * ppm - (viewM * ppm) / 2;
     g.fillStyle = '#3f7fa0';
     g.fillRect(0, 0, W, H);
     g.imageSmoothingEnabled = true;
     g.drawImage(mc, sx, sy, viewM * ppm, viewM * ppm, 0, 0, W, H);
-    const toMap = (x, z) => [W / 2 + (x - p.x) * MM_SCALE, H / 2 + (z - p.z) * MM_SCALE];
+    const toMap = (x, z) => [W / 2 + (x - p.x) * scale, H / 2 + (z - p.z) * scale];
     // landmarks
     g.font = '18px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -165,6 +230,7 @@
       g.fillStyle = '#f3e1b8';
       g.beginPath(); g.arc(m[0], m[1], 3.5, 0, Math.PI * 2); g.fill();
     });
+    drawPeople(g, toMap, W, H, false);
     // mission target
     if (target) {
       let m = toMap(target.x, target.z);
@@ -189,36 +255,128 @@
     const c = $('bigmap-canvas');
     const g = c.getContext('2d');
     const W = c.width, H = c.height;
+    clampView(W, H);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = '#3f7fa0';
+    g.fillRect(0, 0, W, H);
+    applyView(g, W, H);
+    g.imageSmoothingEnabled = true;
     g.drawImage(KT.Geo.mapCanvas, 0, 0, W, H);
+    g.setTransform(1, 0, 0, 1, 0, 0);
     const s = W / (KT.Geo.HALF * 2);
-    const toMap = (x, z) => [(x + KT.Geo.HALF) * s, (z + KT.Geo.HALF) * s];
+    const base = (x, z) => [(x + KT.Geo.HALF) * s, (z + KT.Geo.HALF) * s];
+    const toMap = viewed(base, W, H);
+    UI.mapToWorld = (mx, my) => [((mx - W / 2) / view.zoom + view.cx) / s - KT.Geo.HALF, ((my - H / 2) / view.zoom + view.cy) / s - KT.Geo.HALF];
+    UI.worldToBase = base;
     g.textAlign = 'center'; g.textBaseline = 'middle';
+    // icons grow a little as you zoom in so the map stays readable
+    const k = Math.min(1.5, 0.85 + view.zoom * 0.15);
     KT.World.LANDMARKS.forEach((l) => {
       const m = toMap(l.x, l.z);
+      if (m[0] < -60 || m[0] > W + 60 || m[1] < -40 || m[1] > H + 40) return;
       const found = discovered.indexOf(l.id) >= 0;
       g.fillStyle = found ? 'rgba(255,255,255,0.95)' : 'rgba(40,40,40,0.65)';
-      g.beginPath(); g.arc(m[0], m[1], 16, 0, Math.PI * 2); g.fill();
-      g.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      g.beginPath(); g.arc(m[0], m[1], 16 * k, 0, Math.PI * 2); g.fill();
+      g.font = Math.round(20 * k) + 'px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
       g.fillText(found ? (ICONS[l.icon] || '★') : '?', m[0], m[1] + 1);
-      g.font = 'bold 14px system-ui, sans-serif';
+      g.font = 'bold ' + Math.round(14 * Math.min(k, 1.25)) + 'px system-ui, sans-serif';
       g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,0.65)';
-      g.strokeText(l.name, m[0], m[1] + 28);
+      g.strokeText(l.name, m[0], m[1] + 28 * k);
       g.fillStyle = '#fff';
-      g.fillText(l.name, m[0], m[1] + 28);
+      g.fillText(l.name, m[0], m[1] + 28 * k);
     });
+    drawPeople(g, toMap, W, H, true);
     if (target) {
       const m = toMap(target.x, target.z);
       g.fillStyle = '#3ddc84'; g.strokeStyle = '#0b3b22'; g.lineWidth = 3;
       g.beginPath(); g.arc(m[0], m[1], 9, 0, Math.PI * 2); g.fill(); g.stroke();
     }
     const m = toMap(p.x, p.z);
-    g.save();
-    g.translate(m[0], m[1]);
-    g.rotate(Math.PI - heading);
-    g.fillStyle = '#ffdd33'; g.strokeStyle = '#000'; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(0, -14); g.lineTo(10, 11); g.lineTo(0, 5); g.lineTo(-10, 11); g.closePath();
-    g.fill(); g.stroke();
-    g.restore();
+    drawArrow(g, m[0], m[1], heading, '#ffdd33', '#000');
+    drawZoomLabel(g, W, H);
+  };
+  function drawZoomLabel(g, W, H) {
+    if (view.zoom <= 1.01) return;
+    g.font = 'bold 14px system-ui, sans-serif';
+    g.textAlign = 'right'; g.textBaseline = 'bottom';
+    g.fillStyle = 'rgba(0,0,0,0.5)';
+    g.fillRect(W - 70, H - 30, 62, 22);
+    g.fillStyle = '#fff';
+    g.fillText(view.zoom.toFixed(view.zoom < 10 ? 1 : 0) + '×', W - 14, H - 11);
+  }
+
+  // Centre the big map on a world point (keeps the zoom).
+  UI.centerMapOn = function (x, z) {
+    if (!UI.worldToBase) return;
+    const m = UI.worldToBase(x, z);
+    view.cx = m[0]; view.cy = m[1];
+  };
+
+  // Wheel / drag / pinch / buttons on the big map. `redraw` repaints it.
+  UI.bindMapZoom = function (redraw) {
+    const c = $('bigmap-canvas');
+    const toCanvas = (cx, cy) => {
+      const r = c.getBoundingClientRect();
+      return [(cx - r.left) * c.width / r.width, (cy - r.top) * c.height / r.height];
+    };
+    // zoom by f keeping the canvas point (mx, my) still
+    const zoomAt = (f, mx, my) => {
+      const W = c.width, H = c.height;
+      const bx = (mx - W / 2) / view.zoom + view.cx, by = (my - H / 2) / view.zoom + view.cy;
+      view.zoom = KT.clamp(view.zoom * f, 1, view.max);
+      view.cx = bx - (mx - W / 2) / view.zoom;
+      view.cy = by - (my - H / 2) / view.zoom;
+      redraw();
+    };
+    UI.zoomBigMap = (f) => zoomAt(f, c.width / 2, c.height / 2);
+    c.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const m = toCanvas(e.clientX, e.clientY);
+      zoomAt(Math.pow(1.0018, -e.deltaY * (e.deltaMode === 1 ? 30 : 1)), m[0], m[1]);
+    }, { passive: false });
+    const pts = new Map();
+    let pinch = 0;
+    c.addEventListener('pointerdown', (e) => {
+      c.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) { const a = [...pts.values()]; pinch = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+      c.classList.add('dragging');
+    });
+    c.addEventListener('pointermove', (e) => {
+      const old = pts.get(e.pointerId);
+      if (!old) return;
+      const now = { x: e.clientX, y: e.clientY };
+      pts.set(e.pointerId, now);
+      if (pts.size >= 2) {
+        const a = [...pts.values()];
+        const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        const mid = toCanvas((a[0].x + a[1].x) / 2, (a[0].y + a[1].y) / 2);
+        if (pinch > 0) zoomAt(d / pinch, mid[0], mid[1]);
+        pinch = d;
+        return;
+      }
+      const r = c.getBoundingClientRect();
+      view.cx -= (now.x - old.x) * c.width / r.width / view.zoom;
+      view.cy -= (now.y - old.y) * c.height / r.height / view.zoom;
+      redraw();
+    });
+    const up = (e) => {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = 0;
+      if (!pts.size) c.classList.remove('dragging');
+    };
+    c.addEventListener('pointerup', up);
+    c.addEventListener('pointercancel', up);
+    c.addEventListener('dblclick', (e) => { const m = toCanvas(e.clientX, e.clientY); zoomAt(2, m[0], m[1]); });
+    $('map-zoom-in').onclick = () => UI.zoomBigMap(1.5);
+    $('map-zoom-out').onclick = () => UI.zoomBigMap(1 / 1.5);
+    $('map-zoom-me').onclick = () => { UI.mapRecenter && UI.mapRecenter(); redraw(); };
+    // minimap: +/- buttons and the wheel (without opening the big map)
+    const stop = (e) => e.stopPropagation();
+    $('mm-zoom-in').onclick = (e) => { stop(e); UI.zoomMinimap(1.4); };
+    $('mm-zoom-out').onclick = (e) => { stop(e); UI.zoomMinimap(1 / 1.4); };
+    ['mousedown', 'pointerdown', 'touchstart'].forEach((t) => { $('mm-zoom-in').addEventListener(t, stop); $('mm-zoom-out').addEventListener(t, stop); });
+    $('minimap').addEventListener('wheel', (e) => { e.preventDefault(); UI.zoomMinimap(e.deltaY > 0 ? 1 / 1.15 : 1.15); }, { passive: false });
   };
 
   // --------------------------------------------------------------- dialog
@@ -404,9 +562,10 @@
     const Hw = KT.Highway;
     g.fillStyle = '#5d8a4a';
     g.fillRect(0, 0, W, H);
-    const toMap = (x, z) => [W / 2 + (x - p.x) * HW_SCALE, H / 2 + (z - p.z) * HW_SCALE];
+    const scale = HW_SCALE * mmZoom;
+    const toMap = (x, z) => [W / 2 + (x - p.x) * scale, H / 2 + (z - p.z) * scale];
     const s = Hw.project(p.x, p.z).s;
-    const span = W / HW_SCALE;
+    const span = W / scale;
     drawRoadPath(g, s - span, s + span, toMap, 9, '#2d2d2d');
     drawRoadPath(g, s - span, s + span, toMap, 1.5, '#f4efe2');
     g.font = 'bold 12px system-ui, sans-serif';
@@ -427,6 +586,7 @@
       g.font = '16px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
       g.fillText('\u{1F68C}', KT.clamp(m[0], 10, W - 10), KT.clamp(m[1], 10, H - 10));
     }
+    drawPeople(g, toMap, W, H, false);
     drawArrow(g, W / 2, H / 2, heading, '#2bd46b', '#0d3d1f');
     $('location').textContent = zone;
   };
@@ -442,18 +602,24 @@
     for (let s = 0; s <= sEnd; s += 100) { const x = Hw.roadX(s); minX = Math.min(minX, x); maxX = Math.max(maxX, x); }
     const sc = (H - 60) / sEnd;
     const ox = W / 2 - ((minX + maxX) / 2) * sc;
-    const toMap = (x, z) => [ox + x * sc, H - 30 + z * sc];
+    const base = (x, z) => [ox + x * sc, H - 30 + z * sc];
+    clampView(W, H);
+    const toMap = viewed(base, W, H);
+    UI.worldToBase = base;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    applyView(g, W, H);
     const grad = g.createLinearGradient(0, 0, W, 0);
     grad.addColorStop(0, '#3f7fa0'); grad.addColorStop(0.22, '#e8d9a8'); grad.addColorStop(0.3, '#6d9a52'); grad.addColorStop(0.75, '#4f7d3d'); grad.addColorStop(1, '#3d5f35');
     g.fillStyle = grad;
-    g.fillRect(0, 0, W, H);
+    g.fillRect(-W, -H, W * 3, H * 3);
+    g.setTransform(1, 0, 0, 1, 0, 0);
     g.fillStyle = 'rgba(255,255,255,0.85)';
     g.font = 'italic bold 16px Georgia, serif';
     g.textAlign = 'left';
     g.fillText('Arabian Sea', 14, H / 2);
     g.textAlign = 'right';
     g.fillText('Western Ghats', W - 14, H / 2);
-    drawRoadPath(g, 0, sEnd, toMap, 6, '#2d2d2d');
+    drawRoadPath(g, 0, sEnd, toMap, 4 + 2 * Math.min(view.zoom, 3), '#2d2d2d');
     drawRoadPath(g, 0, sEnd, toMap, 1.5, '#ffd34d');
     const visited = (KT.Game.data && KT.Game.data.districts) || [];
     g.textBaseline = 'middle';
@@ -473,7 +639,15 @@
       g.fillStyle = '#fff';
       g.fillText(label, tx, m[1]);
     });
+    drawPeople(g, toMap, W, H, true);
+    if (Hw.bus && KT.Player.mode !== 'bus') {
+      const b = Hw.bus.obj.position, mb = toMap(b.x, b.z);
+      g.font = '18px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      g.textAlign = 'center';
+      g.fillText('\u{1F68C}', mb[0], mb[1]);
+    }
     const m = toMap(p.x, p.z);
     drawArrow(g, m[0], m[1], heading, '#ffdd33', '#000');
+    drawZoomLabel(g, W, H);
   };
 })();
