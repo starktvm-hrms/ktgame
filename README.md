@@ -95,6 +95,9 @@ People walk the pavements and side streets, stop to chat, wait at the
 kerb and cross at the zebra crossing when the lights turn red for the
 traffic. Fewer of them are out late at night, and they put up umbrellas when
 it rains.
+Autos, scooters and cars drive up and down the side streets (keeping left
+and stopping for anyone in front of them), vehicles are parked along the
+roads, and tourists stroll round every attraction.
 
 Each district also shows its **major tourist attractions** around the
 town, each with an information board (press E to read about it):
@@ -205,7 +208,7 @@ js/                   game code (terrain, world, highway, vehicle, entities, pla
                       missions, UI, audio, net = multiplayer client, account = sign-in & profiles,
                       groups = groups & chat, voice = WebRTC voice chat,
                       lighthouse = Kovalam lighthouse interior, sky = time of day & weather,
-                      townfolk = people walking in the district towns)
+                      townfolk = people, tourists and street traffic in the district towns)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function
 lib/supabase.min.js   supabase-js 2.117.3 (MIT, vendored) for Supabase Realtime

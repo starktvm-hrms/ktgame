@@ -1,11 +1,13 @@
-// People walking around the district towns on the highway: along the
-// pavements of the main road, down the side streets, and across the zebra
-// crossing while the traffic lights are red. Fewer people are out at night
-// and they open umbrellas in the rain.
+// Life in the district towns on the highway: people walking the pavements
+// of the main road and the side streets and crossing at the zebra crossing
+// while the traffic lights are red, tourists strolling round every
+// attraction, autos, scooters and cars driving up and down the side
+// streets, and vehicles parked along the roads. Fewer people are out at
+// night and they open umbrellas in the rain.
 (function () {
   'use strict';
   const T = THREE;
-  const TF = KT.Townfolk = { walkers: [] };
+  const TF = KT.Townfolk = { walkers: [], vehicles: [] };
 
   const PAVE = 10.4;                 // pavement line either side of the road
   const ENDS = [-150, -120, -40, 0, 30, 100, 150];
@@ -65,9 +67,15 @@
     const rng = KT.makeRng(hub.index * 313 + 17);
     const graph = townGraph(hub);
     hub.townfolk = [];
-    const n = 18;
-    for (let i = 0; i < n; i++) {
-      const look = LOOKS[(i * 7 + hub.index * 3) % LOOKS.length];
+    for (let i = 0; i < 18; i++) addWalker(hub, graph, rng, i, false);
+    addTourists(hub, rng);
+    addParked(hub, rng);
+    addStreetTraffic(hub, rng);
+  };
+
+  function addWalker(hub, graph, rng, i, tourist) {
+    {
+      const look = tourist ? TOURIST_LOOKS[(i + hub.index) % TOURIST_LOOKS.length] : LOOKS[(i * 7 + hub.index * 3) % LOOKS.length];
       const female = look[0] === 'female';
       const kid = i % 9 === 4;
       const cfg = {
@@ -77,7 +85,7 @@
         hairColor: rng() < 0.15 ? 0x9a9a96 : 0x24170f,
         beard: !female && rng() < 0.25, glasses: rng() < 0.2,
         colors: look[1] === 'tee' || look[1] === 'casual' || kid ? { top: kid ? 0xf4f4f0 : TOPS[Math.floor(rng() * TOPS.length)], bottom: kid ? 0x1f3a6b : undefined } : undefined,
-        acc: { backpack: kid || rng() < 0.15, hat: false, sunglasses: rng() < 0.1, camera: false },
+        acc: tourist ? { backpack: rng() < 0.6, hat: rng() < 0.5, sunglasses: rng() < 0.6, camera: rng() < 0.5 } : { backpack: kid || rng() < 0.15, hat: false, sunglasses: rng() < 0.1, camera: false },
         scale: kid ? 0.72 : 0.9 + rng() * 0.12
       };
       if (cfg.colors && cfg.colors.bottom === undefined) delete cfg.colors.bottom;
@@ -87,17 +95,153 @@
       hub.group.add(obj);
       // start somewhere on the graph, heading to a neighbour
       let at = Math.floor(rng() * graph.length);
+      for (let k = 0; k < graph.length && !graph[at].next.length; k++) at = (at + 1) % graph.length;
       const nb = graph[at].next[Math.floor(rng() * graph[at].next.length)];
       const w = {
         hub, graph, obj, umb, from: at, to: nb.to, kind: nb.kind, t: rng(), rng,
         speed: (kid ? 1.25 : 1.0) + rng() * 0.45, off: (rng() - 0.5) * 1.1,
-        wait: 0, night: rng() < 0.55, rainy: rng() < 0.75, state: 'walk', heading: 0
+        wait: 0, night: rng() < (tourist ? 0.2 : 0.55), rainy: rng() < 0.75, state: 'walk', heading: 0
       };
       if (w.kind === 'cross') { w.kind = 'walk'; w.to = w.from; }
+      if (tourist) w.speed *= 0.75;
       hub.townfolk.push(w);
       TF.walkers.push(w);
     }
-  };
+  }
+
+  // ------------------------------------------------ tourists at sights
+  const TOURIST_LOOKS = [['male', 'hiking'], ['female', 'casual'], ['male', 'tee'], ['female', 'saree'], ['male', 'casual'], ['female', 'churidar'], ['male', 'formal']];
+  function addTourists(hub, rng) {
+    const Hw = KT.Highway;
+    Hw.sightList().filter((sg) => sg.hub === hub.index).forEach((sg, k) => {
+      // a ring path round the attraction, leaving out blocked points
+      const ring = [];
+      const R = sg.r + 3.5, n = 10;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const along = sg.along + Math.cos(a) * R, lat = sg.lat + Math.sin(a) * R;
+        if (Math.abs(lat) < PAVE + 2) continue;
+        const q = Hw.at(hub.s + along, lat);
+        if (Hw.isBlocked(q.x, q.z, 0.6) || Hw.waterLevelAt(q.x, q.z) > -1e8) continue;
+        ring.push({ along, lat, kind: 'walk', next: [], i });
+      }
+      if (ring.length < 2) return;
+      // join neighbouring points only (a blocked point leaves a gap)
+      for (let i = 0; i < ring.length; i++) {
+        const j = (i + 1) % ring.length;
+        if (j === i || (ring[j].i - ring[i].i + n) % n !== 1) continue;
+        ring[i].next.push({ to: j, kind: 'walk' });
+        ring[j].next.push({ to: i, kind: 'walk' });
+      }
+      if (!ring.some((nd) => nd.next.length)) return;
+      const count = sg.kind === 'main' ? 4 : 3;
+      for (let i = 0; i < count; i++) addWalker(hub, ring, rng, k * 5 + i, true);
+    });
+  }
+
+  // ------------------------------------------------- parked vehicles
+  const CAR_COLS = [0xf3f3f0, 0xb9bec4, 0xb3261e, 0x2c5fa8, 0x1d1d1f, 0x2a6f5a];
+  function vehicleModel(kind, rng, ridden) {
+    const M = KT.Models;
+    if (kind === 'car') return M.car(CAR_COLS[Math.floor(rng() * CAR_COLS.length)], ['hatch', 'sedan', 'suv'][Math.floor(rng() * 3)]);
+    if (kind === 'auto') return M.autoRickshaw();
+    return M.scooter([0xf3f3f0, 0xb3261e, 0x1d1d1f, 0x2c5fa8][Math.floor(rng() * 4)], ridden ? TOPS[Math.floor(rng() * TOPS.length)] : null, 0x111111);
+  }
+  function addParked(hub, rng) {
+    const Hw = KT.Highway, grp = new T.Group(), pt = new T.Vector3();
+    const free = (along, lat, r) => {
+      const q = Hw.at(hub.s + along, lat);
+      pt.set(q.x, 0, q.z);
+      return !KT.World.resolveList(pt, r, Hw.nearbyColliders(q.x, q.z, 8));
+    };
+    const park = (kind, along, lat, rot) => {
+      const o = vehicleModel(kind, rng, false);
+      const q = Hw.at(hub.s + along, lat);
+      o.position.set(q.x, Hw.groundY(q.x, q.z).y, q.z);
+      o.rotation.y = rot;
+      grp.add(o);
+      const sz = o.userData.size || { length: 2.7, width: 1.3 };
+      Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: sz.width / 2, hd: sz.length / 2, rot });
+    };
+    // along the main road's shoulders, clear of the crossing and the bus bay
+    for (let al = -146; al <= 146; al += 9) {
+      if (Math.abs(al - KT.Highway.CROSSING) < 13 || Math.abs(al - 10) < 12 || Math.abs(((al % 20) + 20) % 20) < 3) continue;
+      [-1, 1].forEach((sd) => {
+        if (rng() > 0.45) return;
+        const kind = rng() < 0.5 ? 'car' : rng() < 0.5 ? 'auto' : 'scooter';
+        const lat = sd * (kind === 'scooter' ? 6.7 : 7.4);
+        if (!free(al, lat, 1.3)) return;
+        const h = Hw.frame(hub.s + al).heading + (sd < 0 ? 0 : Math.PI);
+        park(kind, al, lat, h);
+      });
+    }
+    // scooters along the side streets
+    STREETS.forEach(([SA, sd]) => {
+      for (let k = 20; k <= 80; k += 7) {
+        if (rng() > 0.4) continue;
+        const along = SA + (rng() < 0.5 ? -3.0 : 3.0);
+        if (!free(along, sd * k, 0.7)) continue;
+        park('scooter', along, sd * k, Hw.frame(hub.s + SA).heading + Math.PI / 2 + (rng() - 0.5) * 0.4);
+      }
+    });
+    if (grp.children.length) hub.group.add(KT.bake(grp));
+  }
+
+  // ------------------------------------------- side-street traffic
+  // Autos, scooters and cars drive up a side street, turn at the end and
+  // come back, waiting a little at the main road; they keep left and stop
+  // for anyone in front of them.
+  function addStreetTraffic(hub, rng) {
+    STREETS.forEach(([SA, sd], k) => {
+      ['auto', 'scooter', 'car'].slice(0, 2 + (k + hub.index) % 2).forEach((kind, i) => {
+        const obj = vehicleModel(kind, rng, true);
+        hub.group.add(obj);
+        TF.vehicles.push({ hub, obj, SA, side: sd, t: 14 + i * 30 + rng() * 10, dir: i % 2 ? -1 : 1, speed: kind === 'car' ? 6.5 : kind === 'auto' ? 5.5 : 7, v: 0, wait: rng() * 3, turn: 0, len: kind === 'car' ? 3.8 : kind === 'auto' ? 2.7 : 1.8 });
+      });
+    });
+  }
+  const T0 = 13, T1 = 82, LANE_OFF = 1.6;
+  function updateVehicles(dt, pp) {
+    const Hw = KT.Highway;
+    TF.vehicles.forEach((v) => {
+      if (!v.hub.group.visible) return;
+      const q0 = Hw.at(v.hub.s + v.SA, 0);
+      const near = Math.hypot(q0.x - pp.x, q0.z - pp.z) < 260;
+      v.obj.visible = near;
+      if (!near) return;
+      // U-turn at either end
+      if (v.turn > 0) {
+        v.turn -= dt;
+        if (v.turn <= 0) { v.dir = -v.dir; v.wait = v.t < 20 ? 1.5 + Math.random() * 3 : 0.4; }
+      } else if (v.wait > 0) v.wait -= dt;
+      else {
+        // anyone just ahead in the lane?
+        const m = v.side * v.dir;
+        const lane = v.SA + LANE_OFF * m;
+        const ahead = (x, z) => {
+          const p = Hw.project(x, z), la = p.lat * v.side, al = p.s - v.hub.s;
+          const dd = (la - v.t) * v.dir;
+          return dd > 0 && dd < v.len / 2 + 3.5 && Math.abs(al - lane) < 1.6;
+        };
+        let blocked = ahead(pp.x, pp.z);
+        if (!blocked) blocked = v.hub.townfolk.some((w) => w.obj.visible && ahead(w.obj.position.x, w.obj.position.z));
+        const target = blocked ? 0 : v.speed;
+        v.v += (target - v.v) * (1 - Math.exp(-dt * (blocked ? 8 : 1.5)));
+        v.t += v.v * v.dir * dt;
+        if (v.t > T1 || v.t < T0) { v.t = KT.clamp(v.t, T0, T1); v.turn = 1.6; v.v = 0; }
+      }
+      // pose: keep left; while turning, swing across the street
+      const m = v.side * v.dir;
+      let off = LANE_OFF * m, yaw = 0;
+      if (v.turn > 0) { const k = 1 - v.turn / 1.6; off = LANE_OFF * m * (1 - 2 * k); yaw = Math.PI * k; }
+      const a = Hw.at(v.hub.s + v.SA + off, v.side * v.t);
+      const f = Hw.frame(v.hub.s + v.SA);
+      // facing up the street (away from the main road) is +lat * side
+      const up = Math.atan2(f.rx * v.side, f.rz * v.side);
+      v.obj.position.set(a.x, Hw.groundY(a.x, a.z).y, a.z);
+      v.obj.rotation.y = (v.dir > 0 ? up : up + Math.PI) + yaw;
+    });
+  }
 
   function nodePos(w, i, out) {
     const nd = w.graph[i];
@@ -127,6 +271,7 @@
 
   TF.update = function (dt, player) {
     const pp = player.pos;
+    updateVehicles(dt, pp);
     const sky = KT.Sky || { night: 0, rain: 0 };
     const rainy = sky.rain > 0.3;
     TF.walkers.forEach((w) => {
@@ -177,6 +322,10 @@
     TF.walkers.forEach((w) => {
       const p = w.obj.position;
       if (w.obj.visible && Math.abs(p.x - pos.x) < 6 && Math.abs(p.z - pos.z) < 6) out.push({ type: 'circle', x: p.x, z: p.z, r: 0.32 });
+    });
+    TF.vehicles.forEach((v) => {
+      const p = v.obj.position;
+      if (v.obj.visible && Math.abs(p.x - pos.x) < 8 && Math.abs(p.z - pos.z) < 8) out.push({ type: 'circle', x: p.x, z: p.z, r: v.len > 3 ? 1.3 : 0.9 });
     });
     return out;
   };

@@ -310,7 +310,7 @@
     });
     Tr.playerS = Hw.project(KT.Player.pos.x, KT.Player.pos.z).s;
     const weights = [['car', 10], ['auto', 4], ['scooter', 5], ['lorry', 2], ['bus', 1.4]];
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 34; i++) {
       const v = makeVehicle(pickKind(rng, weights), rng);
       const dir = i % 2 ? 1 : -1;
       let d = 0;
