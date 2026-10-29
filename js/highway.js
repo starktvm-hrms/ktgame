@@ -150,7 +150,7 @@
   Hw.agentColliders = function (pos) {
     return Hw.npcs.filter((w) => w.obj.visible && Math.abs(w.obj.position.x - pos.x) < 6 && Math.abs(w.obj.position.z - pos.z) < 6)
       .map((w) => ({ type: 'circle', x: w.obj.position.x, z: w.obj.position.z, r: 0.35 }))
-      .concat(KT.Traffic.highwayColliders(pos, 10), KT.Vehicle.boxes('highway', null));
+      .concat(KT.Traffic.highwayColliders(pos, 10), KT.Vehicle.boxes('highway', null), KT.Townfolk.colliders(pos));
   };
 
   // ------------------------------------------------------------ materials
@@ -557,7 +557,7 @@
     for (let i = 0; i < 4; i++) {
       const lk = looks[(i + hub.index) % looks.length];
       const ch = Models.character({ gender: lk[0], outfit: lk[1], hair: lk[0] === 'female' ? ['default', 'braid', 'bun', 'curly'][i % 4] : ['default', 'short', 'wavy', 'curly'][i % 4], lite: true, acc: {}, skin: [0xd9a27c, 0xc08660, 0xa8704c, 0x8d5a3b][i % 4], beard: lk[0] === 'male' && i === 1 });
-      const along = -12 + i * 8, lat = -11 - (i % 2) * 2;
+      const along = [-11, -8, 8.5, 11.5][i], lat = -12.6 - (i % 2) * 0.9;
       hubPlace(hub, ch, along, lat, faceRoad(lat) + (i - 1.5) * 0.4);
       const w = { obj: ch, id: 'hub-' + hub.index + '-' + i, name: ['Ammu', 'Rajan', 'Sreeja', 'Faisal', 'Mini', 'Joseph'][(i + hub.index) % 6] + ' (' + d.name + ')', lines: [d.facts[i % d.facts.length], d.facts[(i + 1) % d.facts.length]], talking: false, speed: 1 };
       Hw.npcs.push(w);
@@ -570,6 +570,7 @@
     }
     buildTown(hub);
     mergeHub(hub);
+    KT.Townfolk.populate(hub);
     hub.built = true;
   }
 
@@ -1108,6 +1109,7 @@
       (h.nets || []).forEach((n) => { n.obj.userData.arm.rotation.x = -0.35 + ((Math.sin(Hw.animTime * 0.35 + n.phase) + 1) / 2) * 0.6; });
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
     });
+    KT.Townfolk.update(dt, player);
     Hw.npcs.forEach((w) => {
       if (!w.obj.parent || !w.obj.parent.visible) return;
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);

@@ -91,6 +91,10 @@ Every district centre is a **town**: about 300 m of the main road is lined
 with up to three rows of two- to four-storey buildings (hotels, jewellers,
 banks, textile shops, clinics, book stalls, the post office), and three side
 streets lead off it, with street lamps and autos waiting at the corners.
+People walk the pavements and side streets, stop to chat, wait at the
+kerb and cross at the zebra crossing when the lights turn red for the
+traffic. Fewer of them are out late at night, and they put up umbrellas when
+it rains.
 
 Each district also shows its **major tourist attractions** around the
 town, each with an information board (press E to read about it):
@@ -200,7 +204,8 @@ lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
 js/                   game code (terrain, world, highway, vehicle, entities, player,
                       missions, UI, audio, net = multiplayer client, account = sign-in & profiles,
                       groups = groups & chat, voice = WebRTC voice chat,
-                      lighthouse = Kovalam lighthouse interior, sky = time of day & weather)
+                      lighthouse = Kovalam lighthouse interior, sky = time of day & weather,
+                      townfolk = people walking in the district towns)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function
 lib/supabase.min.js   supabase-js 2.117.3 (MIT, vendored) for Supabase Realtime

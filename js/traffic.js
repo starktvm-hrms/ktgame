@@ -305,7 +305,8 @@
         v.lat = v.laneLat = -v.dir * v.laneOff;
         v.overtake = null; v.v = v.cruise * 0.8; v.heading = undefined;
       },
-      parked: () => parkedVehicles('highway')
+      parked: () => parkedVehicles('highway'),
+      people: () => (KT.Townfolk ? KT.Townfolk.onRoad() : [])
     });
     Tr.playerS = Hw.project(KT.Player.pos.x, KT.Player.pos.z).s;
     const weights = [['car', 10], ['auto', 4], ['scooter', 5], ['lorry', 2], ['bus', 1.4]];
