@@ -397,6 +397,6 @@
     KT.Audio.setRain(outdoor ? S.rain : S.rain * 0.35);
     if (KT.Lighthouse && KT.Lighthouse.built) KT.Lighthouse.setDaylight(S.day * (1 - 0.5 * S.cloud) + flash, _b.setRGB(0.75, 0.88, 1).lerp(_a.setRGB(0.6, 0.65, 0.7), grey));
     chipT -= dt;
-    if (chipT <= 0) { chipT = 5; S.updateChip(); }
+    if (chipT <= 0 || snap) { chipT = 5; S.updateChip(); }
   };
 })();
