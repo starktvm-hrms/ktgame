@@ -86,15 +86,15 @@
     const paint = KT.mat('townPaint' + i, { color: new T.Color(v.paint), roughness: 0.9 });
     const front = new T.MeshStandardMaterial({ map: facadeTex(v, w, floors), roughness: 0.85 });
     front.name = 'townFront' + i;
-    const body = new T.Mesh(G.box(w, H, d), [paint, paint, paint, paint, front, paint]);
-    body.position.y = H / 2; body.castShadow = body.receiveShadow = true;
+    part(g, G.box(w, H, d), paint, 0, H / 2, 0);
+    // painted front with windows, shutters and the shop sign
+    part(g, G.plane(w, H), front, 0, H / 2, d / 2 + 0.02).castShadow = false;
     const trim = KT.mat('townTrim' + i, { color: new T.Color(v.trim), roughness: 0.8 });
     part(g, G.box(w + 0.3, 0.5, d + 0.3), trim, 0, H + 0.25, 0);                 // roof parapet
     part(g, G.box(w + 0.4, 0.12, 1.2), trim, 0, 3.2 - 0.2, d / 2 + 0.6);         // shop canopy
     part(g, G.cyl(0.55, 0.55, 1.1, 12), KT.mat('waterTank', { color: 0x1d1d1d, roughness: 0.6 }), w / 2 - 1.2, H + 1.05, -d / 2 + 1.4);
     if (floors > 2) part(g, G.box(1.6, 0.9, 0.5), M().white, -w / 2 + 1.4, H + 0.95, -d / 2 + 1); // stair head
     const baked = KT.bake(g);
-    baked.add(body); // one material per face: kept out of the merge
     baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: w / 2, hd: d / 2 }];
     baked.userData.size = { w, d };
     return baked;
@@ -868,6 +868,98 @@
     lampTower(g, 0, 0, h || 5);
     const baked = KT.bake(g);
     baked.userData.colliders = [{ type: 'circle', x: 0, z: 0, r: 0.8 }];
+    return baked;
+  };
+
+  // ------------------------------------------------------ hill viewpoint
+  // A grassy hilltop (Ponmudi, Vagamon, Chembra, Ranipuram): rocky knolls,
+  // a winding path of steps to a watchtower, a flag and pine trees.
+  Models.hillView = function () {
+    const g = new T.Group();
+    const grass = KT.mat('hillGrass', { color: 0x7fae4a, roughness: 0.95 });
+    const rock = KT.mat('hillRock', { color: 0x8a8378, roughness: 0.95 });
+    part(g, G.sph(18, 36, 18), grass, 0, -9, -2, 0, 0, 0, 1, 0.8, 1);
+    const hy = (x, z) => Math.sqrt(Math.max(0, 18 * 18 - x * x - (z + 2) * (z + 2))) * 0.8 - 9;
+    for (let i = 0; i < 6; i++) { const a = i * 1.1 + 0.5, r = 6 + (i % 3) * 3; part(g, KT.blob(1.6 + (i % 2), 1, 0.3, 140 + i), rock, Math.cos(a) * r, hy(Math.cos(a) * r, Math.sin(a) * r - 2) + 0.3, Math.sin(a) * r - 2); }
+    // steps winding up from the front
+    for (let i = 0; i < 24; i++) {
+      const t = i / 23, a = Math.PI / 2 + t * 2.4, r = 14 - t * 11;
+      const x = Math.cos(a) * r * -1, z = Math.sin(a) * r - 2;
+      part(g, G.box(1.6, 0.25, 0.8), M().stoneGrey, x, hy(x, z) + 0.1, z, 0, -a, 0);
+    }
+    // the watchtower on top
+    const top = hy(0, -2);
+    [[-1.4, -1.4], [1.4, -1.4], [-1.4, 1.4], [1.4, 1.4]].forEach(([x, z]) => part(g, G.box(0.25, 6, 0.25), M().woodDark, x, top + 3, z - 2));
+    part(g, G.box(4, 0.25, 4), M().wood, 0, top + 6, -2);
+    railing(g, -2, -4, 2, -4, top + 6.1, 1, M().woodDark);
+    railing(g, -2, 0, 2, 0, top + 6.1, 1, M().woodDark);
+    railing(g, -2, -4, -2, 0, top + 6.1, 1, M().woodDark);
+    railing(g, 2, -4, 2, 0, top + 6.1, 1, M().woodDark);
+    keralaRoof(g, 5, 5, 1.8, top + 8.3, 0, -2, M().roof, { gables: false });
+    for (let i = 0; i < 6; i++) part(g, G.box(1, 0.2, 0.3), M().wood, 1.9, top + 0.5 + i, -0.4 - i * 0.55, 0.5, 0, 0);
+    part(g, G.cyl(0.05, 0.05, 4, 6), M().white, 2.3, top + 10.5, -3.8);
+    part(g, G.box(1.4, 0.8, 0.03), KT.mat('flagSaffron', { color: 0xf28c28 }), 3.0, top + 12.0, -3.8);
+    // pines
+    const pine = KT.mat('pine', { color: 0x2f5a34, roughness: 0.9 });
+    for (let i = 0; i < 9; i++) {
+      const a = i * 0.75 + 3.4, r = 10 + (i % 3) * 2.5;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r - 2, y = hy(x, z);
+      part(g, G.cyl(0.15, 0.22, 2, 6), M().woodDark, x, y + 1, z);
+      for (let k = 0; k < 3; k++) part(g, G.cone(1.4 - k * 0.35, 2, 8), pine, x, y + 2.4 + k * 1.2, z);
+    }
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'circle', x: 0, z: -2, r: 13 }];
+    return baked;
+  };
+
+  // --------------------------------------------------------- spice garden
+  // Pepper vines climbing their poles, cardamom clumps, a drying yard of
+  // pepper and chillies on mats, and a spice shop.
+  Models.spiceGarden = function () {
+    const g = new T.Group();
+    const vine = KT.mat('pepperVine', { color: 0x2f6b2a, roughness: 0.85 });
+    const card = KT.mat('cardamom', { color: 0x4f8f3a, roughness: 0.9 });
+    const rng = KT.makeRng(77);
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) {
+      const x = -12 + i * 6, z = -12 + j * 5;
+      part(g, G.cyl(0.12, 0.15, 4.5, 6), M().woodDark, x, 2.25, z);
+      for (let k = 0; k < 4; k++) part(g, KT.blob(0.55, 1, 0.3, i * 9 + j * 3 + k), vine, x + (rng() - 0.5) * 0.3, 0.8 + k * 1.0, z + (rng() - 0.5) * 0.3);
+      if (k2(i, j)) part(g, G.sph(0.08, 6, 4), KT.mat('pepperRed', { color: 0xb3261e }), x + 0.3, 2.6, z + 0.3);
+      // cardamom clump between the poles
+      for (let k = 0; k < 6; k++) part(g, G.cone(0.18, 1.8, 4), card, x + 3 + Math.cos(k) * 0.4, 0.9, z + 2.5 + Math.sin(k) * 0.4, Math.cos(k) * 0.35, 0, Math.sin(k) * 0.35);
+    }
+    function k2(i, j) { return (i + j) % 2 === 0; }
+    // drying yard with mats of black pepper, red chillies and turmeric
+    [[0x1d1d1d, -7], [0xc4211b, -2], [0xe6a817, 3], [0x8a5a2a, 8]].forEach(([c, x], i) => {
+      part(g, G.box(4, 0.04, 3), KT.mat('dryMat', { color: 0xc9b083, roughness: 0.95 }), x, 0.03, 12);
+      part(g, G.box(3.6, 0.08, 2.6), KT.mat('spiceHeap' + i, { color: c, roughness: 0.9 }), x, 0.08, 12);
+    });
+    // shop
+    part(g, G.box(8, 3, 4), M().plasterCream, 12, 1.5, 12);
+    keralaRoof(g, 9, 5.2, 2, 3, 12, 12, M().roof, { gables: false });
+    const sign = canvasTex(512, 128, (c, w, h) => { c.fillStyle = '#5a2a12'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffe48a'; c.font = 'bold 52px Georgia'; c.textAlign = 'center'; c.fillText('KERALA SPICES', w / 2, 60); c.font = '28px Georgia'; c.fillText('Pepper • Cardamom • Cinnamon • Clove', w / 2, 104); });
+    const sm = new T.Mesh(G.plane(7, 1.75), new T.MeshStandardMaterial({ map: sign, roughness: 0.7 }));
+    sm.position.set(12, 2.2, 14.03);
+    for (let i = 0; i < 4; i++) part(g, G.cyl(0.35, 0.3, 0.6, 10), KT.mat('spiceSack', { color: 0xb59a6a, roughness: 0.95 }), 9.5 + i * 1.6, 0.3, 14.8);
+    const baked = KT.bake(g);
+    baked.add(sm);
+    baked.userData.colliders = [{ type: 'box', x: 12, z: 12, hw: 4.2, hd: 2.2 }];
+    return baked;
+  };
+
+  // --------------------------------------------------- elephant shelter
+  // Konni / Punnathur Kotta: an open thatched shelter with pillars, a
+  // water trough and chains; the elephants are placed beside it.
+  Models.elephantShelter = function () {
+    const g = new T.Group();
+    part(g, G.box(18, 0.3, 10), KT.mat('campFloor', { color: 0x8a6a4a, roughness: 0.95 }), 0, 0.15, 0);
+    for (let i = 0; i < 5; i++) [-4.5, 4.5].forEach((z) => part(g, G.cyl(0.3, 0.35, 6, 8), M().woodDark, -8 + i * 4, 3, z));
+    keralaRoof(g, 19, 11, 3.4, 6, 0, 0, M().thatch, { gables: false });
+    part(g, G.box(5, 0.8, 1.4), M().stoneGrey, 0, 0.55, 6.5);
+    part(g, G.box(4.6, 0.1, 1.0), KT.mat('troughWater', { color: 0x4f9fb0, roughness: 0.1 }), 0, 0.9, 6.5);
+    for (let i = 0; i < 6; i++) part(g, G.box(1.2, 0.4, 0.6), KT.mat('palmFodder', { color: 0x6f9a3a }), -7 + i * 0.9, 0.5 + (i % 2) * 0.35, -3.6);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -4.5, hw: 9, hd: 0.5 }, { type: 'box', x: 0, z: 6.5, hw: 2.6, hd: 0.8 }];
     return baked;
   };
 

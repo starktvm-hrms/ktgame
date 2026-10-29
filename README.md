@@ -87,29 +87,30 @@ of roadside shops: tea stalls, fruit stalls, bakeries, stores, textile and
 medical shops, hotels and mobile shops. More shops line the highway between
 towns, and the village has its own traffic through a four-way signal.
 
-Every district centre is a small **town**: two- to four-storey buildings
-with hotels, jewellers, banks, textile shops, clinics and book stalls line
-the main road and a side street, with autos waiting at the corner.
+Every district centre is a **town**: about 300 m of the main road is lined
+with up to three rows of two- to four-storey buildings (hotels, jewellers,
+banks, textile shops, clinics, book stalls, the post office), and three side
+streets lead off it, with street lamps and autos waiting at the corners.
 
 Each district also shows its **major tourist attractions** around the
 town, each with an information board (press E to read about it):
 
 | District | Attractions |
 | --- | --- |
-| Thiruvananthapuram | Sree Padmanabhaswamy Temple, Napier Museum, Varkala Cliff |
-| Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake |
-| Pathanamthitta | Sabarimala, Aranmula Snake Boats |
-| Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse |
-| Kottayam | Thirunakkara Church, Kumarakom Bird Sanctuary |
-| Idukki | Idukki Arch Dam, Munnar Tea Gardens |
-| Ernakulam | Chinese Fishing Nets, Mattancherry Palace |
-| Thrissur | Vadakkunnathan Temple and elephants, Athirappilly Waterfalls, Guruvayur Temple |
-| Palakkad | Palakkad Fort, Malampuzha Dam & Gardens |
-| Malappuram | Malappuram Mosque, Kottakkal Arya Vaidya Sala, a football ground |
-| Kozhikode | Kappad Beach, Thusharagiri Waterfalls, Kozhikode Beach |
-| Wayanad | Edakkal Caves, Banasura Sagar Dam |
-| Kannur | St. Angelo Fort, Theyyam, Muzhappilangad Drive-in Beach |
-| Kasaragod | Bekal Fort, Ananthapura Lake Temple |
+| Thiruvananthapuram | Sree Padmanabhaswamy Temple, Napier Museum, Varkala Cliff, Kovalam Beach, Ponmudi Hills |
+| Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake, Palaruvi Waterfalls, Thenmala Eco-tourism |
+| Pathanamthitta | Sabarimala, Aranmula Snake Boats, Gavi Forest, Konni Elephant Camp, Perunthenaruvi Waterfalls |
+| Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse, Ambalappuzha Temple, Pathiramanal Island, Arthunkal Basilica |
+| Kottayam | Thirunakkara Church, Kumarakom Bird Sanctuary, Vagamon Meadows, Ettumanoor Mahadeva Temple |
+| Idukki | Idukki Arch Dam, Munnar Tea Gardens, Thekkady Periyar Wildlife, Spice Plantations |
+| Ernakulam | Chinese Fishing Nets, Mattancherry Palace, Kathakali Centre, St. Francis Church, Paradesi Synagogue, Cherai Beach |
+| Thrissur | Vadakkunnathan Temple and elephants, Athirappilly Waterfalls, Guruvayur Temple, Kerala Kalamandalam, Punnathur Kotta |
+| Palakkad | Palakkad Fort, Malampuzha Dam & Gardens, Silent Valley National Park, Nelliyampathy Hills |
+| Malappuram | Malappuram Mosque, Kottakkal Arya Vaidya Sala, a football ground, Nilambur Teak Museum, Padinharekara Beach |
+| Kozhikode | Kappad Beach, Thusharagiri Waterfalls, Kozhikode Beach, Mananchira Square, Tali Temple |
+| Wayanad | Edakkal Caves, Banasura Sagar Dam, Chembra Peak, Soochipara Falls, Kuruva Island, Muthanga Wildlife Sanctuary |
+| Kannur | St. Angelo Fort, Theyyam, Muzhappilangad Drive-in Beach, Arakkal Museum, Payyambalam Beach |
+| Kasaragod | Bekal Fort, Ananthapura Lake Temple, Chandragiri Fort, Ranipuram Hills, Kappil Beach |
 
 Reaching an attraction for the first time discovers it (+10 coins). They
 appear on the minimap, and on the big map when you zoom in.

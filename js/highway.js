@@ -69,9 +69,9 @@
     const hi = Math.round((s - Hw.START) / Hw.SPACING);
     if (hi >= 0 && hi < KT.DISTRICTS.length) {
       const hs = Hw.hubS(hi);
-      if (Math.abs(s - hs) < 260) {
+      if (Math.abs(s - hs) < 330) {
         const d = Math.hypot(s - hs, lat);
-        h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(140, 200, d));
+        h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
       }
     }
     // river valleys
@@ -241,7 +241,7 @@
       const start = s0 + 15 + rng() * (SEG_LEN - 30 - n * 4.8);
       const end = start + n * 4.8;
       const hi = Math.round((start - Hw.START) / Hw.SPACING);
-      if (hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(start - Hw.hubS(hi)) < 230) continue;
+      if (hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(start - Hw.hubS(hi)) < 330) continue;
       if (RIVERS.some((r) => r.s > start - 90 && r.s < end + 90)) continue;
       if (Math.floor((start - 14) / 500) !== Math.floor((end + 14) / 500)) continue; // keep clear of direction signs
       if (out.some((o) => o.side === side && Math.abs(o.s - start) < 30)) continue;
@@ -307,7 +307,7 @@
       const p = Hw.project(x, z);
       if (Math.abs(p.lat) < ROAD_HALF + pad || Math.abs(p.lat) > MAX_LAT + 120) return null;
       const hi = Math.round((p.s - Hw.START) / Hw.SPACING);
-      if (hi >= 0 && hi < KT.DISTRICTS.length && Math.hypot(p.s - Hw.hubS(hi), p.lat) < 175) return null;
+      if (hi >= 0 && hi < KT.DISTRICTS.length && Math.hypot(p.s - Hw.hubS(hi), p.lat) < 260) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (Math.abs(p.lat) < 20 && nearShop(p.s, p.lat)) return null;
       return p;
@@ -499,8 +499,8 @@
     Hw.scene.add(hub.group);
     const sunken = (obj) => obj;
     // welcome gates at both approaches
-    hubPlace(hub, Models.districtGate(d), -75, 0, Math.PI);
-    hubPlace(hub, Models.districtGate(d), 75, 0, 0);
+    hubPlace(hub, Models.districtGate(d), -190, 0, Math.PI);
+    hubPlace(hub, Models.districtGate(d), 190, 0, 0);
     // bus stand on the western (left) side
     const stand = hubPlace(hub, Models.busStand(d.name), 0, -15, faceRoad(-15));
     hub.stop = Hw.at(hub.s + 10, -8); // bus bay beside the carriageway
@@ -521,7 +521,7 @@
       hubPlace(hub, obj, p[0], p[1], faceRoad(p[1]));
     });
     // lamp posts & palms
-    for (let a = -60; a <= 60; a += 20) [-1, 1].forEach((sd) => { if (sd < 0 && (a === 0 || a === 20)) return; hubPlace(hub, Models.lampPost(), a, sd * 8.5, sd > 0 ? 0 : Math.PI); });
+    for (let a = -140; a <= 140; a += 20) [-1, 1].forEach((sd) => { if (sd < 0 && (a === 0 || a === 20)) return; hubPlace(hub, Models.lampPost(), a, sd * 8.5, sd > 0 ? 0 : Math.PI); });
     // zebra crossing with traffic signals (signals stand on the left kerb
     // of the traffic they control, lamps facing the approaching vehicles)
     const cs = hub.s + Hw.CROSSING, cf = Hw.frame(cs);
@@ -544,8 +544,8 @@
     shopRow(14, 3, 16.5);
     buildSights(hub);
     const rng = KT.makeRng(hub.index * 991 + 7);
-    for (let i = 0; i < 28; i++) {
-      const along = (rng() - 0.5) * 300, lat = (rng() < 0.5 ? -1 : 1) * (40 + rng() * 100);
+    for (let i = 0; i < 40; i++) {
+      const along = (rng() - 0.5) * 440, lat = (rng() < 0.5 ? -1 : 1) * (60 + rng() * 140);
       const q = Hw.at(hub.s + along, lat);
       if (Hw.nearbyColliders(q.x, q.z, 6).length) continue;
       const palm = Models.coconutPalm(i % 3 === 0 ? 3 : 20);
@@ -569,15 +569,16 @@
       Hw.interactables.push({ label: 'Go to the Alleppey backwaters', radius: 5, pos: () => arch.position, action: () => KT.Game.goHome() });
     }
     buildTown(hub);
+    mergeHub(hub);
     hub.built = true;
   }
 
   // ------------------------------------------- tourist attractions
   // Each district's extra attractions stand in fixed slots around its
   // centre (along the road, lateral); the main one is the landmark.
-  const SIGHT_SLOTS = [{ along: -70, lat: 72 }, { along: 60, lat: -78 }, { along: -98, lat: -70 }];
+  const SIGHT_SLOTS = [{ along: -70, lat: 80 }, { along: 60, lat: -84 }, { along: 120, lat: 86 }, { along: -98, lat: -82 }, { along: -178, lat: 72 }, { along: 178, lat: -80 }, { along: -190, lat: -90 }];
   const MAIN_SPOT = { along: 20, lat: 72 };
-  const SIGHT_R = { museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
+  const SIGHT_R = { church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
   Hw.sightList = function () {
@@ -600,6 +601,7 @@
     const lat = sg.lat - side * (sg.r + 4);
     const board = hubPlace(hub, Models.signboard([sg.name.length > 22 ? sg.name.split(' ').slice(0, 3).join(' ') : sg.name, sg.district.name]), sg.along, lat, faceRoad(lat));
     Hw.interactables.push({ label: 'About ' + sg.name, radius: 3, pos: () => board.position, action: () => KT.Game.readSight(sg) });
+    Hw.addCollider({ type: 'circle', x: board.position.x, z: board.position.z, r: 0.5 });
   }
   function sand(hub, along, lat, r) {
     const m = new T.Mesh(new T.CircleGeometry(r, 36), mats.sand);
@@ -711,17 +713,69 @@
           hubPlace(hub, Models.lakeShrine(), a, l, rot, { y: w.position.y - 0.6 });
           break;
         }
+        case 'church': {
+          hubPlace(hub, Models.church(), a, l + side * 6, rot);
+          [-9, 9].forEach((x, i) => hubPlace(hub, Models.coconutPalm(i + 30), a + x, l - side * 6, 0));
+          break;
+        }
+        case 'mosque': hubPlace(hub, Models.mosque(), a, l, rot); break;
+        case 'fort': hubPlace(hub, Models.fort(false), a, l, rot); break;
+        case 'kathakali': {
+          const st = hubPlace(hub, Models.kathakaliStage(), a, l + side * 3, rot);
+          const dancer = Models.kathakaliDancer();
+          hubPlace(hub, dancer, a, l + side * 3, rot, { y: st.position.y + (st.userData.stageY || 1.08) - 0.05, colliders: false });
+          hub.actors = (hub.actors || []).concat([{ obj: dancer, state: 'dance' }]);
+          // audience on mats in front of the stage
+          for (let i = 0; i < 6; i++) {
+            const ch = Models.character({ gender: i % 2 ? 'female' : 'male', outfit: i % 2 ? 'saree' : 'mundu', lite: 'far', acc: {} });
+            hubPlace(hub, ch, a - 5 + (i % 3) * 5, l - side * (6 + Math.floor(i / 3) * 2.2), rot, { colliders: false });
+          }
+          break;
+        }
+        case 'wildlife': {
+          for (let i = 0; i < 12; i++) {
+            const ang = (i / 12) * Math.PI * 2, rr = 15 + (i % 3) * 4;
+            hubPlace(hub, Models.forestTree ? Models.forestTree(i + 5) : Models.mangoTree(), a + Math.cos(ang) * rr, l + Math.sin(ang) * rr * 0.8 + side * 6, ang);
+          }
+          const w = waterDisc(hub, a, l + side * 6, 9);
+          [[-6, 1], [5, -2]].forEach(([x, z], i) => {
+            const el = KT.skinify(Models.elephant(i === 0, 3 + i));
+            hubPlace(hub, el, a + x, l + side * (6 + z) - side * 10, rot + 0.6 * (i ? 1 : -1), { colliders: false });
+            hub.elephants = (hub.elephants || []).concat([el]);
+          });
+          if (Models.deer) [[8, 4], [10, 7], [-10, 9]].forEach(([x, z]) => hubPlace(hub, Models.deer(), a + x, l - side * z, rot + x * 0.1, { colliders: false }));
+          hubPlace(hub, Models.watchTower(), a - 14, l - side * 10, rot);
+          if (Models.car) hubPlace(hub, Models.car(0x3f6b2a, 'suv'), a + 14, l - side * 16, 0, { absRot: heading + 0.5 });
+          void w;
+          break;
+        }
+        case 'spice': hubPlace(hub, Models.spiceGarden(), a, l, rot); break;
+        case 'hillview': hubPlace(hub, Models.hillView(), a, l + side * 2, rot); break;
+        case 'elephantCamp': {
+          hubPlace(hub, Models.elephantShelter(), a, l + side * 2, rot);
+          [-6, 0, 6].forEach((x, i) => {
+            const el = KT.skinify(Models.elephant(i !== 1, 2 + i));
+            hubPlace(hub, el, a + x, l + side * 2, rot, { colliders: false });
+            hub.elephants = (hub.elephants || []).concat([el]);
+          });
+          const mahout = Models.character({ gender: 'male', outfit: 'mundu', hair: 'short', lite: true, acc: {}, skin: 0x8d5a3b });
+          hubPlace(hub, mahout, a + 3, l - side * 4, rot, { colliders: false });
+          hub.actors = (hub.actors || []).concat([{ obj: mahout, state: 'idle' }]);
+          for (let i = 0; i < 3; i++) Hw.addCollider({ type: 'circle', x: Hw.at(hub.s + a - 6 + i * 6, l + side * 2).x, z: Hw.at(hub.s + a - 6 + i * 6, l + side * 2).z, r: 2.2 });
+          break;
+        }
         default: break;
       }
     });
   }
 
   // --------------------------------------------------------- the town
-  // A Kerala market town: multi-storey shops along the main road and a
-  // side street, wherever the centre has room.
+  // A Kerala market town: up to three rows of multi-storey buildings along
+  // about 300 m of the main road and three side streets, wherever the
+  // centre has room. All the buildings of a town are merged into one model.
   function buildTown(hub) {
     const rng = KT.makeRng(hub.index * 577 + 3);
-    const heading = Hw.frame(hub.s).heading;
+    const town = new T.Group();
     const pt = new T.Vector3();
     const fits = (along, lat, rotAbs, hw, hd) => {
       const c = Math.cos(rotAbs), sn = Math.sin(rotAbs);
@@ -737,40 +791,77 @@
       return true;
     };
     let n = 0;
+    const put = (obj, along, lat, rotAbs) => {
+      const q = Hw.at(hub.s + along, lat);
+      obj.position.set(q.x, Hw.groundY(q.x, q.z).y, q.z);
+      obj.rotation.y = rotAbs;
+      town.add(obj);
+      const cs = Math.cos(rotAbs), sn = Math.sin(rotAbs);
+      (obj.userData.colliders || []).forEach((c) => {
+        const wx = q.x + c.x * cs + c.z * sn, wz = q.z - c.x * sn + c.z * cs;
+        if (c.type === 'circle') Hw.addCollider({ type: 'circle', x: wx, z: wz, r: c.r });
+        else Hw.addCollider({ type: 'box', x: wx, z: wz, hw: c.hw, hd: c.hd, rot: rotAbs });
+      });
+    };
     const place = (along, lat, rotOff) => {
-      const rotAbs = heading + rotOff;
+      const rotAbs = Hw.frame(hub.s + along).heading + rotOff;
       if (!fits(along, lat, rotAbs, 3.9, 4.2)) return;
-      hubPlace(hub, Models.townBuilding(Math.floor(rng() * Models.TOWN_TYPES)), along, lat, rotOff);
+      put(Models.townBuilding(Math.floor(rng() * Models.TOWN_TYPES)), along, lat, rotAbs);
       n++;
     };
-    // main road: a front row and a taller row behind it
-    for (let al = -70; al <= 70; al += 8.4) {
+    // main road: a front row, a taller row behind it and a third row
+    for (let al = -150; al <= 150; al += 8.4) {
       [-1, 1].forEach((sd) => {
         place(al + (rng() - 0.5), sd * 24.5, faceRoad(sd));
-        if (rng() < 0.55) place(al + (rng() - 0.5) * 2, sd * 36, faceRoad(sd));
+        if (rng() < 0.7) place(al + (rng() - 0.5) * 2, sd * 36.5, faceRoad(sd));
+        if (rng() < 0.5) place(al + (rng() - 0.5) * 2, sd * 48.5, faceRoad(sd));
       });
     }
-    // side street on the western side
-    const SA = -40, len = 82;
-    const geo = new T.PlaneGeometry(7, len);
-    geo.rotateX(-Math.PI / 2);
-    const uv = geo.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * len / 10);
-    const street = new T.Mesh(geo, mats.road);
-    const mid = Hw.at(hub.s + SA, -9 - len / 2);
-    street.position.set(mid.x, Hw.groundY(mid.x, mid.z).y + 0.05, mid.z);
-    street.rotation.y = heading + Math.PI / 2;
-    street.receiveShadow = true;
-    hub.group.add(street);
-    for (let lat = -31; lat >= -86; lat -= 8.4) {
-      place(SA - 9.2, lat, 0);          // faces north, onto the street
-      place(SA + 9.2, lat, Math.PI);    // faces south
-    }
-    // a couple of autos waiting at the corner
-    if (Models.autoRickshaw) {
-      [[SA - 2, -14], [SA + 2, -20]].forEach(([al, la], i) => { const q = Hw.at(hub.s + al, la); if (!Hw.nearbyColliders(q.x, q.z, 3).length) hubPlace(hub, Models.autoRickshaw(), al, la, 0, { absRot: heading + Math.PI / 2 + i * Math.PI }); });
-    }
+    // side streets with buildings facing them and street lamps
+    [[-40, -1], [100, -1], [-120, 1]].forEach(([SA, side]) => {
+      const len = 84;
+      const heading = Hw.frame(hub.s + SA).heading;
+      const geo = new T.PlaneGeometry(7, len);
+      geo.rotateX(-Math.PI / 2);
+      const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * len / 10);
+      const street = new T.Mesh(geo, mats.road);
+      const mid = Hw.at(hub.s + SA, side * (9 + len / 2));
+      street.position.set(mid.x, Hw.groundY(mid.x, mid.z).y + 0.05, mid.z);
+      street.rotation.y = heading + Math.PI / 2;
+      street.receiveShadow = true;
+      hub.group.add(street);
+      for (let k = 31; k <= 86; k += 8.4) {
+        place(SA - 9.2, side * k, 0);          // faces north, onto the street
+        place(SA + 9.2, side * k, Math.PI);    // faces south
+      }
+      for (let k = 18; k <= 88; k += 14) {
+        const at = SA + (k % 28 ? 4.4 : -4.4), lt = side * k;
+        const q = Hw.at(hub.s + at, lt);
+        if (!Hw.nearbyColliders(q.x, q.z, 1.5).length) put(Models.lampPost(), at, lt, heading + (k % 28 ? -Math.PI / 2 : Math.PI / 2));
+      }
+      // autos waiting at the corner
+      if (Models.autoRickshaw) {
+        [[SA - 2, 14], [SA + 2, 20]].forEach(([al, la], i) => { const q = Hw.at(hub.s + al, side * la); if (!Hw.nearbyColliders(q.x, q.z, 3).length) put(Models.autoRickshaw(), al, side * la, heading + Math.PI / 2 + i * Math.PI); });
+      }
+    });
+    hub.group.add(KT.bake(town));
     hub.townSize = n;
+  }
+
+  // Merge every static object of a district centre into one model (far
+  // fewer draw calls); animated or changing ones stay separate.
+  function mergeHub(hub) {
+    const still = new T.Group();
+    hub.group.children.slice().forEach((c) => {
+      let keep = false;
+      c.traverse((o) => {
+        const u = o.userData;
+        if (u.rig || u.animate || u.beam || u.arm || u.lamps || u.flow || o.isSprite || o.isPoints || o.isLight || Array.isArray(o.material)) keep = true;
+      });
+      if (!keep) still.add(c);
+    });
+    if (still.children.length) hub.group.add(KT.bake(still));
   }
 
   function waterDisc(hub, along, lat, r) {
