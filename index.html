@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="description" content="Kerala Explorer - a 3D browser adventure through God's Own Country: backwaters, houseboats, Kathakali, temple elephants, Munnar tea hills, Periyar wildlife and Kovalam beach.">
+  <meta name="theme-color" content="#1f5f3f">
+  <title>Kerala Explorer - God's Own Country</title>
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-state="loading">
+  <canvas id="game"></canvas>
+
+  <!-- Loading -->
+  <div id="loading" class="screen">
+    <div class="load-card">
+      <img src="assets/icons/logo.svg" alt="" class="logo">
+      <h1>Kerala Explorer</h1>
+      <p class="tag">God's Own Country</p>
+      <div class="bar"><div id="load-bar"></div></div>
+      <p id="load-text">Loading...</p>
+      <p class="tip">Tip: Kerala's backwaters stretch over 900 km of interconnected canals, rivers and lakes.</p>
+    </div>
+  </div>
+
+  <!-- Title / character creator -->
+  <div id="menu" class="screen hidden">
+    <div class="menu-card">
+      <div class="menu-left">
+        <img src="assets/icons/logo.svg" alt="" class="logo small">
+        <h1>Kerala Explorer</h1>
+        <p class="tag">An adventure through God's Own Country</p>
+        <label class="field">Your name
+          <input id="name-input" maxlength="16" value="Explorer" autocomplete="off">
+        </label>
+        <div class="group">
+          <h3>Traveller</h3>
+          <div class="chips">
+            <button class="chip" data-gender="male">Male</button>
+            <button class="chip" data-gender="female">Female</button>
+          </div>
+        </div>
+        <div class="group">
+          <h3>Outfit</h3>
+          <div class="chips" id="outfit-list"></div>
+        </div>
+        <div class="group">
+          <h3>Hairstyle</h3>
+          <div class="chips" id="hair-list"></div>
+        </div>
+        <div class="group">
+          <h3>Accessories</h3>
+          <div class="chips">
+            <button class="chip" data-acc="backpack">Backpack</button>
+            <button class="chip" data-acc="camera">Camera</button>
+            <button class="chip" data-acc="hat">Hat</button>
+            <button class="chip" data-acc="sunglasses">Sunglasses</button>
+          </div>
+        </div>
+        <div class="menu-buttons">
+          <button id="btn-start" class="btn primary">Begin Journey</button>
+          <button id="btn-continue" class="btn hidden">Continue</button>
+        </div>
+        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Drag mouse: look &middot; E: interact &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; Esc: pause</p>
+      </div>
+      <div class="menu-right">
+        <canvas id="preview"></canvas>
+        <p class="muted center">Drag to rotate</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="profile" class="panel">
+      <img id="portrait" alt="">
+      <div>
+        <div id="p-name">Explorer</div>
+        <div class="lvl-row"><span id="p-level">Level 1</span><div class="xp"><div id="xp-fill"></div></div></div>
+      </div>
+    </div>
+
+    <div id="mission-panel" class="panel">
+      <div class="m-head"><span class="leaf-ic">&#x1F343;</span> Current Mission <span class="chev">&rsaquo;</span></div>
+      <div class="m-body">
+        <div class="m-title-row"><span class="m-diamond"></span><span id="m-title"></span></div>
+        <p id="m-desc"></p>
+        <div class="m-prog"><div class="m-bar"><div id="m-fill"></div></div><span id="m-count"></span></div>
+      </div>
+    </div>
+
+    <div id="compass-wrap">
+      <canvas id="compass" width="520" height="44"></canvas>
+      <div id="compass-dist" class="hidden">0 m</div>
+    </div>
+
+    <div id="topright">
+      <div class="chip-stat"><span class="ic coin"></span><span id="coins">0</span></div>
+      <div class="chip-stat"><span class="ic">&#x2B50;</span><span id="stars">0</span></div>
+      <div class="chip-stat"><span class="ic">&#x1F343;</span><span id="leaves">0</span></div>
+      <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
+    </div>
+
+    <div id="minimap-wrap" class="panel" title="Open map (M)">
+      <canvas id="minimap" width="240" height="240"></canvas>
+      <div id="location-row"><span class="pin">&#x1F4CD;</span><span id="location">Alleppey</span></div>
+      <span class="expand">&#x26F6;</span>
+    </div>
+
+    <div id="prompt" class="hidden"><span id="prompt-text"></span></div>
+    <div id="toasts"></div>
+
+    <div id="joystick"><div id="joystick-knob"></div></div>
+    <div id="buttons">
+      <button id="btn-photo" class="round small" title="Camera (C)">&#x1F441;&#xFE0F;</button>
+      <button id="btn-namaskaram" class="round small" title="Namaskaram (N)">&#x1F64F;</button>
+      <button id="btn-view" class="round small" title="Toggle view (V)">&#x1F3A5;</button>
+      <button id="btn-action" class="round small" title="Interact (E)">E</button>
+      <button id="btn-jump" class="round small" title="Jump (Space)">&#x2B06;&#xFE0F;</button>
+      <button id="btn-sprint" class="round big" title="Run (Shift)">&#x1F3C3;</button>
+    </div>
+  </div>
+
+  <!-- Dialogue -->
+  <div id="dialog" class="hidden">
+    <div class="dialog-name" id="dialog-name"></div>
+    <p id="dialog-text"></p>
+    <button id="dialog-next" class="btn small">Next</button>
+  </div>
+
+  <!-- Banner -->
+  <div id="banner" class="banner hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+
+  <!-- Photo mode -->
+  <div id="photo-ui" class="hidden">
+    <div class="viewfinder"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><span class="cross"></span></div>
+    <div class="photo-bar">
+      <button id="btn-photo-close" class="btn small">&#x2715; Exit</button>
+      <button id="btn-shutter" class="shutter" title="Take photo (C / Space)"></button>
+      <span class="muted">Drag to frame &middot; C / Space to snap</span>
+    </div>
+  </div>
+  <div id="flash"></div>
+
+  <!-- Pause / settings -->
+  <div id="pause" class="screen hidden">
+    <div class="modal">
+      <h2>Paused</h2>
+      <div class="modal-buttons">
+        <button id="btn-resume" class="btn primary">Resume</button>
+        <button id="btn-map" class="btn">Map</button>
+        <button id="btn-album" class="btn">Photo Album</button>
+      </div>
+      <h3>Settings</h3>
+      <div class="settings">
+        <label>Music <input type="range" id="set-music" min="0" max="1" step="0.05"></label>
+        <label>Sound effects <input type="range" id="set-sfx" min="0" max="1" step="0.05"></label>
+        <label>Look sensitivity <input type="range" id="set-sens" min="0.3" max="2.5" step="0.1"></label>
+        <label class="check"><input type="checkbox" id="set-invert"> Invert vertical look</label>
+        <label class="check"><input type="checkbox" id="set-lock"> Capture mouse when clicking (pointer lock)</label>
+        <label>Graphics quality
+          <select id="set-quality">
+            <option value="low">Low (fast)</option>
+            <option value="medium">Medium</option>
+            <option value="high">High (shadows+)</option>
+          </select>
+        </label>
+        <p id="quality-note" class="muted hidden">Quality changes apply the next time the game loads.</p>
+      </div>
+      <h3>Controls</h3>
+      <table class="controls">
+        <tr><td>Move</td><td>W A S D / Arrow keys / left joystick</td></tr>
+        <tr><td>Look</td><td>Drag mouse / drag right side of screen &middot; wheel to zoom</td></tr>
+        <tr><td>Run / Jump</td><td>Shift / Space</td></tr>
+        <tr><td>Interact, talk, canoe</td><td>E</td></tr>
+        <tr><td>Camera mode</td><td>C &middot; snap with C or Space</td></tr>
+        <tr><td>Namaskaram / Wave</td><td>N / Q</td></tr>
+        <tr><td>Map / View</td><td>M / V (first or third person)</td></tr>
+      </table>
+      <div class="modal-buttons">
+        <button id="btn-menu" class="btn">Save &amp; Quit to Title</button>
+        <button id="btn-reset" class="btn danger">Reset Progress</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Big map -->
+  <div id="bigmap" class="screen hidden">
+    <div class="modal map-modal">
+      <div class="modal-head"><h2>Map of Kerala Explorer</h2><button id="btn-map-close" class="btn small">&#x2715; Close</button></div>
+      <canvas id="bigmap-canvas" width="900" height="900"></canvas>
+    </div>
+  </div>
+
+  <!-- Album -->
+  <div id="album" class="screen hidden">
+    <div class="modal">
+      <div class="modal-head"><h2>Photo Album</h2><button id="btn-album-close" class="btn small">&#x2715; Close</button></div>
+      <div id="album-grid"></div>
+    </div>
+  </div>
+
+  <!-- Certificate -->
+  <div id="certificate" class="screen hidden">
+    <div class="modal cert">
+      <img src="assets/icons/logo.svg" alt="" class="logo small">
+      <h2>Certificate of Exploration</h2>
+      <p>This certifies that</p>
+      <div id="cert-name" class="cert-name"></div>
+      <p>has explored the backwaters, temples, tea hills, forests and beaches of Kerala &mdash; God's Own Country.</p>
+      <p id="cert-stats" class="muted"></p>
+      <button id="btn-cert-close" class="btn primary">Keep Exploring</button>
+    </div>
+  </div>
+
+  <script src="lib/three.min.js"></script>
+  <script src="assets/textures/textures.js"></script>
+  <script src="js/core.js"></script>
+  <script src="assets/models/nature.js"></script>
+  <script src="assets/models/buildings.js"></script>
+  <script src="assets/models/props.js"></script>
+  <script src="assets/models/boats.js"></script>
+  <script src="assets/models/animals.js"></script>
+  <script src="assets/models/characters.js"></script>
+  <script src="js/terrain.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

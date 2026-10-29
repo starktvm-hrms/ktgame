@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffcf5a"/>
+      <stop offset="0.55" stop-color="#ff8a3d"/>
+      <stop offset="1" stop-color="#e2553a"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2aa198"/>
+      <stop offset="1" stop-color="#0f5c5a"/>
+    </linearGradient>
+    <clipPath id="c"><circle cx="64" cy="64" r="60"/></clipPath>
+  </defs>
+  <circle cx="64" cy="64" r="62" fill="#1f5f3f"/>
+  <g clip-path="url(#c)">
+    <rect width="128" height="80" fill="url(#sky)"/>
+    <circle cx="84" cy="60" r="18" fill="#fff3c4" opacity="0.95"/>
+    <path d="M0 70 Q20 58 40 66 T80 62 T128 64 V80 H0Z" fill="#2f6b3a"/>
+    <rect y="76" width="128" height="52" fill="url(#water)"/>
+    <path d="M10 92 h34 M60 100 h40 M24 110 h30 M84 88 h26" stroke="#bfeee6" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <!-- houseboat -->
+    <path d="M58 84 Q64 92 96 92 Q106 92 112 82 L104 86 Q84 88 66 86 Z" fill="#4a2c18"/>
+    <path d="M68 85 Q70 74 84 73 Q98 74 100 85 Z" fill="#d9a85a"/>
+    <path d="M72 84 v-6 M78 85 v-9 M84 85 v-10 M90 85 v-9 M96 84 v-6" stroke="#7a4a22" stroke-width="1.6"/>
+    <!-- coconut palm -->
+    <path d="M30 120 Q34 90 46 52" stroke="#6b4a33" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <g fill="#2e8b3e">
+      <path d="M46 52 Q30 40 10 50 Q30 44 44 56Z"/>
+      <path d="M46 52 Q40 30 22 24 Q38 34 44 54Z"/>
+      <path d="M46 52 Q58 30 76 30 Q60 38 48 54Z"/>
+      <path d="M46 52 Q66 46 80 60 Q64 52 48 56Z"/>
+      <path d="M46 52 Q36 60 30 78 Q38 62 48 56Z"/>
+    </g>
+    <circle cx="44" cy="56" r="3" fill="#7a8a2a"/><circle cx="49" cy="57" r="3" fill="#7a8a2a"/>
+  </g>
+  <circle cx="64" cy="64" r="61" fill="none" stroke="#f2c230" stroke-width="3"/>
+</svg>
