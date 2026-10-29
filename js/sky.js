@@ -247,7 +247,7 @@
       return { key, scene: G.homeScene, sky: W.sky, sun: W.sun, hemi: W.hemi, clouds: W.clouds, sunDir: W.sunDir, water: KT.Geo.waterUniforms, beams: () => (W.sites.lighthouse || []).map((s) => s.object.userData.beam) };
     }
     const H = KT.Highway;
-    return { key, scene: H.scene, sky: H.sky, sun: H.sun, hemi: H.hemi, clouds: H.clouds, sunDir: H.sunDir, beams: () => H.hubs.filter((h) => h.beam).map((h) => h.beam) };
+    return { key, scene: H.scene, sky: H.sky, sun: H.sun, hemi: H.hemi, clouds: H.clouds, sunDir: H.sunDir, beams: () => H.hubs.reduce((out, h) => out.concat(h.beam ? [h.beam] : [], h.beams || []), []) };
   }
   const rigs = {};
   function rig(key) {

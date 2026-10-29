@@ -108,13 +108,14 @@
     const rx = o.position.x + sh * S.rearAxle, rz = o.position.z + ch * S.rearAxle;
     const front = gy(fx, fz), rear = gy(rx, rz);
     const y = (front + rear) / 2;
-    const pitch = Math.atan2(front - rear, S.frontAxle - S.rearAxle);
+    // a vehicle never stands on end, whatever is under its wheels
+    const pitch = KT.clamp(Math.atan2(front - rear, S.frontAxle - S.rearAxle), -0.3, 0.3);
     let roll;
     if (S.lean) roll = -KT.clamp(veh.steer * veh.speed * 0.09, -0.4, 0.4);
     else {
       const hw = S.width * 0.44;
       const left = gy(o.position.x + ch * hw, o.position.z - sh * hw), right = gy(o.position.x - ch * hw, o.position.z + sh * hw);
-      roll = Math.atan2(left - right, hw * 2) - veh.steer * veh.speed * 0.0025;
+      roll = KT.clamp(Math.atan2(left - right, hw * 2), -0.22, 0.22) - veh.steer * veh.speed * 0.0025;
     }
     const k = dt ? 1 - Math.exp(-dt * 10) : 1;
     o.position.y += (y - o.position.y) * k;
@@ -161,7 +162,13 @@
     const b = KT.L.bounds;
     px = KT.clamp(px, b.minX, b.maxX); pz = KT.clamp(pz, b.minZ, b.maxZ);
     const tooDeep = KT.L.isWater ? KT.L.isWater(px, pz) : KT.L.groundY(px, pz, o.position.y + 1.5).y < -0.3;
-    if (tooDeep) { veh.speed *= -0.25; hit = true; }
+    // walls, kerbs of bridges and steep drops: the ground just beyond the
+    // bumper may not be much higher or lower than where the vehicle stands
+    const dir = veh.speed >= 0 ? 1 : -1;
+    const reach = (dir > 0 ? S.frontAxle : -S.rearAxle) + 0.7;
+    const ahead = KT.L.groundY(px + sh * reach * dir, pz + ch * reach * dir, o.position.y + 1.5).y;
+    const steep = Math.abs(step) > 1e-4 && Math.abs(ahead - o.position.y) / reach > V.MAX_GRADE;
+    if (tooDeep || steep) { veh.speed *= -0.25; hit = true; }
     else {
       veh.odo += Math.hypot(px - o.position.x, pz - o.position.z);
       o.position.x = px; o.position.z = pz;
@@ -169,6 +176,13 @@
     if (hit && Math.abs(veh.speed) > 4) { KT.Audio.play('land'); veh.speed *= 0.35; }
     else if (hit) veh.speed *= 0.6;
     V.settle(veh, dt);
+    // remember the last good spot, and notice when the vehicle is stuck
+    veh.safeT = (veh.safeT || 0) - dt;
+    if (!hit && veh.safeT <= 0 && Math.abs(veh.pitch) < 0.12 && Math.abs(veh.roll) < 0.12) {
+      veh.safeT = 0.5;
+      veh.safe = { x: o.position.x, z: o.position.z, heading: veh.heading };
+    }
+    veh.stuckT = hit && input && Math.abs(input.move.y) > 0.1 ? (veh.stuckT || 0) + dt : Math.max(0, (veh.stuckT || 0) - dt * 0.5);
     // wheels & steering wheel
     const spin = veh.speed * dt / S.wheelR;
     (o.userData.wheels || []).forEach((w) => {
@@ -176,6 +190,22 @@
       if (w.front) w.pivot.rotation.y = veh.steer;
     });
     if (o.userData.steer) o.userData.steer.rotation.z = -veh.steer * 4;
+  };
+
+  V.MAX_GRADE = 0.45; // about 24 degrees
+
+  // Put a stuck vehicle back on the road (or its last good spot).
+  V.recover = function (veh) {
+    const o = veh.obj;
+    let spot = KT.L.recoverSpot ? KT.L.recoverSpot(o.position, veh.heading) : null;
+    if (!spot && veh.safe) spot = veh.safe;
+    if (!spot) return false;
+    o.position.set(spot.x, KT.L.groundY(spot.x, spot.z, o.position.y + 1.5).y, spot.z);
+    veh.heading = spot.heading;
+    veh.speed = 0; veh.steer = 0; veh.stuckT = 0;
+    veh.pitch = 0; veh.roll = 0;
+    V.settle(veh);
+    return true;
   };
 
   V.kmh = (veh) => Math.abs(veh.speed) * 3.6;

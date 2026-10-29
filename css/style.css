@@ -192,7 +192,7 @@ table.controls td:first-child { color: var(--muted); width: 40%; }
 .map-stage { position: relative; width: fit-content; margin: 0 auto; }
 .map-zoom { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .map-zoom .btn { width: 40px; height: 40px; padding: 0; font-size: 22px; line-height: 1; }
-.map-hint { text-align: center; font-size: 12px; margin: 8px 0 0; }
+.map-hint { text-align: center; font-size: 12px; margin: 8px 0 0; width: 0; min-width: 100%; }
 .legend-me { color: #ffdd33; } .legend-friend { color: #b26bff; } .legend-player { color: #5ec8ff; }
 .mm-zoom { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 4px; }
 .mm-zoom button { width: 26px; height: 26px; border-radius: 8px; border: 0; background: rgba(10, 30, 22, 0.75); color: #fff; font: bold 17px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }

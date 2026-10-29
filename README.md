@@ -39,7 +39,7 @@ Progress is then saved in the browser only.
 | Look / zoom | Move the mouse (the cursor is captured; Esc frees it) / wheel | Drag right side |
 | Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
 | Talk, canoe, climb, board / leave the bus | E | E button |
-| Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view | Joystick |
+| Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view, R back on the road | Joystick |
 | Profile · Players nearby · My vehicles | J · O · G | Portrait · online counter · 🚲 |
 | Groups & chat · Mic on / mute | T (Enter to type in the chat bar) · B | 👥 · 🎤 in the chat bar |
 | Fishing (Kochi) | E at a Fishing Point, E / Space to haul | E · Haul button |
@@ -86,6 +86,36 @@ has a signalled zebra crossing (jumping a red light costs a fine) and rows
 of roadside shops: tea stalls, fruit stalls, bakeries, stores, textile and
 medical shops, hotels and mobile shops. More shops line the highway between
 towns, and the village has its own traffic through a four-way signal.
+
+Every district centre is a small **town**: two- to four-storey buildings
+with hotels, jewellers, banks, textile shops, clinics and book stalls line
+the main road and a side street, with autos waiting at the corner.
+
+Each district also shows its **major tourist attractions** around the
+town, each with an information board (press E to read about it):
+
+| District | Attractions |
+| --- | --- |
+| Thiruvananthapuram | Sree Padmanabhaswamy Temple, Napier Museum, Varkala Cliff |
+| Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake |
+| Pathanamthitta | Sabarimala, Aranmula Snake Boats |
+| Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse |
+| Kottayam | Thirunakkara Church, Kumarakom Bird Sanctuary |
+| Idukki | Idukki Arch Dam, Munnar Tea Gardens |
+| Ernakulam | Chinese Fishing Nets, Mattancherry Palace |
+| Thrissur | Vadakkunnathan Temple and elephants, Athirappilly Waterfalls, Guruvayur Temple |
+| Palakkad | Palakkad Fort, Malampuzha Dam & Gardens |
+| Malappuram | Malappuram Mosque, Kottakkal Arya Vaidya Sala, a football ground |
+| Kozhikode | Kappad Beach, Thusharagiri Waterfalls, Kozhikode Beach |
+| Wayanad | Edakkal Caves, Banasura Sagar Dam |
+| Kannur | St. Angelo Fort, Theyyam, Muzhappilangad Drive-in Beach |
+| Kasaragod | Bekal Fort, Ananthapura Lake Temple |
+
+Reaching an attraction for the first time discovers it (+10 coins). They
+appear on the minimap, and on the big map when you zoom in.
+
+If a vehicle gets stuck (off the road, against a wall), press **R** (or the
+E button on touch screens) to put it back on the road.
 
 ## Fishing at Kochi and your own vehicles
 

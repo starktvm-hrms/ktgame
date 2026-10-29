@@ -145,7 +145,7 @@
   const view = UI.mapView = { zoom: 1, cx: 450, cy: 450, max: 4, level: null };
   UI.mapLevel = function (level) {
     if (view.level !== level) { view.level = level; view.zoom = level === 'highway' ? 2 : 1.5; }
-    view.max = level === 'highway' ? 12 : 4;
+    view.max = level === 'highway' ? 48 : 4;
   };
   function clampView(W, H) {
     view.zoom = KT.clamp(view.zoom, 1, view.max);
@@ -190,6 +190,30 @@
         g.strokeText(f.n, m[0], m[1] - 20);
         g.fillStyle = '#e9d7ff';
         g.fillText(f.n, m[0], m[1] - 20);
+      }
+    });
+  }
+
+  // tourist attractions along the highway (icons; names when there's room)
+  function drawSights(g, toMap, W, H, size, labels) {
+    const seen = (KT.Game.data && KT.Game.data.sights) || [];
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    KT.Highway.sightList().forEach((sg) => {
+      const m = toMap(sg.x, sg.z);
+      if (m[0] < -20 || m[0] > W + 20 || m[1] < -20 || m[1] > H + 20) return;
+      const found = seen.indexOf(sg.id) >= 0;
+      g.fillStyle = found ? 'rgba(255,255,255,0.92)' : 'rgba(255,236,170,0.9)';
+      g.strokeStyle = found ? '#3ddc84' : '#b07a1a'; g.lineWidth = 2;
+      g.beginPath(); g.arc(m[0], m[1], size, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.font = Math.round(size * 1.2) + 'px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      g.fillStyle = '#000';
+      g.fillText(sg.icon, m[0], m[1] + 1);
+      if (labels) {
+        g.font = 'bold 12px system-ui, sans-serif';
+        g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.7)';
+        g.strokeText(sg.name, m[0], m[1] + size + 9);
+        g.fillStyle = found ? '#c8ffd9' : '#fff3c4';
+        g.fillText(sg.name, m[0], m[1] + size + 9);
       }
     });
   }
@@ -586,6 +610,7 @@
       g.font = '16px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
       g.fillText('\u{1F68C}', KT.clamp(m[0], 10, W - 10), KT.clamp(m[1], 10, H - 10));
     }
+    drawSights(g, toMap, W, H, scale > 0.5 ? 10 : 8, false);
     drawPeople(g, toMap, W, H, false);
     drawArrow(g, W / 2, H / 2, heading, '#2bd46b', '#0d3d1f');
     $('location').textContent = zone;
@@ -639,6 +664,7 @@
       g.fillStyle = '#fff';
       g.fillText(label, tx, m[1]);
     });
+    if (view.zoom >= 3) drawSights(g, toMap, W, H, view.zoom >= 16 ? 13 : 9, view.zoom >= 16);
     drawPeople(g, toMap, W, H, true);
     if (Hw.bus && KT.Player.mode !== 'bus') {
       const b = Hw.bus.obj.position, mb = toMap(b.x, b.z);

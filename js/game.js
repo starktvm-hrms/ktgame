@@ -580,8 +580,10 @@
     if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
     if (I.consume('photo')) { Game.setState('photo'); KT.UI.toast('Camera mode: frame your shot and press C / Space to snap. Esc to exit.'); return; }
     if (I.consume('help')) { Game.setState('paused'); return; }
+    if (I.consume('recover') && P.mode === 'bus') { recoverVehicle(); return; }
     if (I.consume('interact')) {
       if (P.mode === 'canoe') { P.leaveCanoe(); return; }
+      if (P.mode === 'bus' && P.bus.stuckT > 1.5) { recoverVehicle(); return; }
       if (P.mode === 'bus') { P.leaveBus(); return; }
       if (Game.nearInteract) Game.nearInteract.action();
     }
@@ -615,11 +617,16 @@
     });
     return best;
   }
+  function recoverVehicle() {
+    const P = KT.Player;
+    if (KT.Vehicle.recover(P.bus)) { KT.CameraRig.snap = true; KT.UI.toast('Back on the road!', 'info'); }
+  }
   function showPrompt(best) {
     const P = KT.Player;
     if (Game.state === 'playing') {
       const key = KT.Input.touch ? '' : '[E] ';
       if (P.mode === 'canoe') KT.UI.prompt(key + 'Get out of the canoe');
+      else if (P.mode === 'bus' && P.bus.stuckT > 1.5) KT.UI.prompt((KT.Input.touch ? '' : '[R] ') + 'Stuck? Get back on the road');
       else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
       else KT.UI.prompt(best ? key + best.label : null);
     } else KT.UI.prompt(null);
@@ -941,6 +948,37 @@
     const data = Game.data;
     if (data.read.indexOf(d.id) < 0) { data.read.push(d.id); Game.addXP(10); }
   };
+  // Tourist attractions on the highway: read about them at their boards,
+  // and discover each one by walking or riding up to it.
+  Game.readSight = function (sg) {
+    if (Game.state !== 'playing') return;
+    discoverSight(sg);
+    Game.setState('dialog');
+    KT.Input.enabled = false;
+    KT.UI.dialog(sg.icon + ' ' + sg.name, sg.facts, () => Game.setState('playing'));
+  };
+  function discoverSight(sg) {
+    const d = Game.data;
+    d.sights = d.sights || [];
+    if (d.sights.indexOf(sg.id) >= 0) return;
+    d.sights.push(sg.id);
+    Game.addCoins(10, true);
+    Game.addXP(15);
+    KT.Audio.play('star');
+    const total = KT.Highway.sightList().length;
+    KT.UI.toast(sg.icon + ' Discovered ' + sg.name + '! +10 coins (' + d.sights.length + ' of ' + total + ' attractions)', 'star');
+  }
+  let sightT = 0;
+  function checkSights(dt, st) {
+    sightT -= dt;
+    if (sightT > 0) return;
+    sightT = 0.5;
+    if (st.dist > 400) return;
+    const P = KT.Player, o = P.mode === 'bus' && P.bus ? P.bus.obj.position : P.pos;
+    KT.Highway.sightList().forEach((sg) => {
+      if (sg.hub === st.nearest && Math.hypot(sg.x - o.x, sg.z - o.z) < sg.r + 8) discoverSight(sg);
+    });
+  }
   function visitDistrict(i) {
     const d = Game.data, dist = KT.DISTRICTS[i];
     if (Game.lastHub !== i && dist.id === 'ekm') setTimeout(() => KT.UI.toast('\u{1F3A3} Kochi! Walk to a Fishing Point by the Chinese nets, cast your net and earn coins for every fish.', 'info'), 2500);
@@ -955,6 +993,7 @@
     Game.addXP(40);
     KT.Audio.play('star');
     KT.UI.banner('Welcome to ' + dist.name, dist.ml + '  \u2022  District ' + d.districts.length + ' of 14  \u2022  +30 coins', 'star');
+    setTimeout(() => KT.UI.toast('Sights in ' + dist.name + ': ' + dist.sights.map((x) => x.icon + ' ' + x.name).join(', ') + '. They are on your map (M).', 'info'), 3500);
     KT.UI.updateMission(KT.Missions.current());
     Game.save(true);
   }
@@ -969,6 +1008,7 @@
     const st = Hw.status(P.pos);
     if (st.dist < 90 && Math.abs(st.lat) < 140) visitDistrict(st.nearest);
     else if (st.dist > 400) Game.lastHub = -1;
+    checkSights(dt, st);
     KT.Missions.update(dt);
     const target = KT.Missions.target();
     KT.UI.drawCompass(-KT.CameraRig.yaw, target, P.pos);
