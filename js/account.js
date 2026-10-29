@@ -23,7 +23,7 @@
   async function checkServer() {
     const el = $('server-status');
     el.className = 'server-status checking';
-    el.textContent = 'Connecting to ' + KT.Net.base().replace(/^https?:\/\//, '') + '…';
+    el.textContent = 'Connecting to ' + KT.Net.base().replace(/^https?:\/\//, '').split('/')[0] + '…';
     try {
       const h = await KT.Net.health();
       el.className = 'server-status ok';
@@ -78,8 +78,10 @@
       };
       $('btn-guest').onclick = () => done(null);
       $('btn-server').onclick = () => {
-        const url = window.prompt('Game server address', KT.Net.base());
-        if (url) { KT.Net.setBase(url.trim()); checkServer(); }
+        const url = window.prompt('Game server address (leave empty for the default online server)', KT.Net.mode() === 'node' ? KT.Net.base() : '');
+        if (url === null) return;
+        KT.Net.setBase(url.trim());
+        checkServer();
       };
       // resume a remembered session
       const s = KT.Net.loadSession();

@@ -12,11 +12,28 @@
   Net.ANIMS = ANIMS;
 
   // ------------------------------------------------------------ server URL
-  Net.base = function () {
-    if (location.protocol === 'http:' || location.protocol === 'https:') return location.origin;
-    try { return localStorage.getItem('kt-server') || 'http://localhost:8080'; } catch (e) { return 'http://localhost:8080'; }
+  // Backends: the hosted Supabase project (default), or a Node game server
+  // (when it serves the page, or when its address is set under
+  // "Server settings").
+  const C = KT.CONFIG || {};
+  const isHttp = location.protocol === 'http:' || location.protocol === 'https:';
+  function customServer() { try { return localStorage.getItem('kt-server') || ''; } catch (e) { return ''; } }
+  Net.mode = function () {
+    if (customServer() || (C.node && isHttp)) return 'node';
+    return C.supabaseUrl && window.supabase ? 'supabase' : 'node';
   };
-  Net.setBase = function (url) { try { localStorage.setItem('kt-server', url.replace(/\/+$/, '')); } catch (e) { /* ignore */ } };
+  Net.base = function () {
+    const custom = customServer();
+    if (custom) return custom;
+    if (Net.mode() === 'supabase') return C.supabaseUrl + '/functions/v1';
+    return isHttp ? location.origin : 'http://localhost:8080';
+  };
+  Net.setBase = function (url) {
+    try {
+      if (url) localStorage.setItem('kt-server', url.replace(/\/+$/, ''));
+      else localStorage.removeItem('kt-server');
+    } catch (e) { /* ignore */ }
+  };
 
   // --------------------------------------------------------------- session
   function storeGet(st, k) { try { return JSON.parse(st.getItem(k)); } catch (e) { return null; } }
@@ -40,6 +57,7 @@
     try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
     Net.token = null; Net.user = null;
     if (Net.ws) { Net.ws.onclose = null; Net.ws.close(); Net.ws = null; }
+    sbDisconnect();
   };
 
   // ------------------------------------------------------------------- API
@@ -79,6 +97,7 @@
     const r = await Net.api('PUT', '/api/me', patch);
     Net.user = r.user;
     if (Net.ws && Net.connected) Net.ws.send(JSON.stringify({ t: 'profile', name: true, character: true }));
+    metaT = 0; // re-announce the new name / look on Supabase Realtime
     return r.user;
   };
   Net.profile = async (id) => (await Net.api('GET', '/api/profile/' + id)).profile;
@@ -102,6 +121,7 @@
 
   // -------------------------------------------------------------- realtime
   Net.connect = function () {
+    if (Net.mode() === 'supabase') return sbConnect();
     if (!Net.token || Net.ws) return;
     let ws;
     try { ws = new WebSocket(Net.base().replace(/^http/, 'ws') + '/ws'); } catch (e) { return; }
@@ -139,16 +159,21 @@
       const o = 4 + i * 22;
       const id = dv.getUint32(o, true);
       if (id === Net.myId) continue;
-      let r = Net.remotes.get(id);
-      if (!r) {
-        r = { id, snaps: [], meta: null, obj: null, bus: null, tag: null };
-        Net.remotes.set(id, r);
-        Net.wantWho.add(id);
-      }
-      r.snaps.push({ t: now, anim: dv.getUint8(o + 4), flags: dv.getUint8(o + 5), x: dv.getFloat32(o + 6, true), y: dv.getFloat32(o + 10, true), z: dv.getFloat32(o + 14, true), h: dv.getInt16(o + 18, true) / 10000, sp: dv.getInt16(o + 20, true) / 100 });
-      if (r.snaps.length > 12) r.snaps.shift();
-      r.last = now;
+      const r = ingest(id, { t: now, anim: dv.getUint8(o + 4), flags: dv.getUint8(o + 5), x: dv.getFloat32(o + 6, true), y: dv.getFloat32(o + 10, true), z: dv.getFloat32(o + 14, true), h: dv.getInt16(o + 18, true) / 10000, sp: dv.getInt16(o + 20, true) / 100 });
+      if (!r.meta) Net.wantWho.add(id);
     }
+  }
+
+  function ingest(id, snap) {
+    let r = Net.remotes.get(id);
+    if (!r) {
+      r = { id, snaps: [], meta: null, obj: null, bus: null, tag: null };
+      Net.remotes.set(id, r);
+    }
+    r.snaps.push(snap);
+    if (r.snaps.length > 12) r.snaps.shift();
+    r.last = snap.t;
+    return r;
   }
 
   function applyMeta(m) {
@@ -188,7 +213,92 @@
     });
     Net.remotes.clear();
   };
-  Net.setLevel = function (code) { Net.levelCode = code; Net.clearRemotes(); };
+  Net.setLevel = function (code) { Net.levelCode = code; Net.clearRemotes(); sbCell = ''; };
+
+  // ------------------------------------------- Supabase Realtime transport
+  // The map is split into 120 m cells, one broadcast channel each. Players
+  // publish to their own cell and listen to the 3x3 cells around them, so
+  // traffic stays local however many people are online.
+  const CELL = 120;
+  let sb = null, sbCell = '', sbOwn = '', pingTimer = null, metaT = 0;
+  const sbChannels = new Map();
+  const r2 = (v) => Math.round(v * 100) / 100;
+  function sbConnect() {
+    if (!Net.token || !Net.user || sb) return;
+    sb = window.supabase.createClient(C.supabaseUrl, C.supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      realtime: { params: { eventsPerSecond: 20 } }
+    });
+    Net.myId = Net.user.id;
+    ping();
+    pingTimer = setInterval(ping, 45000);
+  }
+  function sbDisconnect() {
+    clearInterval(pingTimer); pingTimer = null;
+    if (sb) sb.removeAllChannels();
+    sbChannels.clear();
+    sb = null; sbCell = ''; sbOwn = '';
+    Net.connected = false;
+  }
+  async function ping() {
+    try {
+      const r = await Net.api('POST', '/api/ping');
+      Net.online = r.online;
+      KT.UI.setOnline(Net.online, Net.connected);
+    } catch (e) {
+      if (e.status === 401) { KT.UI.toast('Your session has expired. Please log in again.'); sbDisconnect(); }
+    }
+  }
+  function sbSync(x, z) {
+    const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
+    const key = Net.levelCode + ':' + cx + ':' + cz;
+    if (key === sbCell) return;
+    sbCell = key;
+    const topic = (i, j) => 'kt-' + Net.levelCode + '-' + i + '-' + j;
+    const want = new Set();
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) want.add(topic(cx + i, cz + j));
+    sbOwn = topic(cx, cz);
+    sbChannels.forEach((ch, t) => { if (!want.has(t)) { sb.removeChannel(ch); sbChannels.delete(t); } });
+    want.forEach((t) => {
+      if (sbChannels.has(t)) return;
+      const ch = sb.channel(t, { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 's' }, (m) => onSbState(m.payload))
+        .on('broadcast', { event: 'm' }, (m) => onSbMeta(m.payload))
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            if (!Net.connected) { Net.connected = true; KT.UI.setOnline(Net.online, true); }
+            if (t === sbOwn) metaT = 0;
+          }
+        });
+      sbChannels.set(t, ch);
+    });
+  }
+  const finite = (v) => typeof v === 'number' && isFinite(v);
+  function onSbState(p) {
+    if (!p || !finite(p.i) || p.i === Net.myId || !finite(p.x) || !finite(p.y) || !finite(p.z)) return;
+    const r = ingest(p.i, { t: performance.now(), anim: p.a | 0, flags: p.f | 0, x: p.x, y: p.y, z: p.z, h: +p.h || 0, sp: +p.s || 0 });
+    if (!r.meta && typeof p.n === 'string') applyMeta({ id: p.i, name: p.n.slice(0, 24), character: null });
+  }
+  function onSbMeta(p) {
+    if (!p || !finite(p.i) || p.i === Net.myId || typeof p.n !== 'string') return;
+    const r = Net.remotes.get(p.i);
+    if (!r) return;
+    const m = { id: p.i, name: p.n.slice(0, 24), character: p.c && typeof p.c === 'object' ? p.c : null };
+    if (r.meta && r.meta.name === m.name && JSON.stringify(r.meta.character) === JSON.stringify(m.character)) return;
+    applyMeta(m);
+  }
+  function sbSend(st, dt) {
+    sbSync(st.x, st.z);
+    const ch = sbChannels.get(sbOwn);
+    if (!ch || ch.state !== 'joined') return;
+    let h = st.heading % (Math.PI * 2); if (h > Math.PI) h -= Math.PI * 2; if (h < -Math.PI) h += Math.PI * 2;
+    ch.send({ type: 'broadcast', event: 's', payload: { i: Net.myId, n: Net.user.name, a: Math.max(0, ANIMS.indexOf(st.anim)), f: st.flags || 0, x: r2(st.x), y: r2(st.y), z: r2(st.z), h: Math.round(h * 1000) / 1000, s: r2(st.speed || 0) } });
+    metaT -= dt;
+    if (metaT <= 0) {
+      metaT = 5;
+      ch.send({ type: 'broadcast', event: 'm', payload: { i: Net.myId, n: Net.user.name, c: Net.user.character || null } });
+    }
+  }
 
   // Send our state ~10 times a second.
   const buf = new ArrayBuffer(20), dv = new DataView(buf);
@@ -205,16 +315,23 @@
 
   // Interpolate other players ~150 ms in the past for smooth movement.
   const _a = new T.Vector3();
+  let lastSent = null;
   Net.update = function (dt, scene, camera, st) {
     Net.sendT -= dt;
-    if (Net.sendT <= 0 && st) { Net.sendT = 0.1; Net.sendState(st); }
+    if (sb) {
+      // ~5 updates a second while moving, one a second when standing still
+      if (st && Net.sendT <= 0) {
+        const still = lastSent && Math.abs(st.speed || 0) < 0.05 && st.anim === lastSent.anim && Math.hypot(st.x - lastSent.x, st.z - lastSent.z) < 0.05;
+        if (!still || Net.sendT <= -0.8) { sbSend(st, 0.2 - Net.sendT); Net.sendT = 0.2; lastSent = { x: st.x, z: st.z, anim: st.anim }; }
+      }
+    } else if (Net.sendT <= 0 && st) { Net.sendT = 0.1; Net.sendState(st); }
     Net.whoT -= dt;
-    if (Net.whoT <= 0 && Net.wantWho.size && Net.connected) {
+    if (Net.whoT <= 0 && Net.wantWho.size && Net.connected && Net.ws) {
       Net.whoT = 0.5;
       Net.ws.send(JSON.stringify({ t: 'who', ids: Array.from(Net.wantWho).slice(0, 60) }));
       Net.wantWho.clear();
     }
-    const now = performance.now(), rt = now - 150;
+    const now = performance.now(), rt = now - (sb ? 320 : 150);
     Net.remotes.forEach((r, id) => {
       if (now - r.last > 3000) {
         if (r.obj && r.obj.parent) r.obj.parent.remove(r.obj);

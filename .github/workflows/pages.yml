@@ -1,0 +1,43 @@
+# Publishes the game (static files only) to GitHub Pages:
+#   https://starktvm-hrms.github.io/ktgame/
+# The online services run on Supabase (see supabase/), so no server is
+# needed here. One-time setup: Settings -> Pages -> Source: GitHub Actions.
+# GitHub's free plan serves Pages only from public repositories, so the
+# job is skipped while the repository is private.
+name: Deploy game to GitHub Pages
+
+on:
+  push:
+    branches: [main, claude/kerala-tourism-game-v9zd80]
+    paths-ignore: ['server/**', 'supabase/**', 'tools/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect the game files
+        run: |
+          mkdir -p _site
+          cp -r index.html css js lib assets _site/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

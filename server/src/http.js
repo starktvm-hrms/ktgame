@@ -5,6 +5,7 @@
 //   GET  /api/me                                            -> {user}
 //   PUT  /api/me         {name?, character?}                -> {user}
 //   PUT  /api/progress   {progress}                         -> {ok}
+//   POST /api/ping                                          -> {online}
 //   GET  /api/profile/:id                                   -> {profile}
 //   GET  /api/health                                        -> {ok, online, ...}
 'use strict';
@@ -159,6 +160,10 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
       await store.updateUser(user.id, { progress: b.progress });
       return [200, { ok: true }];
     },
+    'POST /api/ping': async (req) => {
+      await requireUser(req);
+      return [200, { online: realtime.online || realtime.sessions.size }];
+    },
     'GET /api/health': async () => [200, { ok: true, online: realtime.online || realtime.sessions.size, players: await store.count(), store: store.kind, bus: bus.kind, uptime: Math.round(process.uptime()) }]
   };
 
@@ -172,6 +177,7 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
   function serveStatic(req, res) {
     let p = decodeURIComponent(req.url.split('?')[0]);
     if (p === '/') p = '/index.html';
+    if (p === '/js/config.js') return serveConfig(req, res);
     if (BLOCKED.some((b) => p.startsWith(b))) { res.writeHead(404); return res.end('Not found'); }
     const file = path.normalize(path.join(config.staticDir, p));
     if (!file.startsWith(config.staticDir)) { res.writeHead(403); return res.end(); }
@@ -185,6 +191,17 @@ function createHttpHandler({ store, realtime, bus, config, log }) {
       });
       if (req.method === 'HEAD') return res.end();
       fs.createReadStream(file).pipe(res);
+    });
+  }
+
+  // The client config tells the game to use this server rather than the
+  // hosted Supabase backend.
+  const CONFIG_JS = path.join(config.staticDir, 'js', 'config.js');
+  function serveConfig(req, res) {
+    fs.readFile(CONFIG_JS, 'utf8', (err, text) => {
+      const body = (err ? 'KT.CONFIG = {};\n' : text) + 'KT.CONFIG.node = true;\n';
+      res.writeHead(200, { 'Content-Type': MIME['.js'], 'Content-Length': Buffer.byteLength(body), 'Cache-Control': 'no-cache' });
+      res.end(req.method === 'HEAD' ? undefined : body);
     });
   }
 

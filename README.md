@@ -11,8 +11,15 @@ together with other travellers online.
 
 ## How to play
 
-**Online (accounts, profiles, multiplayer)** — start the game server, which
-also serves the game:
+**Online at https://starktvm-hrms.github.io/ktgame/** — the game is
+published to GitHub Pages by `.github/workflows/pages.yml`, and its online
+services (accounts, profiles, saved progress, multiplayer) run on Supabase
+(see [supabase/README.md](supabase/README.md)). Opening `index.html`
+directly also uses Supabase.
+
+**Your own game server (optional)** — the Node.js server in `server/` offers
+the same features and is built for very large player counts. It also serves
+the game, and the game then uses it instead of Supabase:
 
 ```bash
 cd server && npm install && npm start
@@ -23,8 +30,8 @@ register with your name, mobile number and password (tick *Remember me* to
 stay signed in on that device). See [server/README.md](server/README.md)
 for production deployment and scaling to lakhs of concurrent players.
 
-**Offline** — open `index.html` directly (or any static server) and choose
-*Play offline as a guest*. Progress is then saved in the browser only.
+**Offline** — choose *Play offline as a guest* on the sign-in screen.
+Progress is then saved in the browser only.
 
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
@@ -79,6 +86,8 @@ lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
 js/                   game code (terrain, world, highway, vehicle, entities, player,
                       missions, UI, audio, net = multiplayer client, account = sign-in & profiles)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
+supabase/             Supabase backend: database migration and the `api` Edge Function
+lib/supabase.min.js   supabase-js 2.117.3 (MIT, vendored) for Supabase Realtime
 assets/models/        procedural 3D model library: characters, animals, boats,
                       buildings (Kerala houses, temple, church, lighthouse...),
                       trees & plants, props
