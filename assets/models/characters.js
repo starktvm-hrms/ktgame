@@ -327,6 +327,11 @@
       ell(face, bm, 0, -0.05, fz(0, -0.05) + 0.003, 0.03, 0.009, 0.01, 0, 0, 0, 10);
       part(face, G.torus(0.014, 0.004, 6, 12, Math.PI), C(0x5a2a20), 0, my - 0.002, fz(0, my) + 0.002, -0.15, 0, Math.PI, 1, 0.6, 0.7);
     }
+    if (cfg.mustache && !cfg.beard && !female) {
+      // a thick Kerala moustache
+      const mm = C(cfg.hairColor || 0x1d140e);
+      [-1, 1].forEach((s) => ell(face, mm, s * 0.017, my + 0.016, fz(s * 0.017, my + 0.016) + 0.001, 0.02, 0.0065, 0.008, 0, 0, s * 0.28, 10));
+    }
     if (cfg.glasses) {
       const fr = C(0x8a5a3a);
       [-1, 1].forEach((s) => part(face, G.torus(0.024, 0.0025, 6, 20), fr, s * 0.04, 0.012, fz(s * 0.04, 0.012) + 0.012));
@@ -522,6 +527,11 @@
         [-1, 1].forEach((s) => ell(spine, topM, s * 0.04, 0.43, 0.075, 0.042, 0.03, 0.012, -0.9, s * 0.2, -s * 0.5, 12));
         part(spine, roundBox(0.012, 0.42 - hemY, 0.012, 0.005), tt === 'raincoat' ? C(0xc79a1f) : topDark, 0.006, (0.42 + hemY) / 2, 0.123);
         for (let i = 0; i < 4; i++) part(spine, G.sph(0.006, 8, 6), tt === 'raincoat' ? C(0x333333) : C(0xf4f4f4), 0, 0.38 - i * 0.1, 0.13);
+        if (tt === 'shirt') {
+          // chest pocket with a pen
+          part(spine, roundBox(0.06, 0.065, 0.008, 0.003), topDark, 0.06, 0.3, 0.124, -0.12, 0.25, 0);
+          part(spine, G.cyl(0.004, 0.004, 0.06, 6), C(0x1f4fa0), 0.045, 0.335, 0.128, -0.12, 0, 0);
+        }
       } else if (tt === 'kurta') {
         band(spine, C(0xd4a434), hemY + 0.02, prof[1][0] * 0.98, 0.012, Math.PI / 2, 0.74);
         part(spine, roundBox(0.02, 0.16, 0.01, 0.004), C(0xd4a434), 0, 0.36, 0.118);
@@ -577,6 +587,15 @@
       rig.tail = null;
     } else rig.tail = buildHair(face, cfg, hairMat);
     const acc = cfg.acc || {};
+    if (female && cfg.jasmine && !of.hood) {
+      // a string of jasmine flowers round the back of the hair
+      const jw = C(0xfbfaf2), jg = C(0x6a8a3a);
+      for (let i = 0; i < 13; i++) {
+        const a = Math.PI * (0.2 + i * 0.6 / 12) + Math.PI;
+        const x = Math.cos(a) * 0.085, z = Math.sin(a) * 0.075 - 0.01;
+        part(face, G.sph(0.009, 6, 5), i % 4 === 0 ? jg : jw, x, -0.005 + Math.sin(i) * 0.004, z);
+      }
+    }
     if (acc.hat && !of.hood) {
       const hc = C(0xd8b98e), hb = C(0x5a3a22);
       part(face, lathe([[0.001, 0.0], [0.2, 0.0], [0.205, 0.012], [0.12, 0.009], [0.115, 0.02], [0.001, 0.02]], sg(30)), hc, 0, 0.095, -0.005, -0.08);
@@ -627,6 +646,21 @@
       buildHand(el, skin, s, female);
       sh.rotation.z = s * 0.08;
     });
+
+    // ------------------------------------------------- things they carry
+    if (cfg.carry === 'shopping' && rig.elR) {
+      // a cloth shopping bag in the right hand
+      const bagM = C([0x2a9d8f, 0xd8203a, 0xf2c230, 0x6b3fa0][(cfg.seed || 0) % 4]);
+      part(rig.elR, roundBox(0.17, 0.2, 0.08, 0.02), bagM, 0, -0.43, 0);
+      part(rig.elR, G.torus(0.04, 0.006, 4, 10, Math.PI), bagM, 0, -0.33, 0, 0, Math.PI / 2, 0);
+      part(rig.elR, G.sph(0.03, 6, 5), C(0x3f7f2c), 0.03, -0.31, 0.01);
+    } else if (cfg.carry === 'handbag' && rig.shL) {
+      const hb = C([0x7a3b24, 0x1d1d1f, 0xb3261e][(cfg.seed || 0) % 3]);
+      part(rig.shL, roundBox(0.15, 0.11, 0.05, 0.015), hb, 0.04, -0.3, 0.02);
+      part(rig.shL, G.box(0.01, 0.3, 0.01), hb, 0.0, -0.13, 0.03, 0, 0, -0.1);
+    } else if (cfg.carry === 'phone' && rig.elL) {
+      part(rig.elL, roundBox(0.04, 0.078, 0.008, 0.003), C(0x111111), 0, -0.3, 0.035, -0.4, 0, 0);
+    }
 
     // ---------------------------------------------------- accessories
     if (acc.backpack) {

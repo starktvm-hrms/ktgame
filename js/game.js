@@ -63,6 +63,7 @@
     setupHomeShops(scene);
     Game.homeScene = scene;
     Game.level = 'home';
+    KT.GFX.enabled = Game.settings.quality !== 'low';
     KT.Sky.init();
     const saved = load(SAVE_KEY);
     if (saved && saved.cfg) Game.cfg = saved.cfg;
@@ -527,6 +528,7 @@
       KT.Voice.update(dt);
     }
     KT.Sky.update(Math.min(dt, 0.1));
+    KT.GFX.update(Math.min(dt, 0.1));
     KT.Audio.updateMusic();
     if (Game.state !== 'menu' && Game.state !== 'loading' && Game.state !== 'auth' && Game.level === 'home') KT.Audio.updateAmbience(dt, KT.Player.pos);
     Game.renderer.render(Game.scene, Game.camera);

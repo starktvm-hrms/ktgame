@@ -86,13 +86,18 @@
         beard: !female && rng() < 0.25, glasses: rng() < 0.2,
         colors: look[1] === 'tee' || look[1] === 'casual' || kid ? { top: kid ? 0xf4f4f0 : TOPS[Math.floor(rng() * TOPS.length)], bottom: kid ? 0x1f3a6b : undefined } : undefined,
         acc: tourist ? { backpack: rng() < 0.6, hat: rng() < 0.5, sunglasses: rng() < 0.6, camera: rng() < 0.5 } : { backpack: kid || rng() < 0.15, hat: false, sunglasses: rng() < 0.1, camera: false },
-        scale: kid ? 0.72 : 0.9 + rng() * 0.12
+        scale: kid ? 0.72 : 0.9 + rng() * 0.12,
+        mustache: !female && !kid && rng() < 0.6,
+        jasmine: female && (look[1] === 'saree' || look[1] === 'churidar') && rng() < 0.5,
+        carry: kid ? null : (() => { const r = rng(); return r < 0.22 ? 'shopping' : female && r < 0.4 ? 'handbag' : r < 0.5 ? 'phone' : null; })(),
+        seed: i
       };
       if (cfg.colors && cfg.colors.bottom === undefined) delete cfg.colors.bottom;
       const obj = KT.Models.character(cfg);
       const umb = umbrella();
       obj.add(umb);
       hub.group.add(obj);
+      obj.userData.cfg = cfg;
       // start somewhere on the graph, heading to a neighbour
       let at = Math.floor(rng() * graph.length);
       for (let k = 0; k < graph.length && !graph[at].next.length; k++) at = (at + 1) % graph.length;
@@ -169,7 +174,7 @@
       [-1, 1].forEach((sd) => {
         if (rng() > 0.45) return;
         const kind = rng() < 0.5 ? 'car' : rng() < 0.5 ? 'auto' : 'scooter';
-        const lat = sd * (kind === 'scooter' ? 6.7 : 7.4);
+        const lat = sd * (kind === 'scooter' ? 7.2 : 6.95); // parking strip beside the footpath
         if (!free(al, lat, 1.3)) return;
         const h = Hw.frame(hub.s + al).heading + (sd < 0 ? 0 : Math.PI);
         park(kind, al, lat, h);
@@ -301,6 +306,9 @@
       }
       const hx = _b.x - _a.x, hz = _b.z - _a.z;
       if (moving && Math.hypot(hx, hz) > 0.01) w.heading = Math.atan2(hx, hz);
+      // full detail up close, the light model further away
+      const want = d < 24 ? 'full' : d > 30 ? 'lite' : w.lod || 'lite';
+      if (want !== (w.lod || 'lite')) swapLod(w, want);
       const y = KT.Highway.groundY(x, z).y;
       w.obj.position.set(x, y, z);
       w.obj.rotation.y = KT.angleLerp(w.obj.rotation.y, w.heading, 1 - Math.exp(-dt * 8));
@@ -309,6 +317,25 @@
       if (d < 80) KT.Models.animateCharacter(w.obj, moving ? 'walk' : 'idle', dt, w.speed / 1.1);
     });
   };
+
+  function swapLod(w, want) {
+    const old = w.obj;
+    if (want === 'full' && !w.full) {
+      w.lite = old;
+      w.full = KT.Models.character(Object.assign({}, old.userData.cfg, { lite: false }));
+      w.full.userData.cfg = old.userData.cfg;
+    }
+    const next = want === 'full' ? w.full : w.lite;
+    if (!next || next === old) return;
+    next.position.copy(old.position);
+    next.rotation.y = old.rotation.y;
+    next.visible = old.visible;
+    old.parent.add(next);
+    old.parent.remove(old);
+    next.add(w.umb);
+    w.obj = next;
+    w.lod = want;
+  }
 
   // people on the carriageway (for the traffic to stop for)
   TF.onRoad = function () {

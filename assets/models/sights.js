@@ -963,6 +963,38 @@
     return baked;
   };
 
+  // ------------------------------------------------- ground cover
+  // A thick grass clump with blades of different heights and shades.
+  Models.grassClump = function () {
+    const g = new T.Group();
+    const geo = new T.ConeGeometry(0.035, 0.7, 3, 1, true);
+    geo.translate(0, 0.35, 0);
+    const mats = [KT.M.grassBlade, KT.mat('grassBladeLight', { color: 0x8fbf4a, roughness: 0.9, side: T.DoubleSide }), KT.mat('grassBladeDry', { color: 0xb8b060, roughness: 0.95, side: T.DoubleSide })];
+    for (let i = 0; i < 16; i++) {
+      const a = i * 2.39996, r = 0.05 + (i % 5) * 0.045;
+      part(g, geo, mats[i % 7 === 0 ? 2 : i % 2], Math.cos(a) * r, 0, Math.sin(a) * r, Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45, 1, 0.6 + ((i * 7) % 5) * 0.16, 1);
+    }
+    return KT.bake(g, { castShadow: false });
+  };
+  // A fern: arching fronds of paired leaflets.
+  Models.fern = function () {
+    const g = new T.Group();
+    const leaf = KT.mat('fernLeaf', { color: 0x3f7a2e, roughness: 0.85, side: T.DoubleSide });
+    const lg = new T.PlaneGeometry(0.16, 0.05);
+    for (let f = 0; f < 7; f++) {
+      const frond = new T.Group();
+      frond.rotation.y = (f / 7) * Math.PI * 2;
+      g.add(frond);
+      for (let i = 0; i < 9; i++) {
+        const t = i / 8, x = 0.06 + t * 0.62, y = 0.08 + Math.sin(t * 2.6) * 0.42 - t * t * 0.2;
+        const sz = 1 - t * 0.7;
+        [-1, 1].forEach((s) => part(frond, lg, leaf, x, y, s * 0.06 * sz, -Math.PI / 2 + 0.3, 0, s * 0.5, sz, 1, 1));
+      }
+      part(frond, G.box(0.66, 0.012, 0.012), leaf, 0.38, 0.32, 0, 0, 0, 0.35);
+    }
+    return KT.bake(g, { castShadow: false });
+  };
+
   // ------------------------------------------------------- beach pier
   Models.pier = function (len) {
     len = len || 30;

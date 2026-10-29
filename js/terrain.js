@@ -245,11 +245,16 @@
           'vec2 tuv = vWPos.xz * 0.16;',
           'float big = texture2D(tGrass, vWPos.xz * 0.0045).g;',
           'vec3 grass = lin(texture2D(tGrass, tuv).rgb) * mix(0.75, 1.25, big);',
+          // a second, rotated sample hides the tiling; fine detail up close
+          'grass = mix(grass, lin(texture2D(tGrass, mat2(0.8, -0.6, 0.6, 0.8) * tuv * 0.41 + 0.37).rgb) * mix(0.75, 1.25, big), 0.45);',
+          'grass *= mix(0.86, 1.14, texture2D(tGrass, tuv * 3.7).g);',
           'grass = mix(grass, grass * vec3(1.08, 0.95, 0.7), smoothstep(0.55, 0.8, texture2D(tMud, vWPos.xz * 0.003).r));',
           'vec3 sand = lin(texture2D(tSand, tuv * 0.8).rgb);',
           'vec3 mud = lin(texture2D(tMud, tuv * 0.9).rgb);',
           'vec3 tea = lin(texture2D(tTea, vec2(vWPos.x * 0.05, vWPos.y * 0.9 + vWPos.z * 0.02)).rgb);',
           'vec3 paddy = lin(texture2D(tTea, vec2(vWPos.x * 0.06, vWPos.z * 0.08)).rgb) * vec3(1.35, 1.35, 0.9);',
+          // worn patches of bare earth
+          'grass = mix(grass, mud * 1.1, smoothstep(0.62, 0.76, texture2D(tMud, vWPos.xz * 0.011 + 0.3).r) * 0.45);',
           'vec3 col = grass;',
           'col = mix(col, tea, sp.b);',
           'col = mix(col, paddy, 1.0 - sp.a);',

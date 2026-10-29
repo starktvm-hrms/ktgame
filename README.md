@@ -234,3 +234,13 @@ python3 tools/generate_textures.py
 
 Pause → Settings → Graphics quality (Low / Medium / High) controls shadows,
 resolution and terrain detail. Lower it on older laptops or phones.
+
+On Medium and High, the live sky is turned into an environment map that
+lights and reflects off every surface (it follows the time of day and the
+weather). Everywhere: the ground blends grass with patches of bare earth and
+red laterite on slopes, with close-up detail; the highway has worn asphalt
+with tyre tracks and cracks, black-and-white kerbs and reflectors that glow
+at night; town footpaths are paver blocks; dense grass, flowers and ferns
+grow around you, with areca palms, jackfruit trees and forest on the ghats;
+people up close are drawn in full detail, many men wear a moustache, women
+jasmine in their hair, and people carry shopping bags, handbags and phones.

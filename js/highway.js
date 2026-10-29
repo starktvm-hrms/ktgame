@@ -15,6 +15,7 @@
   };
   const TILE = 160, RES = 32, SEG_LEN = 200;
   const ROAD_HALF = 5.5, MAX_LAT = 340;
+  const FOOT0 = 8.0, FOOT1 = 13.6; // town footpaths (lateral range)
 
   // ---------------------------------------------------------- road path
   const roadX = (s) => 380 * Math.sin(s / 2600) + 140 * Math.sin(s / 780 + 1.3);
@@ -98,6 +99,10 @@
     const p = Hw.project(x, z);
     let y = Hw.height(x, z);
     if (Math.abs(p.lat) < ROAD_HALF + 0.6) y = Math.max(y, roadY(p.s) + 0.06);
+    else if (Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
+      const hi = Math.round((p.s - Hw.START) / Hw.SPACING), hub = Hw.hubs[hi];
+      if (hub && hub.footpaths && hub.footpaths.some((g) => g[0] <= p.s - hub.s && p.s - hub.s <= g[1] && Math.sign(p.lat) === g[2])) y = Math.max(y, roadY(p.s) + 0.14);
+    }
     return { y, onPlatform: false };
   };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
@@ -156,36 +161,129 @@
   // ------------------------------------------------------------ materials
   let mats = null;
   function makeMaterials() {
+    // Asphalt: speckled aggregate, darker tyre tracks in each lane, patched
+    // repairs, hairline cracks and oil stains, with matching bump detail.
     const asphalt = (function () {
-      const c = document.createElement('canvas');
-      c.width = 256; c.height = 512;
-      const g = c.getContext('2d');
-      g.fillStyle = '#4b4d50'; g.fillRect(0, 0, 256, 512);
-      const img = g.getImageData(0, 0, 256, 512);
-      for (let i = 0; i < img.data.length; i += 4) {
-        const n = (Math.random() - 0.5) * 30;
-        img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
+      const W = 512, H = 1024, rng = KT.makeRng(1234);
+      const c = document.createElement('canvas'), b = document.createElement('canvas');
+      c.width = b.width = W; c.height = b.height = H;
+      const g = c.getContext('2d'), gb = b.getContext('2d');
+      g.fillStyle = '#4a4c4f'; g.fillRect(0, 0, W, H);
+      gb.fillStyle = '#808080'; gb.fillRect(0, 0, W, H);
+      // tyre tracks: two per lane, smooth and a little darker
+      [0.17, 0.34, 0.66, 0.83].forEach((u) => {
+        const gr = g.createLinearGradient(u * W - 26, 0, u * W + 26, 0);
+        gr.addColorStop(0, 'rgba(20,20,22,0)'); gr.addColorStop(0.5, 'rgba(20,20,22,0.22)'); gr.addColorStop(1, 'rgba(20,20,22,0)');
+        g.fillStyle = gr; g.fillRect(u * W - 26, 0, 52, H);
+      });
+      // patches of newer, darker asphalt
+      for (let i = 0; i < 2; i++) {
+        const x = rng() * (W - 140) + 40, y = rng() * (H - 200), w = 40 + rng() * 60, h = 50 + rng() * 90;
+        g.fillStyle = 'rgba(30,31,33,0.18)'; g.fillRect(x, y, w, h);
+        gb.strokeStyle = '#747474'; gb.lineWidth = 1; gb.strokeRect(x, y, w, h);
       }
-      g.putImageData(img, 0, 0);
-      g.fillStyle = '#f2f2ee';
-      g.fillRect(8, 0, 7, 512); g.fillRect(241, 0, 7, 512);
-      g.fillRect(124, 0, 8, 300);
-      const t = new T.CanvasTexture(c);
-      t.wrapS = t.wrapT = T.RepeatWrapping;
+      // speckle (aggregate)
+      const img = g.getImageData(0, 0, W, H), bimg = gb.getImageData(0, 0, W, H);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const n = (rng() - 0.5) * 34 + (rng() < 0.02 ? 30 : 0);
+        img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
+        const bn = 128 + (rng() - 0.5) * 60;
+        bimg.data[i] = bimg.data[i + 1] = bimg.data[i + 2] = Math.min(bimg.data[i], bn);
+      }
+      g.putImageData(img, 0, 0); gb.putImageData(bimg, 0, 0);
+      // hairline cracks
+      g.strokeStyle = 'rgba(25,25,27,0.28)'; gb.strokeStyle = '#5a5a5a';
+      for (let i = 0; i < 9; i++) {
+        let x = rng() * W, y = rng() * H;
+        g.lineWidth = gb.lineWidth = 0.8 + rng() * 0.8;
+        g.beginPath(); gb.beginPath(); g.moveTo(x, y); gb.moveTo(x, y);
+        for (let k = 0; k < 7; k++) { x += (rng() - 0.5) * 40; y += 10 + rng() * 26; g.lineTo(x, y); gb.lineTo(x, y); }
+        g.stroke(); gb.stroke();
+      }
+      // oil stains down the middle of each lane
+      for (let i = 0; i < 6; i++) {
+        const x = (rng() < 0.5 ? 0.25 : 0.75) * W + (rng() - 0.5) * 40, y = rng() * H, r = 10 + rng() * 22;
+        const gr = g.createRadialGradient(x, y, 1, x, y, r);
+        gr.addColorStop(0, 'rgba(12,12,14,0.5)'); gr.addColorStop(1, 'rgba(12,12,14,0)');
+        g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      // painted lines, slightly worn
+      g.fillStyle = '#eeeeea';
+      g.fillRect(16, 0, 14, H); g.fillRect(W - 30, 0, 14, H);
+      g.fillRect(W / 2 - 8, 0, 16, H * 0.58);
+      gb.fillStyle = '#9a9a9a';
+      gb.fillRect(16, 0, 14, H); gb.fillRect(W - 30, 0, 14, H); gb.fillRect(W / 2 - 8, 0, 16, H * 0.58);
+      g.fillStyle = 'rgba(74,76,79,0.35)';
+      for (let i = 0; i < 40; i++) g.fillRect([16, W - 30, W / 2 - 8][i % 3] + rng() * 12, rng() * H, 2 + rng() * 5, 2 + rng() * 8);
+      const t = new T.CanvasTexture(c), tb = new T.CanvasTexture(b);
+      [t, tb].forEach((x) => { x.wrapS = x.wrapT = T.RepeatWrapping; x.anisotropy = KT.maxAnisotropy; });
       t.encoding = T.sRGBEncoding;
-      t.anisotropy = KT.maxAnisotropy;
+      t.userData = { bump: tb };
       return t;
     })();
     const waterN = KT.tex('water_normal', 6, 6, true);
     mats = {
-      terrain: new T.MeshStandardMaterial({ vertexColors: true, map: KT.tex('grass', 1, 1), roughness: 0.95 }),
-      road: new T.MeshStandardMaterial({ map: asphalt, roughness: 0.85 }),
+      terrain: terrainMaterial(),
+      road: new T.MeshStandardMaterial({ map: asphalt, bumpMap: asphalt.userData.bump, bumpScale: 0.6, roughness: 0.82 }),
       water: new T.MeshStandardMaterial({ color: 0x2a7f8a, roughness: 0.12, metalness: 0.1, normalMap: waterN, normalScale: new T.Vector2(0.6, 0.6), transparent: true, opacity: 0.92 }),
       concrete: KT.mat('concrete', { color: 0xc9c6bd, roughness: 0.9 }),
       kerb: KT.mat('kerbStripe', { color: 0xf2f2ee, roughness: 0.6 }),
-      sand: KT.mat('hubSand', { map: KT.tex('sand', 1, 1), color: 0xffffff }, 0.15)
+      sand: KT.mat('hubSand', { map: KT.tex('sand', 1, 1), color: 0xffffff }, 0.15),
+      kerbWhite: KT.mat('kerbPaintWhite', { color: 0xeeeeea, roughness: 0.7 }),
+      kerbBlack: KT.mat('kerbPaintBlack', { color: 0x1d1d1f, roughness: 0.7 }),
+      catEye: KT.mat('catEye', { color: 0xffd36a, emissive: 0xffb020, emissiveIntensity: 0.4, roughness: 0.3 }),
+      paver: paverMaterial()
     };
     mats.water.userData.normal = waterN;
+  }
+
+  // Interlocking concrete paver blocks for the town footpaths.
+  function paverMaterial() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d'), rng = KT.makeRng(55);
+    g.fillStyle = '#8f8a82'; g.fillRect(0, 0, 256, 256);
+    const cols = ['#b8b2a8', '#aaa49a', '#c2bcb2', '#b0544a', '#a14a40'];
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 4; x++) {
+      const ox = (y % 2) * 32;
+      g.fillStyle = cols[(x + y * 3) % 7 === 0 ? 3 + (x % 2) : Math.floor(rng() * 3)];
+      g.fillRect(((x * 64 + ox) % 256) + 2, y * 32 + 2, 60, 28);
+      if (x * 64 + ox + 64 > 256) g.fillRect(2 - (256 - x * 64 - ox) + 0, y * 32 + 2, 64 - (256 - x * 64 - ox) - 4, 28);
+    }
+    const img = g.getImageData(0, 0, 256, 256);
+    for (let i = 0; i < img.data.length; i += 4) { const n = (rng() - 0.5) * 18; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
+    g.putImageData(img, 0, 0);
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping; t.encoding = T.sRGBEncoding; t.anisotropy = KT.maxAnisotropy;
+    return new T.MeshStandardMaterial({ map: t, roughness: 0.85, side: T.DoubleSide });
+  }
+
+  // Terrain: grass sampled at two rotated scales (no visible tiling), large
+  // scale colour variation, close-up detail, patches of bare earth and red
+  // laterite showing on the slopes; the vertex colours add paddy, ghats,
+  // shoulders and river banks.
+  function terrainMaterial() {
+    const m = new T.MeshStandardMaterial({ vertexColors: true, map: KT.tex('grass', 1, 1), roughness: 0.95 });
+    const uniforms = { tMud: { value: KT.tex('mud', 1, 1) }, tLat: { value: KT.tex('laterite', 1, 1) } };
+    m.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, uniforms);
+      shader.fragmentShader = 'uniform sampler2D tMud, tLat;\n' + shader.fragmentShader.replace('#include <map_fragment>', [
+        'vec2 tw = vUv;',
+        'vec3 g1 = texture2D(map, tw).rgb;',
+        'vec3 g2 = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * tw * 0.41 + 0.31).rgb;',
+        'float macro = texture2D(map, tw * 0.031).g;',
+        'float det = texture2D(map, tw * 3.3).g;',
+        'vec3 tc = mix(g1, g2, 0.45) * mix(0.78, 1.22, smoothstep(0.2, 0.8, macro)) * mix(0.86, 1.14, det);',
+        'float dirt = smoothstep(0.6, 0.74, texture2D(tMud, tw * 0.083 + 0.5).r);',
+        'tc = mix(tc, texture2D(tMud, tw * 1.3).rgb * 1.15, dirt * 0.6);',
+        'vec3 wn = inverseTransformDirection(normalize(vNormal), viewMatrix);',
+        'float slope = smoothstep(0.22, 0.48, 1.0 - wn.y);',
+        'tc = mix(tc, texture2D(tLat, tw * 0.9).rgb * vec3(1.05, 0.85, 0.75), slope);',
+        'diffuseColor.rgb *= tc;'
+      ].join('\n'));
+    };
+    m.customProgramCacheKey = () => 'hwTerrain2';
+    return m;
   }
 
   // ------------------------------------------------------- scatter pools
@@ -221,6 +319,13 @@
     pools.pole = new Pool(scene, Models.electricPole(), 400, true);
     pools.stone = new Pool(scene, Models.milestone(), 120, false);
     pools.rock = new Pool(scene, Models.rock(5), 200, true);
+    // near ground cover and more kinds of trees
+    pools.tuft = new Pool(scene, Models.grassClump(), 4200, false);
+    pools.flower = new Pool(scene, Models.flowerPatch(), 700, false);
+    pools.fern = new Pool(scene, Models.fern(), 700, false);
+    pools.areca = new Pool(scene, Models.arecaPalm(), 400, true);
+    pools.jack = new Pool(scene, Models.jackfruitTree(), 160, true);
+    pools.forest = new Pool(scene, Models.forestTree(7), 400, true);
     Models.SHOP_TYPES.forEach((t) => { pools['shop_' + t] = new Pool(scene, Models.shop(t), 40, true); });
   }
 
@@ -319,7 +424,9 @@
       const near = Math.abs(p.lat) < 60;
       if (!near && rng() < 0.45) continue;
       const r = rng();
-      if (r < 0.62) add('palm', x, z, rng() * 6.28, 0.85 + rng() * 0.4, { type: 'circle', r: 0.4 });
+      if (p.lat > 160 && rng() < 0.55) add('forest', x, z, rng() * 6.28, 0.8 + rng() * 0.5, { type: 'circle', r: 0.6 });
+      else if (r < 0.5) add('palm', x, z, rng() * 6.28, 0.85 + rng() * 0.4, { type: 'circle', r: 0.4 });
+      else if (r < 0.62) add(rng() < 0.75 ? 'areca' : 'jack', x, z, rng() * 6.28, 0.85 + rng() * 0.3, { type: 'circle', r: 0.5 });
       else if (r < 0.8) add('banana', x, z, rng() * 6.28, 0.9 + rng() * 0.3, { type: 'circle', r: 0.35 });
       else if (r < 0.88) add('mango', x, z, rng() * 6.28, 0.9 + rng() * 0.3, { type: 'circle', r: 0.7 });
       else if (r < 0.95) add('bush', x, z, rng() * 6.28, 1, null);
@@ -380,6 +487,28 @@
       items.push({ key: 'pole', m: matAt(s, ROAD_HALF + 2.2, f.heading), s });
       if (!Hw.tileColliders.has('pole' + s)) { const q = Hw.at(s, ROAD_HALF + 2.2); Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 0.2 }); Hw.tileColliders.add('pole' + s); }
     }
+    // painted kerbs along the open road (towns have footpaths instead) and
+    // reflectors down the centre line
+    const kerbW = [], kerbB = [], eyes = [];
+    const inTown = (s) => { const hi = Math.round((s - Hw.START) / Hw.SPACING); return hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(s - Hw.hubS(hi)) < 205; };
+    const kerbGeo = G.box(0.22, 0.34, 0.96), eyeGeo = G.box(0.14, 0.04, 0.2);
+    for (let s = Math.ceil(s0); s < s1; s += 1) {
+      if (onBridge(s)) continue;
+      const f = Hw.frame(s), y = roadY(s);
+      if (!inTown(s)) {
+        [-1, 1].forEach((sd) => {
+          const q = Hw.at(s, sd * (ROAD_HALF + 0.1));
+          (s % 2 ? kerbW : kerbB).push({ geometry: kerbGeo, matrix: new T.Matrix4().compose(new T.Vector3(q.x, y - 0.03, q.z), new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), f.heading), new T.Vector3(1, 1, 1)) });
+        });
+      }
+      if (s % 9 === 0) eyes.push({ geometry: eyeGeo, matrix: new T.Matrix4().compose(new T.Vector3(f.x, y + 0.07, f.z), new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), f.heading), new T.Vector3(1, 1, 1)) });
+    }
+    [[kerbW, mats.kerbWhite], [kerbB, mats.kerbBlack], [eyes, mats.catEye]].forEach(([list, mat]) => {
+      if (!list.length) return;
+      const m = new T.Mesh(KT.mergeGeometries(list), mat);
+      m.receiveShadow = true;
+      group.add(m);
+    });
     // milestones every 50 m of game road = 1 km on the map
     for (let s = Math.ceil(s0 / 50) * 50; s < s1; s += 50) {
       if (onBridge(s)) continue;
@@ -848,6 +977,50 @@
     });
     hub.group.add(KT.bake(town));
     hub.townSize = n;
+    buildFootpaths(hub);
+  }
+
+  // Raised paver footpaths along the town's main road, with gaps for the
+  // zebra crossing, the bus bay and the side streets.
+  function buildFootpaths(hub) {
+    const gaps = { '-1': [[Hw.CROSSING - 2.5, Hw.CROSSING + 2.5], [-6, 28], [-44.5, -35.5], [95.5, 104.5]], '1': [[Hw.CROSSING - 2.5, Hw.CROSSING + 2.5], [-124.5, -115.5]] };
+    hub.footpaths = [];
+    const pos = [], uv = [], idx = [];
+    const strip = (a0, a1, sd) => {
+      hub.footpaths.push([a0, a1, sd]);
+      const base = pos.length / 3;
+      let n = 0;
+      for (let a = a0; a <= a1 + 0.01; a += 2) {
+        const al = Math.min(a, a1), s = hub.s + al, y = roadY(s) + 0.14;
+        const i0 = Hw.at(s, sd * FOOT0), i1 = Hw.at(s, sd * FOOT1);
+        const yk = roadY(s) - 0.2;
+        // kerb face, top surface
+        pos.push(i0.x, yk, i0.z, i0.x, y, i0.z, i1.x, y, i1.z);
+        uv.push(al / 4, 0, al / 4, 0.06, al / 4, (FOOT1 - FOOT0) / 4);
+        if (n > 0) {
+          const p = base + (n - 1) * 3, q = base + n * 3;
+          const tri = sd > 0 ? [[p, q, p + 1], [p + 1, q, q + 1], [p + 1, q + 1, p + 2], [p + 2, q + 1, q + 2]] : [[p, p + 1, q], [p + 1, q + 1, q], [p + 1, p + 2, q + 1], [p + 2, q + 2, q + 1]];
+          tri.forEach((t) => idx.push(...t));
+        }
+        n++;
+      }
+    };
+    [-1, 1].forEach((sd) => {
+      const gs = gaps[sd].slice().sort((a, b) => a[0] - b[0]);
+      let a = -150;
+      gs.forEach(([g0, g1]) => { if (g0 > a + 2) strip(a, g0, sd); a = Math.max(a, g1); });
+      if (a < 148) strip(a, 150, sd);
+    });
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const m = new T.Mesh(geo, mats.paver);
+    m.receiveShadow = true;
+    hub.group.add(m);
+    // people already standing there step up onto the footpath
+    Hw.npcs.forEach((w) => { if (w.obj.parent === hub.group) w.obj.position.y = Hw.groundY(w.obj.position.x, w.obj.position.z).y; });
   }
 
   // Merge every static object of a district centre into one model (far
@@ -1044,13 +1217,14 @@
       if (h.group) h.group.visible = d < 1400;
     });
     // refill the scatter pools when the set of tiles changed, or after moving
-    if (changed || Math.abs(pr.s - Hw.lastS) > 60) refillPools(pos);
+    if (changed || Math.abs(pr.s - Hw.lastS) > 60 || !Hw.lastPos || Math.hypot(pos.x - Hw.lastPos.x, pos.z - Hw.lastPos.z) > 50) refillPools(pos);
     return list.length;
   };
 
   const _v = new T.Vector3();
   function refillPools(pos) {
     Hw.lastS = Hw.project(pos.x, pos.z).s;
+    Hw.lastPos = { x: pos.x, z: pos.z };
     const lists = {};
     Object.keys(pools).forEach((k) => { lists[k] = []; });
     const push = (it) => {
@@ -1066,7 +1240,51 @@
       push(it);
     }));
     Hw.segs.forEach((sg) => sg.items.forEach((it) => lists[it.key].push(it.m)));
+    groundCover(pos, lists);
     Object.keys(pools).forEach((k) => pools[k].set(lists[k]));
+  }
+
+  // Grass clumps, flowers and ferns on a fine jittered grid around the
+  // player (the same plants always grow in the same places).
+  const _gq = new T.Quaternion(), _gs = new T.Vector3(), _gp = new T.Vector3(), _up = new T.Vector3(0, 1, 0);
+  const gcCache = new Map();
+  function groundCover(pos, lists) {
+    const CELL = 3.2, R = 115;
+    const gx0 = Math.floor((pos.x - R) / CELL), gx1 = Math.floor((pos.x + R) / CELL);
+    const gz0 = Math.floor((pos.z - R) / CELL), gz1 = Math.floor((pos.z + R) / CELL);
+    const hash = (a, b, k) => { const h = Math.sin(a * 127.1 + b * 311.7 + k * 74.7) * 43758.5453; return h - Math.floor(h); };
+    // each cell's plant is worked out once and cached while it stays near
+    if (gcCache.size > 9000) gcCache.forEach((v, k) => { if (Math.hypot(v.x - pos.x, v.z - pos.z) > R + 40) gcCache.delete(k); });
+    for (let gx = gx0; gx <= gx1; gx++) {
+      for (let gz = gz0; gz <= gz1; gz++) {
+        const ck = gx * 100003 + gz;
+        const hit = gcCache.get(ck);
+        if (hit) {
+          if (hit.key && (hit.x - pos.x) * (hit.x - pos.x) + (hit.z - pos.z) * (hit.z - pos.z) <= R * R && lists[hit.key].length < pools[hit.key].cap) lists[hit.key].push(hit.m);
+          continue;
+        }
+        const r0 = hash(gx, gz, 1);
+        const x = (gx + hash(gx, gz, 2)) * CELL, z = (gz + hash(gx, gz, 3)) * CELL;
+        const none = { key: null, x, z };
+        if (r0 > 0.72) { gcCache.set(ck, none); continue; }
+        if ((x - pos.x) * (x - pos.x) + (z - pos.z) * (z - pos.z) > R * R) continue;
+        gcCache.set(ck, none);
+        const p = Hw.project(x, z);
+        if (Math.abs(p.lat) < ROAD_HALF + 1.4) continue;
+        const hi = Math.round((p.s - Hw.START) / Hw.SPACING);
+        const hub = Hw.hubs[hi];
+        if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
+        const h = Hw.height(x, z);
+        if (Hw.waterLevelAt(x, z) > h - 0.4) continue;
+        const r = hash(gx, gz, 4);
+        const key = r < 0.84 ? 'tuft' : r < 0.92 ? 'flower' : 'fern';
+        const sc = 0.65 + hash(gx, gz, 5) * 0.8;
+        _gq.setFromAxisAngle(_up, hash(gx, gz, 6) * 6.28);
+        const m = new T.Matrix4().compose(_gp.set(x, h - 0.05, z), _gq, _gs.set(sc, sc, sc));
+        gcCache.set(ck, { key, x, z, m });
+        if (lists[key].length < pools[key].cap) lists[key].push(m);
+      }
+    }
   }
 
   // The player's bus: brought to a stop when called.

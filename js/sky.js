@@ -340,7 +340,8 @@
       if (r.hemi) {
         r.hemi.color.copy(P.hs).lerp(_a.setRGB(0.75, 0.78, 0.82).multiplyScalar(0.4 + 0.6 * S.day), grey * 0.6);
         r.hemi.groundColor.copy(P.hg);
-        r.hemi.intensity = P.hi * (1 + 0.25 * S.cloud * S.day) + flash * 2.2;
+        // the sky environment map (KT.GFX) already adds soft sky light
+        r.hemi.intensity = P.hi * (1 + 0.25 * S.cloud * S.day) * (KT.GFX && KT.GFX.enabled ? 0.6 : 1) + flash * 2.2;
       }
       // fog closes in with rain and mist
       const fog = r.scene.fog;
@@ -379,6 +380,7 @@
     } else G.renderer.toneMappingExposure = 1.05;
     // street and house lamps glow brighter at night
     KT.M.lampGlow.emissiveIntensity = 1.4 + 2.2 * S.night;
+    if (KT.Highway && KT.Highway.built) KT.mat('catEye').emissiveIntensity = 0.3 + 2.2 * S.night;
     // rain follows the camera on the outdoor maps
     const rm = S.rainMesh;
     if (rm) {

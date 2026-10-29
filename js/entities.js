@@ -182,6 +182,10 @@
       beard: !female && rng() < 0.18, glasses: rng() < 0.18,
       acc: def.acc || { backpack: def.tourist, hat: def.tourist && rng() < 0.4, sunglasses: def.tourist && rng() < 0.5, camera: def.tourist && rng() < 0.4 },
       scale: 0.9 + rng() * 0.1,
+      mustache: !female && rng() < 0.55,
+      jasmine: female && (pick.outfit === 'saree' || pick.outfit === 'churidar') && rng() < 0.5,
+      carry: def.tourist ? (rng() < 0.3 ? 'phone' : null) : (rng() < 0.2 ? 'shopping' : female && rng() < 0.2 ? 'handbag' : null),
+      seed: Math.floor(rng() * 10),
       lite: true
     };
     const obj = Models.character(cfg);
