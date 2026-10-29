@@ -263,22 +263,22 @@
     P.speed = 0;
     if (P.obj.parent) P.obj.parent.remove(P.obj);
     bus.obj.add(P.obj);
-    const d = KT.Models.BUS.driver;
-    P.obj.position.set(d.x, d.y - 0.5, d.z);
+    P.obj.position.copy(bus.spec.seat);
     P.obj.rotation.set(0, 0, 0);
+    P.obj.visible = !bus.spec.hideDriver;
     KT.CameraRig.yaw = bus.heading + Math.PI;
-    KT.Audio.play('door');
-    KT.Audio.engine(true);
+    if (bus.spec.door) KT.Audio.play('door');
+    if (bus.spec.engine) KT.Audio.engine(true);
     KT.Game.onEvent('boardBus');
   };
 
   P.leaveBus = function () {
     const bus = P.bus;
     if (!bus) return false;
-    if (Math.abs(bus.speed) > 1.5) { KT.UI.toast('Stop the bus before getting off (S / brake).'); return false; }
+    if (Math.abs(bus.speed) > 1.5) { KT.UI.toast('Stop the ' + bus.spec.name + ' before getting off (S / brake).'); return false; }
     const o = bus.obj;
-    // step out through the front door on the left side of the bus
-    const tries = [[2.4, 3.9], [2.4, -3.6], [-2.4, 3.9], [0, 7.2], [0, -7]];
+    // step out on the left (the bus door side) or wherever there is room
+    const tries = bus.spec.exits;
     let spot = null;
     for (let i = 0; i < tries.length && !spot; i++) {
       const v = o.localToWorld(new T.Vector3(tries[i][0], 0, tries[i][1]));
@@ -297,7 +297,8 @@
     P.heading = bus.heading;
     P.obj.position.copy(P.pos);
     P.obj.rotation.set(0, P.heading, 0);
-    KT.Audio.play('door');
+    P.obj.visible = true;
+    if (bus.spec.door) KT.Audio.play('door');
     KT.Audio.engine(false);
     KT.Game.onEvent('leaveBus');
     return true;
@@ -306,13 +307,14 @@
   function updateBus(dt, input) {
     const bus = P.bus;
     KT.Vehicle.update(bus, dt, input);
-    if (input.consume('horn')) KT.Audio.play('horn');
+    const S = bus.spec;
+    if (input.consume('horn')) KT.Audio.play(S.horn);
     bus.obj.updateMatrixWorld();
     P.obj.getWorldPosition(P.pos);
     P.heading = bus.heading;
-    KT.Models.animateCharacter(P.obj, 'drive', dt);
-    KT.Audio.engine(true, Math.abs(bus.speed) / KT.Vehicle.MAX_SPEED);
-    P.state = 'drive';
+    KT.Models.animateCharacter(P.obj, S.pose, dt, Math.abs(bus.speed) / 3);
+    if (S.engine) KT.Audio.engine(true, (Math.abs(bus.speed) / S.maxSpeed) * S.engine);
+    P.state = S.pose;
   }
 
   // ---------------------------------------------------------- camera rig
@@ -367,13 +369,13 @@
     }
     if (inBus && Cam.first) {
       // driver's view through the windscreen
-      const eye = P.bus.obj.localToWorld(KT.Models.BUS.driver.clone().add(new T.Vector3(0, 0.95, 0.1)));
+      const eye = P.bus.obj.localToWorld(P.bus.spec.eye.clone());
       const h = P.bus.heading + (Cam.yaw - (P.heading + Math.PI)) * 0.0;
       camera.position.copy(eye);
       camera.lookAt(eye.x + Math.sin(h) * 10, eye.y - 0.6, eye.z + Math.cos(h) * 10);
       return;
     }
-    const head = inBus ? P.bus.obj.position.clone().add(new T.Vector3(0, 3.6, 0)) : new T.Vector3(P.pos.x, P.pos.y + (P.mode === 'canoe' ? 1.1 : 1.55), P.pos.z);
+    const head = inBus ? P.bus.obj.position.clone().add(new T.Vector3(0, P.bus.spec.camH, 0)) : new T.Vector3(P.pos.x, P.pos.y + (P.mode === 'canoe' ? 1.1 : 1.55), P.pos.z);
     if (Cam.first) {
       P.obj.visible = false;
       const fwd = new T.Vector3(-Math.sin(Cam.yaw) * Math.cos(Cam.pitch), -Math.sin(Cam.pitch), -Math.cos(Cam.yaw) * Math.cos(Cam.pitch));
@@ -383,8 +385,8 @@
       if (moving && P.mode === 'foot') P.heading = KT.angleLerp(P.heading, Cam.yaw + Math.PI, 1 - Math.exp(-dt * 10));
       return;
     }
-    P.obj.visible = true;
-    const wantDist = Cam.targetDist * (P.mode === 'canoe' ? 1.5 : inBus ? 2.4 : 1);
+    P.obj.visible = !(inBus && P.bus.spec.hideDriver);
+    const wantDist = Cam.targetDist * (P.mode === 'canoe' ? 1.5 : inBus ? P.bus.spec.cam : 1);
     Cam.dist = Cam.snap ? wantDist : Cam.dist + (wantDist - Cam.dist) * (1 - Math.exp(-dt * 6));
     const cp = Math.cos(Cam.pitch);
     const off = new T.Vector3(Math.sin(Cam.yaw) * cp, Math.sin(Cam.pitch), Math.cos(Cam.yaw) * cp).multiplyScalar(Cam.dist);

@@ -40,7 +40,8 @@ Progress is then saved in the browser only.
 | Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
 | Talk, canoe, climb, board / leave the bus | E | E button |
 | Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view | Joystick |
-| Profile · Players nearby | J · O | Portrait · online counter |
+| Profile · Players nearby · My vehicles | J · O · G | Portrait · online counter · 🚲 |
+| Fishing (Kochi) | E at a Fishing Point, E / Space to haul | E · Haul button |
 | Camera mode (photos) | C, snap with C / Space | Eye button |
 | Namaskaram · Wave | N · Q | 🙏 button |
 | Map · First/third person | M · V | Minimap · 🎥 |
@@ -84,6 +85,28 @@ has a signalled zebra crossing (jumping a red light costs a fine) and rows
 of roadside shops: tea stalls, fruit stalls, bakeries, stores, textile and
 medical shops, hotels and mobile shops. More shops line the highway between
 towns, and the village has its own traffic through a four-way signal.
+
+## Fishing at Kochi and your own vehicles
+
+At the Ernakulam centre, the lagoon by the Chinese fishing nets has four
+Fishing Points. Cast your net, wait for the fish, and haul it in when the
+marker is in the green zone. You might catch mathi (sardine), ayala
+(mackerel), chemmeen (prawns), koonthal (squid), karimeen (pearl spot) or a
+prized neymeen (seer fish), and every fish is worth coins.
+
+Coins unlock vehicles in order. When your wallet reaches a vehicle's price
+it unlocks and the price is paid from your coins:
+
+| Coins | Vehicle | Top speed |
+| --- | --- | --- |
+| 250 | Bicycle | 32 km/h |
+| 350 | Auto rickshaw (tuk tuk) | 54 km/h |
+| 500 | Scooter | 72 km/h |
+| 1000 | Car | 108 km/h |
+
+Press G (or the 🚲 button) to open My Vehicles and ride one, on the
+backwaters map or along the highway between districts. Other players see
+you riding it.
 
 ## Project layout
 

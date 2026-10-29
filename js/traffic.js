@@ -37,7 +37,7 @@
       const c = [0xf3f3f0, 0xb3261e, 0x1d1d1f, 0x2c5fa8][Math.floor(rng() * 4)], sh = SHIRTS[Math.floor(rng() * SHIRTS.length)];
       return { obj: proto('scooter' + c + sh, () => Models.scooter(c, sh, [0x111111, 0xf3efe6, 0xb3261e][Math.floor(rng() * 3)])), len: 1.8, w: 0.7, cruise: 11 + rng() * 3 };
     },
-    bus: (rng) => ({ obj: Models.ksrtcBusClone(), len: 11, w: 2.5, cruise: 12 + rng() * 2 })
+    bus: (rng) => ({ obj: Models.ksrtcBusClone(), len: 11, w: 2.75, cruise: 12 + rng() * 2 })
   };
   function makeVehicle(kind, rng) {
     const v = KINDS[kind](rng);
@@ -162,7 +162,7 @@
     };
     if (P.mode === 'bus' && P.bus) {
       const b = P.bus.obj.position;
-      addPoint(b.x, b.z, 11, 2.6, Math.abs(P.bus.speed) < 0.5);
+      addPoint(b.x, b.z, P.bus.spec.length, P.bus.spec.width + 0.1, Math.abs(P.bus.speed) < 0.5);
     } else if (P.pos) addPoint(P.pos.x, P.pos.z, 0.8, 0.8, true);
     (this.opts.parked ? this.opts.parked() : []).forEach((b) => addPoint(b.x, b.z, b.len, b.w, true));
     (this.opts.people ? this.opts.people() : []).forEach((w) => addPoint(w.x, w.z, 0.7, 0.7, true));
@@ -270,6 +270,12 @@
     return out;
   };
 
+  // the player's vehicles standing in a level (the KSRTC bus, own rides)
+  function parkedVehicles(level) {
+    return KT.Vehicle.active.filter((v) => v.level === level && !v.occupied)
+      .map((v) => ({ x: v.obj.position.x, z: v.obj.position.z, len: v.spec.length, w: v.spec.width + 0.1 }));
+  }
+
   function pickKind(rng, weights) {
     let r = rng() * weights.reduce((a, w) => a + w[1], 0);
     for (let i = 0; i < weights.length; i++) { r -= weights[i][1]; if (r <= 0) return weights[i][0]; }
@@ -299,10 +305,7 @@
         v.lat = v.laneLat = -v.dir * v.laneOff;
         v.overtake = null; v.v = v.cruise * 0.8; v.heading = undefined;
       },
-      parked() {
-        const b = Hw.bus;
-        return b && !b.occupied ? [{ x: b.obj.position.x, z: b.obj.position.z, len: 11, w: 2.6 }] : [];
-      }
+      parked: () => parkedVehicles('highway')
     });
     Tr.playerS = Hw.project(KT.Player.pos.x, KT.Player.pos.z).s;
     const weights = [['car', 10], ['auto', 4], ['scooter', 5], ['lorry', 2], ['bus', 1.4]];
@@ -376,10 +379,7 @@
         if (v.d > L - 4 && v.dir > 0) { v.dir = -1; v.laneLat = v.laneOff; v.overtake = null; }
         else if (v.d < 4 && v.dir < 0) { v.dir = 1; v.laneLat = -v.laneOff; v.overtake = null; }
       },
-      parked() {
-        const b = KT.Game.homeBus;
-        return b ? [{ x: b.obj.position.x, z: b.obj.position.z, len: 11, w: 2.6 }] : [];
-      },
+      parked: () => parkedVehicles('home'),
       people() {
         const out = [];
         E.npcs.forEach((w) => { if (!w.static) out.push(w.obj.position); });
@@ -420,8 +420,8 @@
     place(roadB, dB - 6, 1, stateB); place(roadB, dB + 6, -1, stateB);
     // the player and NPCs bump into vehicles
     const baseAgents = W.agentColliders;
-    W.agentColliders = (pos) => (baseAgents(pos) || []).concat(set.colliders(pos, 10));
-    W.vehicleObstacles = () => set.colliders(KT.Player.bus ? KT.Player.bus.obj.position : KT.Player.pos, 16);
+    W.agentColliders = (pos) => (baseAgents(pos) || []).concat(set.colliders(pos, 10), KT.Vehicle.boxes('home', null));
+    W.vehicleObstacles = (veh) => set.colliders(veh.obj.position, 16).concat(KT.Vehicle.boxes('home', veh));
   };
   Tr.updateHome = function (dt, camPos) {
     if (Tr.home) Tr.home.update(dt, KT.World.animTime, camPos);

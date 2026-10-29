@@ -160,8 +160,8 @@
     const g = new T.Group();
     const m = mats();
     const body = paint(color);
-    const cloth = KT.mat('riderShirt' + shirt.toString(16), { color: shirt, roughness: 0.8 });
-    const hel = paint(helmet);
+    const cloth = shirt ? KT.mat('riderShirt' + shirt.toString(16), { color: shirt, roughness: 0.8 }) : null;
+    const hel = shirt ? paint(helmet) : null;
     const pants = KT.mat('riderPants', { color: 0x2b3442, roughness: 0.85 });
     // scooter
     part(g, rb(0.36, 0.5, 0.9, 0.14), body, 0, 0.6, -0.25);
@@ -172,6 +172,10 @@
     part(g, rb(0.14, 0.1, 0.05, 0.03), m.head, 0, 1.12, 0.72);
     part(g, rb(0.12, 0.06, 0.04, 0.02), m.tail, 0, 0.78, -0.72);
     wheels(g, m, [0], [0.62, -0.55], 0.22, 0.1);
+    if (!shirt) { // the player's own scooter: no rider
+      g.userData.size = { length: 1.8, width: 0.7 };
+      return KT.bake(g);
+    }
     // rider
     part(g, rb(0.32, 0.16, 0.42, 0.07), pants, 0, 1.02, -0.18);
     [-1, 1].forEach((s) => {
@@ -184,6 +188,71 @@
     part(g, G.box(0.22, 0.07, 0.03), m.glass, 0, 1.73, 0.03);
     g.userData.size = { length: 1.8, width: 0.7 };
     return KT.bake(g);
+  };
+
+  // ------------------------------------------------------------ bicycle
+  // Kerala roadster: black frame, carrier, bell; the wheels spin and the
+  // front wheel steers (userData.wheels, like the bus).
+  Models.bicycle = function (color) {
+    const g = new T.Group();
+    const m = mats();
+    const frame = paint(color || 0x1d1d1f);
+    const tube = (x1, y1, z1, x2, y2, z2, r, mat) => {
+      const a = new T.Vector3(x1, y1, z1), b = new T.Vector3(x2, y2, z2);
+      const len = a.distanceTo(b);
+      const mesh = part(g, G.cyl(r, r, len, 8), mat || frame, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+      mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      return mesh;
+    };
+    const R = 0.34, fz = 0.55, rz = -0.52;
+    // frame: seat tube, top tube, down tube, stays, fork
+    tube(0, 0.95, -0.12, 0, R, -0.02, 0.022);
+    tube(0, 0.95, -0.12, 0, 0.98, 0.42, 0.02);
+    tube(0, R, -0.02, 0, 0.92, 0.42, 0.024);
+    tube(0, R, -0.02, 0, R, rz, 0.015);
+    tube(0, 0.95, -0.12, 0, R, rz, 0.015);
+    tube(0, 0.92, 0.42, 0, 1.1, 0.4, 0.02);
+    // carrier over the back wheel
+    part(g, G.box(0.22, 0.02, 0.42), m.chrome, 0, R + 0.42, rz + 0.02);
+    tube(0.1, R + 0.41, rz + 0.2, 0.06, R, rz, 0.008, m.chrome);
+    tube(-0.1, R + 0.41, rz + 0.2, -0.06, R, rz, 0.008, m.chrome);
+    // saddle, crank and pedals
+    part(g, rb(0.16, 0.06, 0.26, 0.03), KT.mat('saddle', { color: 0x2a1a12, roughness: 0.7 }), 0, 1.0, -0.15);
+    part(g, G.cyl(0.08, 0.08, 0.02, 16), m.chrome, 0, R, -0.02, 0, 0, Math.PI / 2);
+    [-1, 1].forEach((sd) => part(g, G.box(0.1, 0.02, 0.05), m.trim, sd * 0.1, R + sd * 0.1, -0.02));
+    const baked = KT.bake(g);
+    // wheels and the steering fork/handlebar as animated parts
+    const wheels = [];
+    const makeWheel = () => {
+      const w = new T.Group();
+      w.add(part(null, G.torus(R - 0.02, 0.025, 8, 28), m.tyre, 0, 0, 0, 0, Math.PI / 2, 0));
+      w.add(part(null, G.torus(R - 0.05, 0.008, 4, 28), m.rim, 0, 0, 0, 0, Math.PI / 2, 0));
+      for (let i = 0; i < 8; i++) w.add(part(null, G.cyl(0.004, 0.004, (R - 0.05) * 2, 4), m.rim, 0, 0, 0, (i / 8) * Math.PI, 0, 0));
+      w.add(part(null, G.cyl(0.03, 0.03, 0.08, 8), m.chrome, 0, 0, 0, 0, 0, Math.PI / 2));
+      return w;
+    };
+    [[fz, true], [rz, false]].forEach(([z, front]) => {
+      const pivot = new T.Group();
+      pivot.position.set(0, R, z);
+      baked.add(pivot);
+      const wh = makeWheel();
+      pivot.add(wh);
+      if (front) {
+        // fork and handlebar turn with the front wheel
+        const fork = new T.Group();
+        fork.position.set(0, 0, 0);
+        pivot.add(fork);
+        part(fork, G.cyl(0.015, 0.015, 0.78, 6), frame, 0, 0.39, -0.08, -0.2, 0, 0);
+        part(fork, G.cyl(0.015, 0.015, 0.6, 8), m.chrome, 0, 0.8, -0.16, 0, 0, Math.PI / 2);
+        part(fork, G.sph(0.03, 8, 6), KT.mat('bell', { color: 0xd8d8d8, metalness: 0.8, roughness: 0.2 }), 0.18, 0.83, -0.14);
+        [-1, 1].forEach((sd) => part(fork, G.cyl(0.022, 0.022, 0.1, 8), m.trim, sd * 0.32, 0.8, -0.16, 0, 0, Math.PI / 2));
+        part(fork, rb(0.1, 0.07, 0.05, 0.02), m.head, 0, 0.6, 0.0);
+      }
+      wheels.push({ pivot, spin: wh, front });
+    });
+    baked.userData.wheels = wheels;
+    baked.userData.size = { length: 1.8, width: 0.6 };
+    return baked;
   };
 
   // ------------------------------------------------------ traffic signal

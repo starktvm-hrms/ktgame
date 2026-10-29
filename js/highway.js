@@ -139,7 +139,7 @@
   Hw.agentColliders = function (pos) {
     return Hw.npcs.filter((w) => w.obj.visible && Math.abs(w.obj.position.x - pos.x) < 6 && Math.abs(w.obj.position.z - pos.z) < 6)
       .map((w) => ({ type: 'circle', x: w.obj.position.x, z: w.obj.position.z, r: 0.35 }))
-      .concat(KT.Traffic.highwayColliders(pos, 10));
+      .concat(KT.Traffic.highwayColliders(pos, 10), KT.Vehicle.boxes('highway', null));
   };
 
   // ------------------------------------------------------------ materials
@@ -587,7 +587,17 @@
         break;
       }
       case 'nets': {
-        waterDisc(hub, 20, side + 15, 28);
+        const lagoon = waterDisc(hub, 20, side + 15, 28);
+        // fishing points around the lagoon shore (Kochi)
+        const lc = Hw.at(hub.s + 20, side + 15);
+        hub.lagoon = { x: lc.x, z: lc.z, r: 28, y: lagoon.position.y };
+        [-1.35, -0.85, 0.85, 1.35].forEach((ang) => {
+          const al = 20 + Math.sin(ang) * 30.5, la = side + 15 - Math.cos(ang) * 30.5;
+          const st = Hw.at(hub.s + al, la), tg = Hw.at(hub.s + 20 + Math.sin(ang) * 21, side + 15 - Math.cos(ang) * 21);
+          hubPlace(hub, Models.fishingSpot(), al, la, 0, { absRot: Math.atan2(tg.x - st.x, tg.z - st.z) });
+          st.y = Hw.groundY(st.x, st.z).y;
+          Hw.interactables.push(KT.Fishing.addSpot(st, tg, lagoon.position.y));
+        });
         [-12, 0, 12].forEach((a, i) => {
           const n = Models.chineseNet();
           const q = Hw.at(hub.s + 20 + a, side - 12);
@@ -761,7 +771,7 @@
     KT.UI.toast('Your KSRTC bus has arrived at the ' + hub.district.name + ' bus stand.');
   };
 
-  Hw.vehicleObstacles = function (bus) { return KT.Traffic.highwayColliders(bus.obj.position, 16); };
+  Hw.vehicleObstacles = function (veh) { return KT.Traffic.highwayColliders(veh.obj.position, 16).concat(KT.Vehicle.boxes('highway', veh)); };
 
   Hw.followSun = function (focus) {
     const snap = 4;
@@ -778,6 +788,8 @@
     if (mats.water.userData.normal) mats.water.userData.normal.offset.set(Hw.animTime * 0.01, Hw.animTime * 0.006);
     Hw.stream(player.pos, 2);
     KT.Traffic.updateHighway(dt, camera ? camera.position : null);
+    const kochi = Hw.hubs.find((h) => h.lagoon && h.group.visible);
+    if (kochi) KT.Fishing.ambient(dt, kochi.lagoon, player.pos);
     const pp = player.pos;
     Hw.hubs.forEach((h) => {
       if (!h.group || !h.group.visible) return;

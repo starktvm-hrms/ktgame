@@ -98,7 +98,7 @@
           <button id="btn-continue" class="btn hidden">Continue</button>
           <button id="btn-save-look" class="btn primary hidden">Save appearance</button>
         </div>
-        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; Esc: pause</p>
+        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; G: vehicles &middot; Esc: pause</p>
       </div>
       <div class="menu-right">
         <canvas id="preview"></canvas>
@@ -136,6 +136,7 @@
       <div class="chip-stat"><span class="ic">&#x2B50;</span><span id="stars">0</span></div>
       <div class="chip-stat"><span class="ic">&#x1F343;</span><span id="leaves">0</span></div>
       <button id="btn-online" class="chip-stat online-chip" title="Players online (O)"><span class="net-dot"></span><span id="online-count">offline</span></button>
+      <button id="btn-garage" class="icon-btn" title="My vehicles (G)">&#x1F6B2;</button>
       <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
     </div>
 
@@ -221,7 +222,8 @@
         <tr><td>Namaskaram / Wave</td><td>N / Q</td></tr>
         <tr><td>Map / View</td><td>M / V (first or third person)</td></tr>
         <tr><td>KSRTC bus</td><td>E to board / get off &middot; W/S accelerate &amp; brake &middot; A/D steer &middot; Space handbrake &middot; H horn &middot; V driver view</td></tr>
-        <tr><td>Profile / Players</td><td>J / O</td></tr>
+        <tr><td>Profile / Players / My vehicles</td><td>J / O / G</td></tr>
+        <tr><td>Fishing (Kochi)</td><td>E at a Fishing Point to cast &middot; E / Space to haul when the marker is in the green</td></tr>
       </table>
       <div class="modal-buttons">
         <button id="btn-menu" class="btn">Save &amp; Quit to Title</button>
@@ -271,6 +273,23 @@
     </div>
   </div>
 
+  <!-- My vehicles -->
+  <div id="garage" class="screen hidden">
+    <div class="modal">
+      <div class="modal-head"><h2>My Vehicles <small class="muted">(G)</small></h2><button id="btn-garage-close" class="btn small">&#x2715; Close</button></div>
+      <p class="muted">Collect coins to unlock vehicles for faster travel across the districts. When your wallet reaches a vehicle’s price it unlocks and the price is paid from your coins.</p>
+      <div id="garage-list"></div>
+    </div>
+  </div>
+
+  <!-- Fishing at Kochi -->
+  <div id="fishing" class="panel hidden">
+    <div id="fish-title"></div>
+    <div id="fish-bar" class="hidden"><div id="fish-zone"></div><div id="fish-marker"></div></div>
+    <div id="fish-hint" class="muted"></div>
+    <button id="fish-haul" class="btn primary hidden">Haul!</button>
+  </div>
+
   <div id="mouse-hint" class="hidden">Click the game to look around with the mouse</div>
   <div id="fade" class="hidden"><div id="fade-text"></div></div>
 
@@ -300,12 +319,14 @@
   <script src="assets/models/kerala.js"></script>
   <script src="assets/models/bus.js"></script>
   <script src="assets/models/traffic.js"></script>
+  <script src="assets/models/fishing.js"></script>
   <script src="js/districts.js"></script>
   <script src="js/terrain.js"></script>
   <script src="js/world.js"></script>
   <script src="js/entities.js"></script>
   <script src="js/highway.js"></script>
   <script src="js/traffic.js"></script>
+  <script src="js/fishing.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/fx.js"></script>

@@ -24,6 +24,7 @@ const TTL_SHORT = 12 * 3600;
 const PBKDF2_ITER = 150000;
 const ONLINE_WINDOW = 120; // seconds since the last ping
 const DISTRICT_IDS = ['tvm', 'klm', 'pta', 'alp', 'ktm', 'idk', 'ekm', 'tsr', 'pkd', 'mlp', 'kkd', 'wyd', 'knr', 'ksd'];
+const VEHICLE_IDS = ['bicycle', 'auto', 'scooter', 'car'];
 
 class AppError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -137,7 +138,9 @@ function publicUser(u: any, self: boolean) {
       distanceKm: num(Math.round(p.distanceKm), 1e7),
       playTime: num(Math.round(p.playTime), 1e9),
       photos: Array.isArray(p.photos) ? p.photos.length : 0,
-      missions: num(p.mission, 100)
+      missions: num(p.mission, 100),
+      fish: num(p.fish && p.fish.total, 1e7),
+      vehicles: Array.isArray(p.vehicles) ? VEHICLE_IDS.filter((v) => p.vehicles.includes(v)).length : 0
     }
   };
   if (self) {

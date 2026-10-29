@@ -17,7 +17,8 @@
     return {
       name: 'Explorer', coins: 0, xp: 0, level: 1, leaves: 0, stars: [], mission: 0, mprog: 0,
       coinsTaken: [], plasticsTaken: [], photos: [], talked: [], pos: null, heading: Math.PI, playTime: 0,
-      districts: [], distanceKm: 0, map: 'home', hwHub: null, read: []
+      districts: [], distanceKm: 0, map: 'home', hwHub: null, read: [],
+      vehicles: [], fish: { total: 0, kinds: {} }
     };
   }
 
@@ -134,10 +135,9 @@
     Game.data.cfg = Game.cfg;
     KT.Player.setCharacter(Game.cfg);
     if (KT.Player.mode === 'bus') { // keep the driver in the seat
-      const d = KT.Models.BUS.driver;
       KT.Player.scene.remove(KT.Player.obj);
       KT.Player.bus.obj.add(KT.Player.obj);
-      KT.Player.obj.position.set(d.x, d.y - 0.5, d.z);
+      KT.Player.obj.position.copy(KT.Player.bus.spec.seat);
       KT.Player.obj.rotation.set(0, 0, 0);
     }
     makePortrait();
@@ -225,10 +225,10 @@
     Game.state = s;
     document.body.dataset.state = s;
     KT.Input.enabled = s === 'playing';
-    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district'].forEach((id) => {
+    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage'].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog')) ||
+      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') ||
         (id === 'pause' && s === 'paused') || (id === 'bigmap' && s === 'map') || (id === 'photo-ui' && s === 'photo') ||
         (id === 'album' && s === 'album') || (id === 'certificate' && s === 'certificate') ||
         (id === 'profile-page' && s === 'profile') || (id === 'players' && s === 'players') || (id === 'district' && s === 'district');
@@ -236,7 +236,7 @@
     });
     // capture the mouse while playing so moving it looks around; free it
     // on screens that need the cursor (travel fades keep it captured)
-    if (s === 'playing' || s === 'photo') KT.Input.lockPointer();
+    if (s === 'playing' || s === 'photo' || s === 'fishing') KT.Input.lockPointer();
     else if (s !== 'travel') KT.Input.unlockPointer();
     updateMouseHint();
   };
@@ -277,6 +277,7 @@
       KT.UI.setOnline(0, false);
     } else KT.UI.setOnline(0, false);
     if (saved && Game.data.map === 'highway') Game.goHighway({ hub: Game.data.hwHub, board: false, quiet: true });
+    setTimeout(Game.checkUnlocks, 2500);
     if (!saved) {
       KT.UI.banner('Kerala', 'God’s Own Country', 'title');
       setTimeout(() => KT.UI.toast('Use W A S D to walk, drag the mouse to look around. Talk to the guide!', 'info'), 1800);
@@ -313,7 +314,95 @@
     if (!silent) KT.Audio.play('coin');
     const el = $('coins').parentElement;
     el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+    if (n > 0) Game.checkUnlocks();
   };
+
+  // ------------------------------------------------------ vehicle unlocks
+  // Vehicles unlock in order as the wallet reaches their price, which is
+  // then paid from the wallet.
+  Game.GARAGE = [
+    { id: 'bicycle', name: 'Bicycle', ml: 'സൈക്കിൾ', price: 250, icon: '\u{1F6B2}', desc: 'Quiet and healthy • up to 32 km/h' },
+    { id: 'auto', name: 'Auto Rickshaw (Tuk Tuk)', ml: 'ഓട്ടോറിക്ഷ', price: 350, icon: '\u{1F6FA}', desc: 'Kerala’s favourite ride • up to 54 km/h' },
+    { id: 'scooter', name: 'Scooter', ml: 'സ്കൂട്ടർ', price: 500, icon: '\u{1F6F5}', desc: 'Zip between the districts • up to 72 km/h' },
+    { id: 'car', name: 'Car', ml: 'കാർ', price: 1000, icon: '\u{1F697}', desc: 'The fastest way across Kerala • up to 108 km/h' }
+  ];
+  Game.checkUnlocks = function () {
+    const d = Game.data;
+    if (!d) return;
+    d.vehicles = d.vehicles || [];
+    const next = Game.GARAGE.find((v) => d.vehicles.indexOf(v.id) < 0);
+    if (!next || d.coins < next.price) return;
+    d.vehicles.push(next.id);
+    d.coins -= next.price;
+    KT.UI.updateStats(d);
+    KT.Audio.play('level');
+    KT.UI.banner(next.icon + ' ' + next.name + ' unlocked!', next.price + ' coins paid from your wallet • Press G to ride it', 'star');
+    if (Game.state === 'garage') renderGarage();
+    Game.save(true);
+  };
+
+  function renderGarage() {
+    const d = Game.data, list = $('garage-list');
+    list.innerHTML = '';
+    const owned = d.vehicles || [];
+    const nextId = (Game.GARAGE.find((v) => owned.indexOf(v.id) < 0) || {}).id;
+    Game.GARAGE.forEach((v, i) => {
+      const card = document.createElement('div');
+      const has = owned.indexOf(v.id) >= 0;
+      card.className = 'garage-card' + (has ? ' owned' : '');
+      const riding = KT.Player.mode === 'bus' && KT.Player.bus && KT.Player.bus.type === v.id;
+      let status;
+      if (has) status = '<button class="btn primary small" data-ride="' + v.id + '">' + (riding ? 'Riding' : 'Ride') + '</button>';
+      else if (v.id === nextId) {
+        const pct = Math.min(100, Math.round((d.coins / v.price) * 100));
+        status = '<div class="g-prog"><div style="width:' + pct + '%"></div></div><small>' + d.coins + ' / ' + v.price + ' coins • ' + Math.max(0, v.price - d.coins) + ' more to go</small>';
+      } else status = '<small class="muted">Unlocks after the ' + Game.GARAGE[i - 1].name.split(' (')[0].toLowerCase() + '</small>';
+      card.innerHTML = '<div class="g-icon">' + v.icon + '</div><div class="g-body"><b>' + v.name + '</b> <span class="g-ml">' + v.ml + '</span><div class="muted small-print">' + v.desc + '</div>' +
+        '<div class="g-price">' + (has ? 'Unlocked' : '\u{1FA99} ' + v.price + ' coins') + '</div></div><div class="g-status">' + status + '</div>';
+      list.appendChild(card);
+    });
+    list.querySelectorAll('[data-ride]').forEach((b) => { b.onclick = () => Game.rideVehicle(b.dataset.ride); });
+  }
+  Game.openGarage = function () {
+    if (!Game.data) return;
+    renderGarage();
+    Game.setState('garage');
+  };
+
+  // Ride one of your vehicles: it appears next to you and you hop on.
+  Game.rideVehicle = function (id) {
+    const P = KT.Player;
+    if (P.mode === 'bus' && P.bus && P.bus.type === id) { Game.setState('playing'); return; }
+    if (P.mode !== 'foot') { KT.UI.toast('Get off the ' + (P.bus ? P.bus.spec.name : 'canoe') + ' first.'); Game.setState('playing'); return; }
+    if (Game.ride) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
+    const L = KT.L, h = P.heading;
+    const cands = [[1.8, 0], [-1.8, 0], [0, 2.5], [0, -2.5], [2.6, 1.5], [-2.6, 1.5]];
+    let spot = null;
+    for (let i = 0; i < cands.length && !spot; i++) {
+      const x = P.pos.x + cands[i][0] * Math.cos(h) + cands[i][1] * Math.sin(h);
+      const z = P.pos.z - cands[i][0] * Math.sin(h) + cands[i][1] * Math.cos(h);
+      if (!L.isBlocked(x, z, 1.0) && !(L.isWater && L.isWater(x, z))) spot = { x, z };
+    }
+    if (!spot) { KT.UI.toast('No room for your ' + id + ' here. Try an open road.'); Game.setState('playing'); return; }
+    Game.ride = KT.Vehicle.create(Game.scene, spot.x, spot.z, h, id);
+    Game.setState('playing');
+    P.boardBus(Game.ride);
+    KT.UI.toast('W/S to ride, A/D to steer, H for the ' + (id === 'bicycle' ? 'bell' : 'horn') + ', E to get off.', 'info');
+  };
+  function rideInteract() {
+    const r = Game.ride;
+    if (!r || r.occupied || r.level !== Game.level) return [];
+    return [{ label: 'Ride your ' + r.spec.name, radius: 1.6 + r.spec.length / 2, pos: () => r.obj.position, action: () => KT.Player.boardBus(r) }];
+  }
+  // distance on the road (map scale), any vehicle on the highway
+  function trackDistance() {
+    const P = KT.Player, v = P.mode === 'bus' ? P.bus : null;
+    if (!v || Game.level !== 'highway') { Game._odoVeh = null; return; }
+    if (Game._odoVeh !== v) { Game._odoVeh = v; Game._lastOdo = v.odo; return; }
+    const delta = v.odo - Game._lastOdo;
+    Game._lastOdo = v.odo;
+    if (delta > 0 && delta < 100) Game.data.distanceKm = (Game.data.distanceKm || 0) + KT.Vehicle.toKm(delta);
+  }
   Game.addXP = function (n) {
     const d = Game.data;
     d.xp += n;
@@ -386,8 +475,9 @@
       if (st === 'menu') KT.Preview.render(dt);
     } else if (st === 'menu') {
       KT.Preview.render(dt);
-    } else if (st === 'playing' || st === 'dialog' || st === 'photo') {
+    } else if (st === 'playing' || st === 'dialog' || st === 'photo' || st === 'fishing') {
       if (st === 'playing') handleActions();
+      else if (st === 'fishing') KT.Fishing.update(dt, input);
       else if (st === 'dialog') {
         if (input.consume('interact') || input.consume('confirm') || input.consume('jump')) { if (KT.UI.dialogNext) KT.UI.dialogNext(); }
         if (input.consume('pause')) { KT.UI.closeDialog(); KT.Entities.npcs.concat(KT.Highway.npcs).forEach((w) => { w.talking = false; }); Game.setState('playing'); }
@@ -395,9 +485,9 @@
         if (input.consume('photo') || input.consume('jump') || input.consume('confirm')) Game.takePhoto();
         if (input.consume('pause')) Game.setState('playing');
       }
-      KT.Input.enabled = Game.state === 'playing' || Game.state === 'photo';
+      KT.Input.enabled = Game.state === 'playing' || Game.state === 'photo' || Game.state === 'fishing';
       const frozen = st === 'dialog' ? { move: { x: 0, y: 0 }, sprint: false, keys: {}, consume: () => false } : input;
-      if (st !== 'photo') KT.Player.update(dt, frozen, KT.CameraRig);
+      if (st !== 'photo' && st !== 'fishing') KT.Player.update(dt, frozen, KT.CameraRig);
       KT.CameraRig.update(dt, Game.camera, input);
       if (Game.level === 'home') {
         KT.World.update(dt, KT.Player, Game.camera);
@@ -412,8 +502,8 @@
       Game.data.playTime += dt;
       saveTimer += dt;
       if (saveTimer > 20) { saveTimer = 0; Game.save(); }
-    } else if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district') {
-      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players'))) Game.setState('playing');
+    } else if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage') {
+      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage'))) Game.setState('playing');
     }
     if (Game.data && st !== 'menu' && st !== 'auth') network(dt);
     KT.Audio.updateMusic();
@@ -445,6 +535,7 @@
     if (I.consume('map')) { Game.openMap(); return; }
     if (I.consume('profile')) { KT.Account.openProfile(); return; }
     if (I.consume('players')) { KT.Account.openPlayers(); return; }
+    if (I.consume('garage')) { Game.openGarage(); return; }
     if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
     if (I.consume('photo')) { Game.setState('photo'); KT.UI.toast('Camera mode: frame your shot and press C / Space to snap. Esc to exit.'); return; }
     if (I.consume('help')) { Game.setState('paused'); return; }
@@ -464,8 +555,8 @@
     KT.Net.update(dt, Game.scene, Game.camera, Game.state === 'menu' ? null : {
       x: o.x, y: o.y, z: o.z,
       heading: inBus ? P.bus.heading : P.heading,
-      anim: inBus ? 'drive' : (P.gesture || P.state || 'idle'),
-      flags: inBus ? 1 : 0,
+      anim: inBus ? P.bus.spec.pose : (P.gesture || P.state || 'idle'),
+      flags: inBus ? 1 | (Math.max(0, KT.Vehicle.CODES.indexOf(P.bus.type)) << 1) : 0,
       speed: inBus ? P.bus.speed : P.speed
     });
   }
@@ -488,7 +579,7 @@
     if (Game.state === 'playing') {
       const key = KT.Input.touch ? '' : '[E] ';
       if (P.mode === 'canoe') KT.UI.prompt(key + 'Get out of the canoe');
-      else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H horn \u2022 stop to get off' : key + 'Get off the bus');
+      else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
       else KT.UI.prompt(best ? key + best.label : null);
     } else KT.UI.prompt(null);
     $('btn-action').classList.toggle('glow', !!best || P.mode === 'canoe' || P.mode === 'bus');
@@ -610,7 +701,10 @@
       KT.Audio.engine(false);
     }
     if (P.mode === 'canoe') P.leaveCanoe();
+    if (Game.ride && Game.ride.level !== L.id) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
+    if (KT.Fishing.active) KT.Fishing.cancel();
     if (P.obj.parent) P.obj.parent.remove(P.obj);
+    P.obj.visible = true;
     P.obj.rotation.set(0, P.heading, 0);
     scene.add(P.obj);
     P.scene = scene;
@@ -666,7 +760,6 @@
     if (opts.board !== false) P.boardBus(Hw.bus);
     KT.CameraRig.yaw = hub.stopHeading + Math.PI;
     Game.lastHub = idx;
-    Game._lastOdo = Hw.bus.odo;
     Hw.update(0.016, P, Game.camera);
     await nextFrame();
     Game.setState('playing');
@@ -720,6 +813,7 @@
   };
   function visitDistrict(i) {
     const d = Game.data, dist = KT.DISTRICTS[i];
+    if (Game.lastHub !== i && dist.id === 'ekm') setTimeout(() => KT.UI.toast('\u{1F3A3} Kochi! Walk to a Fishing Point by the Chinese nets, cast your net and earn coins for every fish.', 'info'), 2500);
     if (d.districts.indexOf(dist.id) >= 0) {
       if (Game.lastHub !== i) KT.UI.toast('Welcome to ' + dist.name + ' (' + dist.ml + ')');
       Game.lastHub = i;
@@ -738,15 +832,10 @@
   let hwUiT = 0;
   function highwayGameplay(dt) {
     const P = KT.Player, Hw = KT.Highway, d = Game.data;
-    const best = pickInteract(Hw.interactables.concat([boardHwBus]));
+    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract()));
     Game.nearInteract = best;
     showPrompt(best);
-    // distance travelled by bus (at map scale)
-    if (Hw.bus) {
-      const delta = Hw.bus.odo - (Game._lastOdo || 0);
-      Game._lastOdo = Hw.bus.odo;
-      if (delta > 0 && delta < 100 && P.mode === 'bus') d.distanceKm = (d.distanceKm || 0) + KT.Vehicle.toKm(delta);
-    }
+    trackDistance();
     const st = Hw.status(P.pos);
     if (st.dist < 90 && Math.abs(st.lat) < 140) visitDistrict(st.nearest);
     else if (st.dist > 400) Game.lastHub = -1;
@@ -770,10 +859,11 @@
   function gameplay(dt) {
     const P = KT.Player, d = Game.data, E = KT.Entities;
     // interactions
-    const best = pickInteract(E.interactables);
+    const best = pickInteract(E.interactables.concat(rideInteract()));
     Game.nearInteract = best;
     showPrompt(best);
-    $('speedo').classList.add('hidden');
+    $('speedo').classList.toggle('hidden', P.mode !== 'bus');
+    if (P.mode === 'bus') KT.UI.drawSpeedo(KT.Vehicle.kmh(P.bus));
     // coins
     for (let i = 0; i < E.coins.length; i++) {
       const c = E.coins[i];
@@ -912,6 +1002,9 @@
     $('btn-profile-close').onclick = () => Game.setState(Game.data ? 'playing' : 'menu');
     $('btn-players-close').onclick = () => Game.setState('playing');
     $('btn-district-close').onclick = () => Game.setState('playing');
+    $('btn-garage').onclick = () => { if (Game.state === 'playing') Game.openGarage(); };
+    $('btn-garage-close').onclick = () => Game.setState('playing');
+    KT.Fishing.bindUI();
     $('btn-continue').onclick = () => Game.start(true);
     $('btn-settings').onclick = () => { if (Game.state === 'playing') Game.setState('paused'); };
     $('btn-resume').onclick = () => Game.setState('playing');

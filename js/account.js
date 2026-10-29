@@ -139,7 +139,8 @@
     return Object.assign({}, st, {
       level: d.level, xp: d.xp, coins: d.coins, stars: d.stars.length, leaves: d.leaves,
       districts: d.districts || [], distanceKm: Math.round(d.distanceKm || 0), playTime: Math.round(d.playTime || 0),
-      photos: d.photos.length, missions: d.mission
+      photos: d.photos.length, missions: d.mission,
+      fish: (d.fish && d.fish.total) || 0, vehicles: (d.vehicles || []).length
     });
   }
   function guestProfile() {
@@ -169,8 +170,9 @@
       '</div></div>',
       '<div class="pf-stats">',
       stat('\u{1FA99}', st.coins || 0, 'Coins'), stat('⭐', (st.stars || 0) + '/' + KT.World.LANDMARKS.length, 'Places'),
-      stat('\u{1F343}', st.leaves || 0, 'Eco leaves'), stat('\u{1F68C}', (st.distanceKm || 0) + ' km', 'By KSRTC bus'),
+      stat('\u{1F343}', st.leaves || 0, 'Eco leaves'), stat('\u{1F68C}', (st.distanceKm || 0) + ' km', 'On the road'),
       stat('\u{1F4F7}', st.photos || 0, 'Wildlife photos'), stat('⏱️', fmtTime(st.playTime), 'Time exploring'),
+      stat('\u{1F41F}', st.fish || 0, 'Fish caught'), stat('\u{1F6B2}', (st.vehicles || 0) + '/4', 'Vehicles unlocked'), stat('\u{1F3C6}', 'Level ' + (st.level || 1), 'Traveller level'),
       '</div>',
       '<h3>Districts visited — ' + (st.districts || []).length + ' of 14</h3>',
       '<ul class="pf-districts">' + districts + '</ul>',

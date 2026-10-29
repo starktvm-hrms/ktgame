@@ -93,8 +93,11 @@
     const M = KT.M;
     const cream = KT.mat('busCream', { color: 0xf2d27a, roughness: 0.45, metalness: 0.05 });
     const red = KT.mat('busRed', { color: 0xc4212b, roughness: 0.45, metalness: 0.05 });
-    // tinted, see-through glass: the driver's view looks out through it
-    const darkGlass = KT.mat('busGlass', { color: 0x1d2a31, roughness: 0.06, metalness: 0.3, transparent: true, opacity: 0.45, depthWrite: false });
+    // Window glass is made of one-sided panels facing outwards: dark and
+    // glossy from outside, invisible from inside, so the driver's view
+    // looks straight out through them.
+    const darkGlass = KT.mat('busGlassPane', { color: 0x1d2a31, roughness: 0.06, metalness: 0.35 });
+    const pane = (w, h, x, y, z, ry) => part(g, G.plane(w, h), darkGlass, x, y, z, 0, ry, 0);
     const black = KT.mat('busBlack', { color: 0x161616, roughness: 0.7 });
     const chrome = KT.mat('busChrome', { color: 0xd8d8d8, metalness: 0.8, roughness: 0.25 });
     const seatBlue = KT.mat('busSeat', { color: 0x2d4f9a, roughness: 0.7 });
@@ -107,17 +110,18 @@
     part(g, rb(W, 1.78, L, 0.14), cream, 0, 2.2, 0);              // upper body
     part(g, rb(W - 0.06, 0.16, L - 0.12, 0.07), cream, 0, 3.12, -0.02); // roof
     part(g, rb(W - 0.5, 0.1, L - 0.8, 0.05), cream, 0, 3.22, -0.2); // roof crown
-    part(g, rb(W + 0.02, 0.1, L - 0.6, 0.04), red, 0, 2.97, -0.25); // red roof-line stripe
-    part(g, rb(W + 0.02, 0.12, L - 0.2, 0.04), red, 0, 1.62, 0);   // stripe under windows
-    // ---- side livery and windows
+    part(g, rb(W + 0.28, 0.1, L - 0.6, 0.04), red, 0, 2.97, -0.25); // red roof-line stripe
+    part(g, rb(W + 0.28, 0.12, L - 0.2, 0.04), red, 0, 1.62, 0);   // stripe under windows
+    // ---- side livery and windows (the rounded body bevels out to SIDE)
+    const SIDE = W / 2 + 0.126;
     const sideH = 1.0;
-    panel(g, sideTexture(false), L - 0.5, sideH, W / 2 + 0.012, 1.08, -0.1, Math.PI / 2);
-    panel(g, sideTexture(true), L - 0.5, sideH, -W / 2 - 0.012, 1.08, -0.1, -Math.PI / 2);
+    panel(g, sideTexture(false), L - 0.5, sideH, SIDE + 0.016, 1.08, -0.1, Math.PI / 2);
+    panel(g, sideTexture(true), L - 0.5, sideH, -SIDE - 0.016, 1.08, -0.1, -Math.PI / 2);
     const winY = 2.27, winH = 0.95;
     [-1, 1].forEach((s) => {
-      const x = s * (W / 2 + 0.005);
+      const x = s * (SIDE + 0.004);
       const start = s > 0 ? L / 2 - 2.4 : L / 2 - 1.7; // door gap on the left (+x) side
-      part(g, G.box(0.02, winH, start + L / 2 - 0.6), darkGlass, x, winY, (start - (L / 2 - 0.6)) / 2);
+      pane(start + L / 2 - 0.6, winH, s * (SIDE + 0.014), winY, (start - (L / 2 - 0.6)) / 2, s * Math.PI / 2);
       // pillars, shutters and window frames
       let k = 0;
       for (let z = start; z > -L / 2 + 0.6; z -= 0.92) {
@@ -131,14 +135,14 @@
     });
     // front door (left side, near the front) and rear door
     [L / 2 - 1.55, -L / 2 + 1.9].forEach((z) => {
-      part(g, G.box(0.04, 2.2, 0.92), cream, W / 2 + 0.01, 1.68, z);
-      part(g, G.box(0.05, 0.95, 0.7), darkGlass, W / 2 + 0.03, 2.25, z);
-      part(g, G.box(0.05, 0.7, 0.32), darkGlass, W / 2 + 0.03, 1.15, z + 0.17);
+      part(g, G.box(0.04, 2.2, 0.92), cream, SIDE + 0.01, 1.68, z);
+      pane(0.7, 0.95, SIDE + 0.035, 2.25, z, Math.PI / 2);
+      pane(0.32, 0.7, SIDE + 0.035, 1.15, z + 0.17, Math.PI / 2);
       part(g, G.box(0.6, 0.12, 0.9), black, W / 2 - 0.2, 0.45, z);
     });
     // ---- front
     const fz = L / 2 + 0.005;
-    part(g, G.box(W - 0.18, 1.12, 0.04), darkGlass, 0, 2.3, fz);
+    pane(W - 0.18, 1.12, 0, 2.3, fz + 0.012, 0);
     part(g, G.box(0.08, 1.12, 0.06), cream, 0, 2.3, fz + 0.01);
     part(g, G.box(W - 0.1, 0.06, 0.06), cream, 0, 1.73, fz + 0.01);
     // KSRTC destination board and FP panel
@@ -169,7 +173,7 @@
     });
     // ---- rear: window, lettering, lamps, plate, ladder and roof carrier
     const rz = -L / 2 - 0.005;
-    part(g, G.box(W - 0.6, 0.95, 0.04), darkGlass, 0, 2.3, rz);
+    pane(W - 0.6, 0.95, 0, 2.3, rz - 0.012, Math.PI);
     panel(g, textPanel(['EMERGENCY EXIT'], 512, 48, '#223038', '#f5f5f5', 'bold 32px Arial'), 0.9, 0.08, 0, 2.7, rz - 0.03, Math.PI);
     panel(g, textPanel(['Super Fast'], 512, 96, CREAM, '#c4212b', 'italic bold 60px Georgia, serif'), 0.9, 0.17, 0, 1.55, rz - 0.03, Math.PI);
     [-1, 1].forEach((s) => part(g, KT.roundBox(0.28, 0.2, 0.05, 0.03), tail, s * 0.95, 0.95, rz - 0.02));

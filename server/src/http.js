@@ -21,6 +21,7 @@ const MIME = {
 const BLOCKED = ['/server', '/.git', '/tools', '/node_modules'];
 
 const DISTRICT_IDS = ['tvm', 'klm', 'pta', 'alp', 'ktm', 'idk', 'ekm', 'tsr', 'pkd', 'mlp', 'kkd', 'wyd', 'knr', 'ksd'];
+const VEHICLE_IDS = ['bicycle', 'auto', 'scooter', 'car'];
 
 // progress is written by the client, so profile stats are sanitised here
 const num = (v, max) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0; };
@@ -42,7 +43,9 @@ function publicUser(u, self) {
       distanceKm: num(Math.round(p.distanceKm), 1e7),
       playTime: num(Math.round(p.playTime), 1e9),
       photos: Array.isArray(p.photos) ? p.photos.length : 0,
-      missions: num(p.mission, 100)
+      missions: num(p.mission, 100),
+      fish: num(p.fish && p.fish.total, 1e7),
+      vehicles: Array.isArray(p.vehicles) ? VEHICLE_IDS.filter((v) => p.vehicles.includes(v)).length : 0
     }
   };
   if (self) {

@@ -817,6 +817,32 @@
       return { hipL: [-1.45, 0, 0.1], hipR: [-1.45, 0, -0.1], kneeL: [1.3, 0, 0], kneeR: [1.3, 0, 0], ankleL: [0.2, 0, 0], ankleR: [0.2, 0, 0],
         shL: [-1.15, 0, -0.2], shR: [-1.15, 0, 0.2], elL: [-0.5, 0, 0], elR: [-0.5, 0, 0], spine: [0.05, 0, 0], head: [0, Math.sin(a.t * 0.3) * 0.15, 0], bob: -0.42 };
     },
+    // astride a scooter: feet on the floorboard, hands on the handlebar
+    ride: function (p, a) {
+      return { hipL: [-1.2, 0, 0.18], hipR: [-1.2, 0, -0.18], kneeL: [1.45, 0, 0], kneeR: [1.45, 0, 0], ankleL: [0.1, 0, 0], ankleR: [0.1, 0, 0],
+        shL: [-1.0, 0, -0.12], shR: [-1.0, 0, 0.12], elL: [-0.45, 0, 0], elR: [-0.45, 0, 0], spine: [0.12, 0, 0], head: [-0.08, Math.sin(a.t * 0.3) * 0.12, 0], bob: -0.18 };
+    },
+    // pedalling a bicycle: legs turn the crank with the wheel speed
+    cycle: function (p, a) {
+      const s = Math.sin(p), c = Math.cos(p);
+      const hL = -0.95 - s * 0.38, hR = -0.95 + s * 0.38;
+      const kL = 1.05 + c * 0.5, kR = 1.05 - c * 0.5;
+      return { hipL: [hL, 0, 0.06], hipR: [hR, 0, -0.06], kneeL: [kL, 0, 0], kneeR: [kR, 0, 0], ankleL: [flat(hL, kL) * 0.5, 0, 0], ankleR: [flat(hR, kR) * 0.5, 0, 0],
+        shL: [-1.05, 0, -0.1], shR: [-1.05, 0, 0.1], elL: [-0.35, 0, 0], elR: [-0.35, 0, 0], spine: [0.32, -s * 0.05, 0], head: [-0.25, 0, 0], hips: [0, s * 0.06, 0], bob: -0.1 };
+    },
+    // throwing a fishing net: wind up, then swing both arms forward
+    cast: function (p, a) {
+      const t = Math.min(1, (a.t % 10) * 1.6);
+      const w = t < 0.45 ? t / 0.45 : 1 - (t - 0.45) / 0.55 * 1.6;
+      return { shL: [-0.6 + w * 2.0, 0, 0.25], shR: [-0.6 + w * 2.0, 0, -0.25], elL: [-0.3, 0, 0], elR: [-0.3, 0, 0],
+        spine: [0.1 - w * 0.25, w * 0.4, 0], hipL: [-0.2, 0, 0], hipR: [0.15, 0, 0], kneeL: [0.3, 0, 0], kneeR: [0.1, 0, 0], head: [0.1, 0, 0], bob: -0.04 };
+    },
+    // hauling the net in, hand over hand
+    haul: function (p, a) {
+      const s = Math.sin(a.t * 7);
+      return { shL: [-1.2 + s * 0.45, 0, 0.15], shR: [-1.2 - s * 0.45, 0, -0.15], elL: [-0.9, 0, 0], elR: [-0.9, 0, 0],
+        spine: [0.3, 0, 0], hipL: [-0.45, 0, 0.1], hipR: [-0.45, 0, -0.1], kneeL: [0.7, 0, 0], kneeR: [0.7, 0, 0], ankleL: [flat(-0.45, 0.7), 0, 0], ankleR: [flat(-0.45, 0.7), 0, 0], head: [0.2, 0, 0], bob: -0.12 };
+    },
     paddle: function (p, a) {
       const s = Math.sin(p), c = Math.cos(p);
       return {
@@ -841,7 +867,7 @@
   Models.animateCharacter = function (ch, state, dt, speedFactor) {
     const rig = ch.userData.rig, a = ch.userData.anim;
     a.t += dt;
-    const rate = state === 'run' ? 10.5 : state === 'walk' ? 7.2 : state === 'paddle' ? 3 : 0;
+    const rate = state === 'run' ? 10.5 : state === 'walk' ? 7.2 : state === 'paddle' ? 3 : state === 'cycle' ? 2.6 : 0;
     a.phase += dt * rate * (speedFactor || 1);
     const pose = (POSES[state] || POSES.idle)(a.phase, a);
     const k = 1 - Math.exp(-dt * (state === 'jump' || state === 'land' ? 16 : 12));

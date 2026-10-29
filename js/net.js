@@ -8,7 +8,7 @@
     token: null, user: null, remember: false, ws: null, connected: false, online: 0, myId: 0,
     remotes: new Map(), levelCode: 0, wantWho: new Set(), sendT: 0, whoT: 0, retry: 0
   };
-  const ANIMS = ['idle', 'walk', 'run', 'jump', 'fall', 'namaskaram', 'wave', 'sit', 'paddle', 'drive', 'land'];
+  const ANIMS = ['idle', 'walk', 'run', 'jump', 'fall', 'namaskaram', 'wave', 'sit', 'paddle', 'drive', 'land', 'ride', 'cycle', 'cast', 'haul'];
   Net.ANIMS = ANIMS;
 
   // ------------------------------------------------------------ server URL
@@ -355,12 +355,25 @@
       const h = KT.angleLerp(a.h, b.h, k);
       const inBus = (b.flags & 1) === 1;
       if (inBus) {
-        if (!r.bus) { r.bus = KT.Models.ksrtcBusClone(); scene.add(r.bus); }
+        // the vehicle they are driving: bus, bicycle, auto, scooter or car
+        const vt = KT.Vehicle.CODES[(b.flags >> 1) & 7] || 'bus';
+        if (!r.bus || r.busType !== vt) {
+          if (r.bus) scene.remove(r.bus);
+          r.bus = KT.Vehicle.remoteModel(vt); r.busType = vt;
+          scene.add(r.bus);
+        }
         r.bus.position.copy(_a);
         r.bus.rotation.set(0, h, 0);
-        r.obj.visible = false;
+        const spec = KT.Vehicle.TYPES[vt];
+        r.obj.visible = vt !== 'bus' && !spec.hideDriver;
+        if (r.obj.visible) {
+          r.bus.updateMatrixWorld();
+          r.obj.position.copy(spec.seat).applyMatrix4(r.bus.matrixWorld);
+          r.obj.rotation.y = h;
+          if (camera.position.distanceTo(_a) < 90) KT.Models.animateCharacter(r.obj, spec.pose, dt, Math.abs(b.sp) / 3);
+        }
       } else {
-        if (r.bus) { scene.remove(r.bus); r.bus = null; }
+        if (r.bus) { scene.remove(r.bus); r.bus = null; r.busType = null; }
         r.obj.visible = true;
         r.obj.position.copy(_a);
         r.obj.rotation.y = h;
@@ -368,7 +381,7 @@
         if (d < 90) KT.Models.animateCharacter(r.obj, ANIMS[b.anim] || 'idle', dt, Math.max(0.6, Math.abs(b.sp) / 3.4));
       }
       if (r.tag) {
-        r.tag.position.set(_a.x, _a.y + (inBus ? 4.3 : 2.25), _a.z);
+        r.tag.position.set(_a.x, _a.y + (inBus ? (r.busType === 'bus' ? 4.3 : 2.6) : 2.25), _a.z);
         r.tag.visible = camera.position.distanceTo(_a) < (inBus ? 120 : 45);
       }
     });

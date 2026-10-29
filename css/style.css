@@ -295,3 +295,21 @@ body[data-state="profile"] #hud, body[data-state="players"] #hud, body[data-stat
 }
 /* shown when the mouse is not captured yet */
 #mouse-hint { position: fixed; left: 50%; top: 42%; transform: translateX(-50%); z-index: 30; padding: 0.6rem 1.1rem; border-radius: 999px; background: rgba(10, 30, 22, 0.78); color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
+/* garage */
+#garage-list { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
+.garage-card { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 0.8rem; padding: 0.7rem 0.9rem; border-radius: 14px; background: rgba(255,255,255,0.06); }
+.garage-card.owned { background: rgba(47, 191, 113, 0.16); }
+.garage-card .g-icon { font-size: 2.6rem; text-align: center; font-family: system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif; }
+.garage-card .g-ml { color: var(--gold); font-size: 0.9rem; margin-left: 0.3rem; }
+.garage-card .g-price { font-weight: 700; margin-top: 0.2rem; }
+.garage-card .g-status { min-width: 170px; text-align: right; }
+.g-prog { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; margin-bottom: 0.3rem; }
+.g-prog > div { height: 100%; background: linear-gradient(90deg, #3ddc84, #ffd34d); }
+@media (max-width: 640px) { .garage-card { grid-template-columns: 44px 1fr; } .garage-card .g-status { grid-column: 1 / -1; text-align: left; } .garage-card .g-icon { font-size: 2rem; } }
+/* fishing */
+#fishing { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); width: min(460px, 90vw); padding: 0.8rem 1rem; text-align: center; z-index: 25; }
+#fish-title { font-weight: 800; font-size: 1.15rem; margin-bottom: 0.4rem; }
+#fish-bar { position: relative; height: 22px; border-radius: 11px; background: rgba(255,255,255,0.15); margin: 0.5rem 0; overflow: hidden; }
+#fish-zone { position: absolute; top: 0; bottom: 0; background: rgba(61, 220, 132, 0.75); }
+#fish-marker { position: absolute; top: -2px; bottom: -2px; width: 6px; margin-left: -3px; background: #ffd34d; box-shadow: 0 0 8px #ffd34d; border-radius: 3px; }
+#fish-haul { margin-top: 0.4rem; }

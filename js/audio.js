@@ -145,6 +145,8 @@
           o.connect(f); f.connect(gn); gn.connect(sfxBus); o.start(t); o.stop(t + 0.32);
         });
         break;
+      case 'bell': [0, 0.16].forEach((d) => { tone(2350, 'sine', t + d, 0.35, 0.09); tone(3110, 'sine', t + d, 0.25, 0.04); }); break;
+      case 'splash2': noise(t, 0.6, 0.3, 'lowpass', 900, 0.9); noise(t + 0.05, 0.4, 0.12, 'highpass', 3000, 0.6); break;
       case 'door': noise(t, 0.5, 0.16, 'highpass', 1800, 0.6); tone(180, 'sine', t + 0.35, 0.12, 0.12, sfxBus, 90); break;
       default: break;
     }
