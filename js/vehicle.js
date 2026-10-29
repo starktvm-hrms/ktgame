@@ -21,7 +21,7 @@
       name: 'KSRTC bus', make: () => KT.Models.ksrtcBus(), remote: () => KT.Models.ksrtcBusClone(),
       length: 11, width: 2.75, frontAxle: 3.3, rearAxle: -2.8, wheelR: 0.5,
       seat: v3(-0.62, 0.55, 4.35), eye: v3(-0.62, 2.0, 4.45), pose: 'drive',
-      maxSpeed: 26, accel: 4.2, reverse: 6, brake: 11, cam: 2.4, camH: 3.6,
+      maxSpeed: 31, accel: 6, reverse: 6, brake: 11, cam: 2.4, camH: 3.6,
       hits: [-3.8, 0, 3.8], r: 1.3, exits: [[2.4, 3.9], [2.4, -3.6], [-2.4, 3.9], [0, 7.2], [0, -7]],
       horn: 'horn', engine: 1, door: true
     },
@@ -29,7 +29,7 @@
       name: 'bicycle', make: () => KT.Models.bicycle(0x1d1d1f),
       length: 1.8, width: 0.6, frontAxle: 0.55, rearAxle: -0.52, wheelR: 0.34,
       seat: v3(0, 0.3, -0.2), eye: v3(0, 1.85, 0.05), pose: 'cycle', lean: 1,
-      maxSpeed: 9, accel: 2.6, reverse: 1.5, brake: 6, cam: 0.95, camH: 1.7,
+      maxSpeed: 12.5, accel: 4.2, reverse: 1.5, brake: 6, cam: 0.95, camH: 1.7,
       hits: [0], r: 0.45, exits: [[0.9, 0], [-0.9, 0], [0, 1.6]],
       horn: 'bell', engine: 0
     },
@@ -37,7 +37,7 @@
       name: 'auto rickshaw', make: () => KT.Models.autoRickshaw(),
       length: 2.7, width: 1.32, frontAxle: 1.0, rearAxle: -0.65, wheelR: 0.22,
       seat: v3(0, 0.1, 0.32), eye: v3(0, 1.62, 0.45), pose: 'drive',
-      maxSpeed: 15, accel: 3.2, reverse: 3, brake: 8, cam: 1.15, camH: 2.1,
+      maxSpeed: 19.5, accel: 5, reverse: 3, brake: 8, cam: 1.15, camH: 2.1,
       hits: [-0.7, 0.7], r: 0.7, exits: [[1.2, 0.3], [-1.2, 0.3], [0, 2.2]],
       horn: 'carHorn', engine: 0.8
     },
@@ -45,7 +45,7 @@
       name: 'scooter', make: () => KT.Models.scooter(0xb3261e, null),
       length: 1.8, width: 0.7, frontAxle: 0.62, rearAxle: -0.55, wheelR: 0.22,
       seat: v3(0, 0.22, -0.3), eye: v3(0, 1.75, -0.1), pose: 'ride', lean: 1,
-      maxSpeed: 20, accel: 4, reverse: 1.5, brake: 9, cam: 1.0, camH: 1.7,
+      maxSpeed: 25, accel: 6.2, reverse: 1.5, brake: 9, cam: 1.0, camH: 1.7,
       hits: [0], r: 0.5, exits: [[0.9, 0], [-0.9, 0], [0, 1.8]],
       horn: 'carHorn', engine: 0.6
     },
@@ -53,7 +53,7 @@
       name: 'car', make: () => KT.Models.car(0xb3261e, 'hatch'),
       length: 3.8, width: 1.72, frontAxle: 1.15, rearAxle: -1.2, wheelR: 0.3,
       seat: v3(-0.38, -0.15, -0.25), eye: v3(-0.38, 1.25, 0.05), pose: 'drive',
-      maxSpeed: 30, accel: 5.5, reverse: 5, brake: 12, cam: 1.35, camH: 2.2,
+      maxSpeed: 36, accel: 8, reverse: 5, brake: 12, cam: 1.35, camH: 2.2,
       hits: [-1.3, 0, 1.3], r: 0.9, exits: [[1.6, 0], [-1.6, 0], [0, 3]],
       horn: 'carHorn', engine: 0.7, hideDriver: true
     }

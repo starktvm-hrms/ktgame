@@ -328,10 +328,10 @@
   // Vehicles unlock in order as the wallet reaches their price, which is
   // then paid from the wallet.
   Game.GARAGE = [
-    { id: 'bicycle', name: 'Bicycle', ml: 'സൈക്കിൾ', price: 250, icon: '\u{1F6B2}', desc: 'Quiet and healthy • up to 32 km/h' },
-    { id: 'auto', name: 'Auto Rickshaw (Tuk Tuk)', ml: 'ഓട്ടോറിക്ഷ', price: 350, icon: '\u{1F6FA}', desc: 'Kerala’s favourite ride • up to 54 km/h' },
-    { id: 'scooter', name: 'Scooter', ml: 'സ്കൂട്ടർ', price: 500, icon: '\u{1F6F5}', desc: 'Zip between the districts • up to 72 km/h' },
-    { id: 'car', name: 'Car', ml: 'കാർ', price: 1000, icon: '\u{1F697}', desc: 'The fastest way across Kerala • up to 108 km/h' }
+    { id: 'bicycle', name: 'Bicycle', ml: 'സൈക്കിൾ', price: 250, icon: '\u{1F6B2}', desc: 'Quiet and healthy • up to 45 km/h' },
+    { id: 'auto', name: 'Auto Rickshaw (Tuk Tuk)', ml: 'ഓട്ടോറിക്ഷ', price: 350, icon: '\u{1F6FA}', desc: 'Kerala’s favourite ride • up to 70 km/h' },
+    { id: 'scooter', name: 'Scooter', ml: 'സ്കൂട്ടർ', price: 500, icon: '\u{1F6F5}', desc: 'Zip between the districts • up to 90 km/h' },
+    { id: 'car', name: 'Car', ml: 'കാർ', price: 1000, icon: '\u{1F697}', desc: 'The fastest way across Kerala • up to 130 km/h' }
   ];
   Game.checkUnlocks = function () {
     const d = Game.data;

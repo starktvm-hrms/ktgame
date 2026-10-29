@@ -130,10 +130,10 @@ it unlocks and the price is paid from your coins:
 
 | Coins | Vehicle | Top speed |
 | --- | --- | --- |
-| 250 | Bicycle | 32 km/h |
-| 350 | Auto rickshaw (tuk tuk) | 54 km/h |
-| 500 | Scooter | 72 km/h |
-| 1000 | Car | 108 km/h |
+| 250 | Bicycle | 45 km/h |
+| 350 | Auto rickshaw (tuk tuk) | 70 km/h |
+| 500 | Scooter | 90 km/h |
+| 1000 | Car | 130 km/h |
 
 Press G (or the 🚲 button) to open My Vehicles and ride one, on the
 backwaters map or along the highway between districts. Other players see

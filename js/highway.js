@@ -457,7 +457,7 @@
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i) + deck.x;
       const zOff = P.getY(i);
-      P.setXYZ(i, x - deck.x, -(riverZ(r, x) - r.cz) - zOff, 0);
+      P.setXYZ(i, x - deck.x, -(riverZ(r, x) - r.cz) + zOff, 0); // keep the winding: faces up
     }
     water.position.set(deck.x, r.y, r.cz);
     baked.add(water);
@@ -473,7 +473,8 @@
   }
 
   // ---------------------------------------------------- district hubs
-  function hubPlace(hub, obj, along, lat, rotOff, opts) {
+  function hubPlace(hub, obj, along, lat, rotOff, opts) { return placeOnHub(hub, obj, along, lat, rotOff, opts); }
+  function placeOnHub(hub, obj, along, lat, rotOff, opts) {
     const f = Hw.frame(hub.s + along);
     const q = Hw.at(hub.s + along, lat);
     const rot = (opts && opts.absRot !== undefined) ? opts.absRot : f.heading + (rotOff || 0);
@@ -610,6 +611,11 @@
   }
   function buildSights(hub) {
     const heading = Hw.frame(hub.s).heading;
+    const hubPlace = (h, obj, a, l, r, o) => {
+      const placed = placeOnHub(h, obj, a, l, r, o);
+      if (obj.userData.actors) h.actors = (h.actors || []).concat(obj.userData.actors);
+      return placed;
+    };
     Hw.sightList().filter((sg) => sg.hub === hub.index).forEach((sg) => {
       sightBoard(hub, sg);
       if (sg.kind === 'main') return;
@@ -628,11 +634,14 @@
           const w = waterDisc(hub, a, l, 24);
           hubPlace(hub, Models.houseboat(), a - 4, l + side * 4, 0, { absRot: heading + 0.4, y: w.position.y + 0.05 });
           [[-8, -12], [10, -6]].forEach(([x, z]) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading - 0.6, y: w.position.y + 0.02 }));
+          if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 9, l + side * 8, 0, { absRot: heading + 1.2, y: w.position.y + 0.02, colliders: false });
+          for (let k = 0; k < 3; k++) hubPlace(hub, Models.jettySection(), a, l - side * (20 - k * 3), 0, { absRot: heading + Math.PI / 2, y: w.position.y + 0.3, colliders: false });
           break;
         }
         case 'snakeboat': {
           const w = waterDisc(hub, a, l, 24);
           [-5, 5].forEach((z) => hubPlace(hub, Models.snakeBoat(), a, l + side * z, 0, { absRot: heading + Math.PI / 2, y: w.position.y + 0.02 }));
+          hubPlace(hub, Models.racePavilion(), a, l - side * 29, rot);
           break;
         }
         case 'beachLight': {
@@ -640,6 +649,7 @@
           const lh = hubPlace(hub, Models.lighthouse(), a + 8, l + side * 12, rot);
           hub.beams = (hub.beams || []).concat([lh.userData.beam]);
           hubPlace(hub, Models.beachSet(4), a - 10, l - side * 6, rot, { colliders: false });
+          hubPlace(hub, Models.pier(26), a - 14, l + side * 8, rot, { colliders: false });
           break;
         }
         case 'birds': {
@@ -655,6 +665,8 @@
             const bird = i % 3 === 0 && Models.cormorant ? Models.cormorant() : Models.egret();
             hubPlace(hub, bird, a + Math.cos(ang) * rr, l + Math.sin(ang) * rr, ang, { colliders: false, y: wy(a + Math.cos(ang) * rr, l + Math.sin(ang) * rr) });
           }
+          hubPlace(hub, Models.boardwalk(14), a - 6, l - side * 15, 0, { absRot: heading + Math.PI / 2, y: w.position.y, colliders: false });
+          hubPlace(hub, Models.watchTower(), a + 16, l - side * 14, rot);
           void w;
           break;
         }
@@ -672,6 +684,7 @@
             hubPlace(hub, el, a + x, l - side * 12, rot);
             hub.elephants = (hub.elephants || []).concat([el]);
           });
+          [-12, 12].forEach((x) => hubPlace(hub, Models.lampTower(5), a + x, l - side * 16, rot));
           break;
         }
         case 'garden':
@@ -1000,6 +1013,7 @@
       if (h.beam) h.beam.rotation.y += dt * 0.9;
       (h.beams || []).forEach((b) => { b.rotation.y += dt * 0.9; });
       (h.flows || []).forEach((t) => { t.offset.y += dt * 0.9; });
+      if (h.actors && Math.hypot(Hw.frame(h.s).x - pp.x, Hw.frame(h.s).z - pp.z) < 260) h.actors.forEach((a) => Models.animateCharacter(a.obj, a.state, dt, 1));
       (h.nets || []).forEach((n) => { n.obj.userData.arm.rotation.x = -0.35 + ((Math.sin(Hw.animTime * 0.35 + n.phase) + 1) / 2) * 0.6; });
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
     });

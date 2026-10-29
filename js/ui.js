@@ -524,7 +524,7 @@
     const c = $('speedo');
     const g = c.getContext('2d');
     const W = c.width, cx = W / 2, cy = W / 2, R = W / 2 - 10;
-    const MAX = 100;
+    const MAX = 140;
     const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25;
     const ang = (v) => a0 + (a1 - a0) * KT.clamp(v / MAX, 0, 1);
     g.clearRect(0, 0, W, W);
