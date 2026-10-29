@@ -1,0 +1,6 @@
+# Supabase CLI settings for Kerala Explorer (project "KT Browser Game").
+project_id = "dtfwqzrzwevzjpanxwxo"
+
+# The api function checks the game's own session tokens.
+[functions.api]
+verify_jwt = false
