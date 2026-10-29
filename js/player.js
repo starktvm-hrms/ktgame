@@ -45,6 +45,7 @@
   const _next = new T.Vector3();
   P.update = function (dt, input, cam) {
     if (P.mode === 'canoe') return updateCanoe(dt, input, cam);
+    if (P.mode === 'bus') return updateBus(dt, input);
     const f = P.forward(cam.yaw);
     const r = { x: Math.cos(cam.yaw), z: -Math.sin(cam.yaw) };
     let mx = f.x * input.move.y + r.x * input.move.x;
@@ -57,7 +58,7 @@
       P.heading = KT.angleLerp(P.heading, Math.atan2(mx, mz), 1 - Math.exp(-dt * 12));
     }
     // wading slows you down
-    const here = KT.World.groundY(P.pos.x, P.pos.z, P.pos.y);
+    const here = KT.L.groundY(P.pos.x, P.pos.z, P.pos.y);
     const wading = here.y < 0.15 && !here.onPlatform;
     if (wading) target *= 0.5;
     P.speed += (target - P.speed) * (1 - Math.exp(-dt * (target > P.speed ? 8 : 10)));
@@ -65,17 +66,17 @@
     // move in small sub-steps so fast movement or low frame rates can never
     // tunnel through walls, trees or people
     _next.copy(P.pos);
-    const agents = KT.Entities.agentColliders ? KT.Entities.agentColliders(P.pos) : null;
+    const agents = KT.L.agentColliders ? KT.L.agentColliders(P.pos) : null;
     const nSub = Math.max(1, Math.ceil(step / 0.12));
     for (let i = 0; i < nSub; i++) {
       _next.x += Math.sin(P.heading) * step / nSub;
       _next.z += Math.cos(P.heading) * step / nSub;
-      KT.World.resolve(_next, P.radius, agents);
+      KT.L.resolve(_next, P.radius, agents);
     }
-    const b = Geo.BOUNDS;
+    const b = KT.L.bounds;
     _next.x = KT.clamp(_next.x, b.minX, b.maxX);
     _next.z = KT.clamp(_next.z, b.minZ, b.maxZ);
-    const g = KT.World.groundY(_next.x, _next.z, P.pos.y);
+    const g = KT.L.groundY(_next.x, _next.z, P.pos.y);
     const tooDeep = g.y < -0.55;
     const tooHigh = P.grounded && g.y > P.pos.y + 0.75;
     if (!tooDeep && !tooHigh) {
@@ -86,7 +87,7 @@
       if (tooDeep && !P.warnedWater) { P.warnedWater = true; KT.UI.toast('The water is too deep to wade. Find a canoe at the jetty!'); }
     }
     // jumping & gravity
-    const ground = KT.World.groundY(P.pos.x, P.pos.z, P.pos.y);
+    const ground = KT.L.groundY(P.pos.x, P.pos.z, P.pos.y);
     const anim = P.obj.userData.anim;
     if (input.consume('jump') && P.grounded) {
       P.vy = 7.4; P.grounded = false; P.gesture = null;
@@ -191,8 +192,8 @@
       for (let k = 0; k < 16; k++) {
         const a = (k / 16) * Math.PI * 2;
         const x = c.obj.position.x + Math.cos(a) * r, z = c.obj.position.z + Math.sin(a) * r;
-        const g = KT.World.groundY(x, z, 2);
-        if (g.y > 0.25 && !KT.World.isBlocked(x, z, 0.4)) { best = new T.Vector3(x, g.y, z); break; }
+        const g = KT.L.groundY(x, z, 2);
+        if (g.y > 0.25 && !KT.L.isBlocked(x, z, 0.4)) { best = new T.Vector3(x, g.y, z); break; }
       }
     }
     if (!best) { KT.UI.toast('Paddle closer to the shore or a jetty to get out.'); return false; }
@@ -223,10 +224,10 @@
     c.speed += (target - c.speed) * (1 - Math.exp(-dt * 1.4));
     const step = c.speed * dt;
     _cp.set(c.obj.position.x + Math.sin(c.heading) * step, 0, c.obj.position.z + Math.cos(c.heading) * step);
-    KT.World.resolve(_cp, 0.9, KT.Entities.boatColliders());
+    KT.L.resolve(_cp, 0.9, KT.Entities.boatColliders());
     const bowX = _cp.x + Math.sin(c.heading) * 2.4 * Math.sign(c.speed || 1), bowZ = _cp.z + Math.cos(c.heading) * 2.4 * Math.sign(c.speed || 1);
     const deepEnough = Geo.height(_cp.x, _cp.z) < -0.3 && Geo.height(bowX, bowZ) < -0.15;
-    const inPlatform = KT.World.groundY(bowX, bowZ).onPlatform;
+    const inPlatform = KT.L.groundY(bowX, bowZ).onPlatform;
     if (deepEnough && !inPlatform && _cp.z < 236) {
       c.obj.position.x = _cp.x; c.obj.position.z = _cp.z;
     } else {
@@ -252,6 +253,68 @@
     P.state = 'paddle';
   }
 
+  // ------------------------------------------------------------ bus mode
+  P.boardBus = function (bus) {
+    if (bus.occupied || P.mode !== 'foot') return;
+    bus.occupied = true;
+    P.bus = bus;
+    P.mode = 'bus';
+    P.gesture = null;
+    P.speed = 0;
+    if (P.obj.parent) P.obj.parent.remove(P.obj);
+    bus.obj.add(P.obj);
+    const d = KT.Models.BUS.driver;
+    P.obj.position.set(d.x, d.y - 0.5, d.z);
+    P.obj.rotation.set(0, 0, 0);
+    KT.CameraRig.yaw = bus.heading + Math.PI;
+    KT.Audio.play('door');
+    KT.Audio.engine(true);
+    KT.Game.onEvent('boardBus');
+  };
+
+  P.leaveBus = function () {
+    const bus = P.bus;
+    if (!bus) return false;
+    if (Math.abs(bus.speed) > 1.5) { KT.UI.toast('Stop the bus before getting off (S / brake).'); return false; }
+    const o = bus.obj;
+    // step out through the front door on the left side of the bus
+    const tries = [[2.4, 3.9], [2.4, -3.6], [-2.4, 3.9], [0, 7.2], [0, -7]];
+    let spot = null;
+    for (let i = 0; i < tries.length && !spot; i++) {
+      const v = o.localToWorld(new T.Vector3(tries[i][0], 0, tries[i][1]));
+      const g = KT.L.groundY(v.x, v.z, o.position.y + 2);
+      if (!KT.L.isBlocked(v.x, v.z, 0.4) && !(KT.L.isWater && KT.L.isWater(v.x, v.z))) spot = new T.Vector3(v.x, g.y, v.z);
+    }
+    if (!spot) { KT.UI.toast('No room to get off here.'); return false; }
+    o.remove(P.obj);
+    P.scene.add(P.obj);
+    bus.occupied = false;
+    bus.speed = 0;
+    P.mode = 'foot';
+    P.bus = null;
+    P.pos.copy(spot);
+    P.vy = 0; P.grounded = true;
+    P.heading = bus.heading;
+    P.obj.position.copy(P.pos);
+    P.obj.rotation.set(0, P.heading, 0);
+    KT.Audio.play('door');
+    KT.Audio.engine(false);
+    KT.Game.onEvent('leaveBus');
+    return true;
+  };
+
+  function updateBus(dt, input) {
+    const bus = P.bus;
+    KT.Vehicle.update(bus, dt, input);
+    if (input.consume('horn')) KT.Audio.play('horn');
+    bus.obj.updateMatrixWorld();
+    P.obj.getWorldPosition(P.pos);
+    P.heading = bus.heading;
+    KT.Models.animateCharacter(P.obj, 'drive', dt);
+    KT.Audio.engine(true, Math.abs(bus.speed) / KT.Vehicle.MAX_SPEED);
+    P.state = 'drive';
+  }
+
   // ---------------------------------------------------------- camera rig
   const Cam = KT.CameraRig = {
     yaw: 0, pitch: 0.28, dist: 6, targetDist: 6, first: false, idle: 0,
@@ -259,11 +322,11 @@
   };
   // Is a point inside a large box collider (houses, temple walls)?
   function insideBuilding(x, z, y) {
-    const list = KT.World.nearbyColliders(x, z, 1);
+    const list = KT.L.nearbyColliders(x, z, 1);
     for (let i = 0; i < list.length; i++) {
       const c = list[i];
       if (c.type !== 'box' || c.ext < 2.5) continue;
-      if (y - KT.Geo.height(c.x, c.z) > 7) continue;
+      if (y - KT.L.height(c.x, c.z) > 7) continue;
       const dx = x - c.x, dz = z - c.z;
       const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
       if (Math.abs(lx) < c.hw + 0.3 && Math.abs(lz) < c.hd + 0.3) return true;
@@ -272,12 +335,12 @@
   }
 
   function blocksCamera(x, z, y) {
-    const list = KT.World.nearbyColliders(x, z, 1);
+    const list = KT.L.nearbyColliders(x, z, 1);
     for (let i = 0; i < list.length; i++) {
       const c = list[i];
       if (c.noCamera) continue;
       if (c.maxY !== undefined && y > c.maxY) continue;
-      if (y - KT.Geo.height(c.x, c.z) > (c.type === 'box' ? 6 : 9)) continue;
+      if (y - KT.L.height(c.x, c.z) > (c.type === 'box' ? 6 : 9)) continue;
       if (c.type === 'circle') {
         if (c.r < 0.9) continue; // thin poles & trunks never shove the camera
         if (Math.hypot(x - c.x, z - c.z) < c.r + 0.15) return true;
@@ -297,11 +360,20 @@
     Cam.pitch = KT.clamp(Cam.pitch + l.dy * 0.0035, Cam.first ? -1.2 : -0.35, Cam.first ? 1.2 : 1.25);
     if (l.zoom) Cam.targetDist = KT.clamp(Cam.targetDist + l.zoom * 0.8, 2.5, 16);
     // gently swing behind the player while moving
-    const moving = P.mode === 'canoe' ? Math.abs(KT.Entities.canoe.speed) > 0.5 : P.speed > 0.5;
-    if (moving && Cam.idle > 1.2 && !Cam.first) {
-      Cam.yaw = KT.angleLerp(Cam.yaw, P.heading + Math.PI, 1 - Math.exp(-dt * 0.9));
+    const inBus = P.mode === 'bus';
+    const moving = P.mode === 'canoe' ? Math.abs(KT.Entities.canoe.speed) > 0.5 : inBus ? Math.abs(P.bus.speed) > 0.5 : P.speed > 0.5;
+    if (moving && Cam.idle > (inBus ? 0.6 : 1.2) && !Cam.first) {
+      Cam.yaw = KT.angleLerp(Cam.yaw, P.heading + Math.PI, 1 - Math.exp(-dt * (inBus ? 2.2 : 0.9)));
     }
-    const head = new T.Vector3(P.pos.x, P.pos.y + (P.mode === 'canoe' ? 1.1 : 1.55), P.pos.z);
+    if (inBus && Cam.first) {
+      // driver's view through the windscreen
+      const eye = P.bus.obj.localToWorld(KT.Models.BUS.driver.clone().add(new T.Vector3(0, 0.95, 0.1)));
+      const h = P.bus.heading + (Cam.yaw - (P.heading + Math.PI)) * 0.0;
+      camera.position.copy(eye);
+      camera.lookAt(eye.x + Math.sin(h) * 10, eye.y - 0.6, eye.z + Math.cos(h) * 10);
+      return;
+    }
+    const head = inBus ? P.bus.obj.position.clone().add(new T.Vector3(0, 3.6, 0)) : new T.Vector3(P.pos.x, P.pos.y + (P.mode === 'canoe' ? 1.1 : 1.55), P.pos.z);
     if (Cam.first) {
       P.obj.visible = false;
       const fwd = new T.Vector3(-Math.sin(Cam.yaw) * Math.cos(Cam.pitch), -Math.sin(Cam.pitch), -Math.cos(Cam.yaw) * Math.cos(Cam.pitch));
@@ -312,14 +384,15 @@
       return;
     }
     P.obj.visible = true;
-    Cam.dist += (Cam.targetDist * (P.mode === 'canoe' ? 1.5 : 1) - Cam.dist) * (1 - Math.exp(-dt * 6));
+    const wantDist = Cam.targetDist * (P.mode === 'canoe' ? 1.5 : inBus ? 2.4 : 1);
+    Cam.dist = Cam.snap ? wantDist : Cam.dist + (wantDist - Cam.dist) * (1 - Math.exp(-dt * 6));
     const cp = Math.cos(Cam.pitch);
     const off = new T.Vector3(Math.sin(Cam.yaw) * cp, Math.sin(Cam.pitch), Math.cos(Cam.yaw) * cp).multiplyScalar(Cam.dist);
     const right = new T.Vector3(Math.cos(Cam.yaw), 0, -Math.sin(Cam.yaw));
-    const target = head.clone().addScaledVector(right, 0.45);
+    const target = head.clone().addScaledVector(right, inBus ? 0 : 0.45);
     const desired = target.clone().add(off);
     // keep the camera above ground & out of water
-    const gy = KT.World.groundY(desired.x, desired.z).y;
+    const gy = KT.L.groundY(desired.x, desired.z).y;
     const minY = Math.max(gy, 0) + 0.5;
     if (desired.y < minY) desired.y = minY;
     // avoid clipping into big colliders (pull in towards the player)
@@ -334,7 +407,8 @@
         break;
       }
     }
-    camera.position.lerp(desired, 1 - Math.exp(-dt * 14));
+    if (Cam.snap) { camera.position.copy(desired); Cam.snap = false; } // after a teleport
+    else camera.position.lerp(desired, 1 - Math.exp(-dt * 14));
     camera.lookAt(target);
   };
 })();

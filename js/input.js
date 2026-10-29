@@ -19,7 +19,7 @@
   const CODES = {
     KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
     ShiftLeft: 'sprint', ShiftRight: 'sprint', Space: 'jump', KeyE: 'interact', KeyF: 'interact', KeyC: 'photo', KeyN: 'namaskaram',
-    KeyV: 'view', KeyM: 'map', Escape: 'pause', KeyP: 'pause', KeyQ: 'wave', Enter: 'confirm', KeyH: 'help'
+    KeyV: 'view', KeyM: 'map', KeyH: 'horn', KeyJ: 'profile', KeyO: 'players', Escape: 'pause', KeyP: 'pause', KeyQ: 'wave', Enter: 'confirm'
   };
 
   I.consume = function (name) {

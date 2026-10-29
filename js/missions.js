@@ -14,8 +14,13 @@
     { id: 'munnar', title: 'Tea Trails of Munnar', desc: 'Hike up through the tea estates and climb the viewpoint tower.', type: 'climb', reward: { coins: 60, xp: 100 } },
     { id: 'periyar', title: 'Wildlife of Periyar', desc: 'Photograph a peacock, a deer and an elephant (press C for camera).', type: 'photo', kinds: ['peacock', 'deer', 'elephant'], reward: { coins: 80, xp: 120 } },
     { id: 'kovalam', title: 'Sunset at Kovalam', desc: 'Travel south to Kovalam beach and reach the lighthouse.', type: 'reach', x: 118, z: 238, r: 10, reward: { coins: 50, xp: 80 } },
-    { id: 'beach', title: 'Eco Hero', desc: 'Clean up Kovalam beach: collect plastic waste from the sand.', type: 'collect', group: 'beach', count: 5, reward: { coins: 100, xp: 150 } }
+    { id: 'beach', title: 'Eco Hero', desc: 'Clean up Kovalam beach: collect plastic waste from the sand.', type: 'collect', group: 'beach', count: 5, reward: { coins: 100, xp: 150 } },
+    { id: 'districts', title: 'Grand Kerala Tour', desc: 'Take the KSRTC bus from the village stand and drive through the gates of all 14 districts, from Thiruvananthapuram to Kasaragod.', type: 'districts', count: 14, reward: { coins: 300, xp: 500 } }
   ];
+
+  // Missions on the backwaters map only make sense there; the district
+  // tour works on both maps.
+  const here = (m) => m.type === 'districts' || KT.Game.level === 'home';
 
   Ms.current = function () {
     return Ms.LIST[KT.Game.data.mission] || null;
@@ -31,6 +36,7 @@
     }
     if (m.type === 'photo') return { done: m.kinds.filter((k) => d.photos.indexOf(k) >= 0).length, total: m.kinds.length };
     if (m.type === 'watch') return { done: Math.min(m.time, Math.floor(d.mprog || 0)), total: m.time };
+    if (m.type === 'districts') return { done: Math.min(m.count, (d.districts || []).length), total: m.count };
     return { done: 0, total: 1 };
   };
 
@@ -42,9 +48,24 @@
   // Where should the compass / beacon point?
   Ms.target = function () {
     const m = Ms.current();
-    if (!m) return null;
+    if (!m || !here(m)) return null;
     const P = KT.Player;
     switch (m.type) {
+      case 'districts': {
+        if (KT.Game.level === 'home') return KT.Game.homeBusDoor ? KT.Game.homeBusDoor() : null;
+        // nearest district centre not yet visited
+        const Hw = KT.Highway, s = Hw.project(P.pos.x, P.pos.z).s;
+        let best = -1, bd = 1e9;
+        KT.DISTRICTS.forEach((dd, i) => {
+          if (KT.Game.data.districts.indexOf(dd.id) >= 0) return;
+          const ds = Math.abs(Hw.hubS(i) - s);
+          if (ds < bd) { bd = ds; best = i; }
+        });
+        if (best < 0) return null;
+        const q = Hw.at(Hw.hubS(best), 0);
+        q.y = Hw.groundY(q.x, q.z).y;
+        return q;
+      }
       case 'talk': return npcPos(m.npc);
       case 'collect': {
         let best = null, bd = 1e9;
@@ -85,7 +106,7 @@
   // Called every frame with the player.
   Ms.update = function (dt) {
     const m = Ms.current();
-    if (!m) return;
+    if (!m || !here(m)) return;
     const P = KT.Player, d = KT.Game.data;
     switch (m.type) {
       case 'collect': {
@@ -120,6 +141,9 @@
       }
       case 'reach':
         if (Math.hypot(P.pos.x - m.x, P.pos.z - m.z) < m.r) Ms.complete();
+        break;
+      case 'districts':
+        if ((d.districts || []).length >= m.count) Ms.complete();
         break;
       default: break;
     }

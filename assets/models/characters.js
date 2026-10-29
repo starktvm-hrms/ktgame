@@ -813,6 +813,10 @@
     sit: function (p, a) {
       return { hipL: [-1.45, 0, 0.12], hipR: [-1.45, 0, -0.12], kneeL: [1.35, 0, 0], kneeR: [1.35, 0, 0], ankleL: [0.1, 0, 0], ankleR: [0.1, 0, 0], shL: [0.05, 0, 0.1], shR: [0.05, 0, -0.1], elL: [-0.8, 0, 0], elR: [-0.8, 0, 0], spine: [0, 0, 0], head: [0, Math.sin(a.t * 0.4) * 0.4, 0], bob: -0.42 };
     },
+    drive: function (p, a) {
+      return { hipL: [-1.45, 0, 0.1], hipR: [-1.45, 0, -0.1], kneeL: [1.3, 0, 0], kneeR: [1.3, 0, 0], ankleL: [0.2, 0, 0], ankleR: [0.2, 0, 0],
+        shL: [-1.15, 0, -0.2], shR: [-1.15, 0, 0.2], elL: [-0.5, 0, 0], elR: [-0.5, 0, 0], spine: [0.05, 0, 0], head: [0, Math.sin(a.t * 0.3) * 0.15, 0], bob: -0.42 };
+    },
     paddle: function (p, a) {
       const s = Math.sin(p), c = Math.cos(p);
       return {

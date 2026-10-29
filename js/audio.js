@@ -53,6 +53,36 @@
     if (A.ctx) master.gain.setTargetAtTime(m ? 0 : 0.9, A.ctx.currentTime, 0.05);
   };
 
+  // Diesel engine hum whose pitch follows the bus speed.
+  let eng = null;
+  A.engine = function (on, ratio) {
+    if (!A.ready) return;
+    const t = A.ctx.currentTime;
+    if (on && !eng) {
+      const o = A.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 38;
+      const o2 = A.ctx.createOscillator(); o2.type = 'square'; o2.frequency.value = 76;
+      const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260;
+      const g = A.ctx.createGain(); g.gain.value = 0.0001;
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(sfxBus);
+      o.start(); o2.start();
+      eng = { o, o2, f, g };
+      g.gain.setTargetAtTime(0.07, t, 0.2);
+    }
+    if (!on && eng) {
+      const e = eng; eng = null;
+      e.g.gain.setTargetAtTime(0.0001, t, 0.2);
+      setTimeout(() => { e.o.stop(); e.o2.stop(); }, 900);
+      return;
+    }
+    if (eng && ratio !== undefined) {
+      const r = KT.clamp(ratio, 0, 1);
+      eng.o.frequency.setTargetAtTime(38 + r * 70, t, 0.1);
+      eng.o2.frequency.setTargetAtTime(76 + r * 140, t, 0.1);
+      eng.f.frequency.setTargetAtTime(260 + r * 500, t, 0.1);
+      eng.g.gain.setTargetAtTime(0.06 + r * 0.05, t, 0.1);
+    }
+  };
+
   // ---------------------------------------------------------------- sfx
   function env(g, t, a, peak, dec) {
     g.gain.setValueAtTime(0.0001, t);
@@ -97,6 +127,16 @@
       case 'click': tone(900, 'sine', t, 0.05, 0.08); break;
       case 'bell': [880, 1320, 1760].forEach((f, i) => tone(f, 'sine', t, 2.2 - i * 0.5, 0.06 / (i + 1), ambBus)); break;
       case 'trumpet': tone(220, 'sawtooth', t, 1.0, 0.05, ambBus, 330); break;
+      case 'horn': // two-tone air horn
+        [[330, 0], [415, 0]].forEach((h) => {
+          const o = A.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = h[0];
+          const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400;
+          const gn = A.ctx.createGain(); gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(0.09, t + 0.03);
+          gn.gain.setValueAtTime(0.09, t + 0.55); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+          o.connect(f); f.connect(gn); gn.connect(sfxBus); o.start(t); o.stop(t + 0.75);
+        });
+        break;
+      case 'door': noise(t, 0.5, 0.16, 'highpass', 1800, 0.6); tone(180, 'sine', t + 0.35, 0.12, 0.12, sfxBus, 90); break;
       default: break;
     }
   };

@@ -48,6 +48,7 @@
   };
 
   Pv.setConfig = function (cfg) {
+    Pv.cfg = cfg;
     if (Pv.ch) Pv.scene.remove(Pv.ch);
     Pv.ch = KT.Models.character(JSON.parse(JSON.stringify(cfg)));
     Pv.scene.add(Pv.ch);
@@ -87,5 +88,23 @@
     const side = Math.min(W, H) * 0.62;
     out.getContext('2d').drawImage(Pv.canvas, (W - side) / 2, (H - side) / 2, side, side, 0, 0, 160, 160);
     return out.toDataURL('image/png');
+  };
+
+  // Portrait for any character config (e.g. another player's profile).
+  // Temporarily swaps the preview character, then restores it.
+  const portraitCache = new Map();
+  Pv.portraitFor = function (cfg) {
+    const key = JSON.stringify(cfg);
+    if (portraitCache.has(key)) return portraitCache.get(key);
+    const prev = Pv.cfg;
+    let url = '';
+    try {
+      Pv.setConfig(cfg);
+      url = Pv.portrait();
+    } catch (e) { /* ignore */ }
+    if (prev) Pv.setConfig(prev);
+    if (portraitCache.size > 40) portraitCache.clear();
+    portraitCache.set(key, url);
+    return url;
   };
 })();

@@ -1,0 +1,20 @@
+{
+  "name": "kerala-explorer-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Accounts, profiles and real-time multiplayer for Kerala Explorer",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "bots": "node bench/bots.js",
+    "test": "node test/api.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "ioredis": "^5.4.1",
+    "pg": "^8.13.0"
+  }
+}

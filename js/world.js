@@ -53,9 +53,13 @@
   };
   // Push a position out of static colliders. Returns true if a hit happened.
   World.resolve = function (pos, r, extra) {
-    let hit = false;
     const list = World.nearbyColliders(pos.x, pos.z, r + 1);
     if (extra) for (let i = 0; i < extra.length; i++) list.push(extra[i]);
+    return World.resolveList(pos, r, list);
+  };
+  // Push a circle of radius r out of every collider in the list.
+  World.resolveList = function (pos, r, list) {
+    let hit = false;
     for (let i = 0; i < list.length; i++) {
       const c = list[i];
       if (c.disabled) continue;
@@ -89,6 +93,15 @@
     }
     return hit;
   };
+  // level interface shared with the Kerala Highway (see KT.L)
+  World.id = 'home';
+  World.code = 0;
+  World.height = (x, z) => Geo.height(x, z);
+  World.bounds = Geo.BOUNDS;
+  World.isWater = (x, z) => World.groundY(x, z).y < -0.3;
+  World.agentColliders = (pos) => (KT.Entities.agentColliders ? KT.Entities.agentColliders(pos) : null);
+  KT.L = World;
+
   World.isBlocked = function (x, z, r) {
     const p = new T.Vector3(x, 0, z);
     return World.resolve(p, r);

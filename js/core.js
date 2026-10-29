@@ -12,6 +12,7 @@ window.KT = window.KT || {};
 
   // ---------------------------------------------------------------- math
   KT.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  KT.fmtNum = (n) => { try { return Number(n).toLocaleString('en-IN'); } catch (e) { return String(n); } };
   KT.lerp = (a, b, t) => a + (b - a) * t;
   KT.smoothstep = (e0, e1, x) => {
     const t = KT.clamp((x - e0) / (e1 - e0), 0, 1);

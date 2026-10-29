@@ -3,27 +3,37 @@
 A 3D third-person exploration game for the browser, built for Kerala Tourism.
 Walk the Alleppey promenade, paddle a canoe across Vembanad Lake, watch a
 Kathakali performance, greet the Pooram elephants, hike the Munnar tea hills,
-photograph Periyar's wildlife and clean up Kovalam beach.
+photograph Periyar's wildlife and clean up Kovalam beach — then board a
+KSRTC Super Fast bus and drive the Kerala highway through all 14 districts,
+together with other travellers online.
 
 ![Kerala Explorer](assets/icons/logo.svg)
 
 ## How to play
 
-Open `index.html` in Chrome, Edge, Brave or Firefox. Double-clicking the file
-works (no server or internet needed), or serve the folder:
+**Online (accounts, profiles, multiplayer)** — start the game server, which
+also serves the game:
 
 ```bash
-python3 -m http.server 8080
+cd server && npm install && npm start
 ```
 
-then visit http://localhost:8080.
+then visit http://localhost:8080 in Chrome, Edge, Brave or Firefox, and
+register with your name, mobile number and password (tick *Remember me* to
+stay signed in on that device). See [server/README.md](server/README.md)
+for production deployment and scaling to lakhs of concurrent players.
+
+**Offline** — open `index.html` directly (or any static server) and choose
+*Play offline as a guest*. Progress is then saved in the browser only.
 
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
 | Move | W A S D / arrows | Left joystick |
 | Look / zoom | Drag mouse / wheel | Drag right side |
 | Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
-| Talk, canoe, climb | E | E button |
+| Talk, canoe, climb, board / leave the bus | E | E button |
+| Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view | Joystick |
+| Profile · Players nearby | J · O | Portrait · online counter |
 | Camera mode (photos) | C, snap with C / Space | Eye button |
 | Namaskaram · Wave | N · Q | 🙏 button |
 | Map · First/third person | M · V | Minimap · 🎥 |
@@ -41,10 +51,24 @@ then visit http://localhost:8080.
 8. Wildlife of Periyar — photograph a peacock, a deer and an elephant
 9. Sunset at Kovalam — reach the lighthouse
 10. Eco Hero — clean the beach
+11. Grand Kerala Tour — drive the KSRTC bus through the gates of all 14 districts
 
-Also: 11 landmarks to discover (stars), coins along every path, XP and levels,
+Also: landmarks to discover (stars), coins along every path, XP and levels,
 a photo album with downloadable postcards and an exploration certificate.
-Progress saves automatically in the browser.
+
+## The Kerala highway
+
+The KSRTC bus stand in the village takes you to the highway, a road from
+Thiruvananthapuram in the south to Kasaragod in the north. All 14 district
+centres sit 60 km apart on the map scale (1:20, so 3 km of road in the
+game). Each centre has welcome gates, a bus stand, an information board,
+local people to talk to, shops and a landmark, such as a temple gopuram, a
+lighthouse, Chinese fishing nets, the Idukki arch dam, a hill shrine or
+Bekal fort. Milestones count the kilometres, green signs point to the next
+districts, and rivers are crossed on bridges. The route bar, speedometer
+and minimap show where you are. Get off the bus anywhere (stop first) and
+call it back at any bus stand. The Alappuzha centre has a path back to the
+backwaters.
 
 ## Project layout
 
@@ -52,7 +76,9 @@ Progress saves automatically in the browser.
 index.html            entry point
 css/style.css         HUD and menus
 lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
-js/                   game code (terrain, world, entities, player, missions, UI, audio)
+js/                   game code (terrain, world, highway, vehicle, entities, player,
+                      missions, UI, audio, net = multiplayer client, account = sign-in & profiles)
+server/               Node.js game server (accounts, progress, profiles, real-time play)
 assets/models/        procedural 3D model library: characters, animals, boats,
                       buildings (Kerala houses, temple, church, lighthouse...),
                       trees & plants, props

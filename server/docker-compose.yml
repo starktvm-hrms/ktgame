@@ -1,0 +1,31 @@
+# Production-style stack: N game instances behind nginx, shared Redis and
+# PostgreSQL. Scale with:  docker compose up -d --scale game=8
+# Set AUTH_SECRET and POSTGRES_PASSWORD in a .env file next to this one.
+services:
+  game:
+    build: { context: .., dockerfile: server/Dockerfile }
+    environment:
+      DATABASE_URL: postgres://kerala:${POSTGRES_PASSWORD}@postgres:5432/kerala
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: ${AUTH_SECRET}
+      WORKERS: "1"
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+    deploy: { replicas: 4 }
+  nginx:
+    image: nginx:1.27-alpine
+    ports: ["80:80"]
+    volumes: ["./nginx.conf:/etc/nginx/nginx.conf:ro"]
+    depends_on: [game]
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kerala
+      POSTGRES_USER: kerala
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+volumes:
+  pgdata: {}

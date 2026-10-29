@@ -24,6 +24,40 @@
     </div>
   </div>
 
+  <!-- Sign in / register -->
+  <div id="auth" class="screen hidden">
+    <div class="auth-card">
+      <img src="assets/icons/logo.svg" alt="" class="logo small">
+      <h1>Kerala Explorer</h1>
+      <p class="tag">Explore God's Own Country together</p>
+      <div class="auth-tabs">
+        <button data-auth-tab="login">Log in</button>
+        <button data-auth-tab="register">Register</button>
+      </div>
+      <form id="form-login" class="auth-form" autocomplete="on" novalidate>
+        <label>Mobile number<input id="login-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="98765 43210" required></label>
+        <label>Password<span class="pw-wrap"><input id="login-password" type="password" autocomplete="current-password" required><button type="button" class="pw-toggle" data-for="login-password">Show</button></span></label>
+        <label class="check"><input id="login-remember" type="checkbox"> Remember me on this device</label>
+        <p id="login-error" class="auth-error hidden"></p>
+        <button class="btn primary" type="submit">Log in</button>
+      </form>
+      <form id="form-register" class="auth-form hidden" autocomplete="on" novalidate>
+        <label>Your name<input id="reg-name" maxlength="24" autocomplete="name" placeholder="e.g. Anjali" required></label>
+        <label>Mobile number<input id="reg-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="98765 43210" required></label>
+        <label>Password<span class="pw-wrap"><input id="reg-password" type="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required><button type="button" class="pw-toggle" data-for="reg-password">Show</button></span></label>
+        <label>Confirm password<input id="reg-password2" type="password" autocomplete="new-password" required></label>
+        <label class="check"><input id="reg-remember" type="checkbox" checked> Remember me on this device</label>
+        <p id="register-error" class="auth-error hidden"></p>
+        <button class="btn primary" type="submit">Create account</button>
+      </form>
+      <div class="auth-foot">
+        <button id="btn-guest" class="linkish">Play offline as a guest</button>
+        <span id="server-status" class="server-status"></span>
+        <button id="btn-server" class="linkish small">Server settings</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Title / character creator -->
   <div id="menu" class="screen hidden">
     <div class="menu-card">
@@ -32,8 +66,9 @@
         <h1>Kerala Explorer</h1>
         <p class="tag">An adventure through God's Own Country</p>
         <label class="field">Your name
-          <input id="name-input" maxlength="16" value="Explorer" autocomplete="off">
+          <input id="name-input" maxlength="24" value="Explorer" autocomplete="off">
         </label>
+        <p id="menu-account" class="muted small-print"></p>
         <div class="group">
           <h3>Traveller</h3>
           <div class="chips">
@@ -61,8 +96,9 @@
         <div class="menu-buttons">
           <button id="btn-start" class="btn primary">Begin Journey</button>
           <button id="btn-continue" class="btn hidden">Continue</button>
+          <button id="btn-save-look" class="btn primary hidden">Save appearance</button>
         </div>
-        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Drag mouse: look &middot; E: interact &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; Esc: pause</p>
+        <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Drag mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; Esc: pause</p>
       </div>
       <div class="menu-right">
         <canvas id="preview"></canvas>
@@ -99,6 +135,7 @@
       <div class="chip-stat"><span class="ic coin"></span><span id="coins">0</span></div>
       <div class="chip-stat"><span class="ic">&#x2B50;</span><span id="stars">0</span></div>
       <div class="chip-stat"><span class="ic">&#x1F343;</span><span id="leaves">0</span></div>
+      <button id="btn-online" class="chip-stat online-chip" title="Players online (O)"><span class="net-dot"></span><span id="online-count">offline</span></button>
       <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
     </div>
 
@@ -108,6 +145,11 @@
       <span class="expand">&#x26F6;</span>
     </div>
 
+    <div id="route" class="panel hidden">
+      <div id="route-next"></div>
+      <canvas id="route-bar" width="560" height="44"></canvas>
+    </div>
+    <canvas id="speedo" class="hidden" width="200" height="200"></canvas>
     <div id="prompt" class="hidden"><span id="prompt-text"></span></div>
     <div id="toasts"></div>
 
@@ -151,6 +193,7 @@
         <button id="btn-resume" class="btn primary">Resume</button>
         <button id="btn-map" class="btn">Map</button>
         <button id="btn-album" class="btn">Photo Album</button>
+        <button id="btn-profile" class="btn">My Profile</button>
       </div>
       <h3>Settings</h3>
       <div class="settings">
@@ -177,6 +220,8 @@
         <tr><td>Camera mode</td><td>C &middot; snap with C or Space</td></tr>
         <tr><td>Namaskaram / Wave</td><td>N / Q</td></tr>
         <tr><td>Map / View</td><td>M / V (first or third person)</td></tr>
+        <tr><td>KSRTC bus</td><td>E to board / get off &middot; W/S accelerate &amp; brake &middot; A/D steer &middot; Space handbrake &middot; H horn &middot; V driver view</td></tr>
+        <tr><td>Profile / Players</td><td>J / O</td></tr>
       </table>
       <div class="modal-buttons">
         <button id="btn-menu" class="btn">Save &amp; Quit to Title</button>
@@ -201,6 +246,33 @@
     </div>
   </div>
 
+  <!-- Profile -->
+  <div id="profile-page" class="screen hidden">
+    <div class="modal profile-modal">
+      <div class="modal-head"><h2>Traveller Profile</h2><button id="btn-profile-close" class="btn small">&#x2715; Close</button></div>
+      <div id="pf-body"></div>
+    </div>
+  </div>
+
+  <!-- Nearby players -->
+  <div id="players" class="screen hidden">
+    <div class="modal">
+      <div class="modal-head"><h2>Travellers nearby <small id="players-online" class="muted"></small></h2><button id="btn-players-close" class="btn small">&#x2715; Close</button></div>
+      <div id="players-list"></div>
+    </div>
+  </div>
+
+  <!-- District info -->
+  <div id="district" class="screen hidden">
+    <div class="modal">
+      <div class="modal-head"><h2 id="district-name"></h2><button id="btn-district-close" class="btn small">&#x2715; Close</button></div>
+      <p id="district-ml" class="district-ml"></p>
+      <ul id="district-facts"></ul>
+    </div>
+  </div>
+
+  <div id="fade" class="hidden"><div id="fade-text"></div></div>
+
   <!-- Certificate -->
   <div id="certificate" class="screen hidden">
     <div class="modal cert">
@@ -223,16 +295,23 @@
   <script src="assets/models/boats.js"></script>
   <script src="assets/models/animals.js"></script>
   <script src="assets/models/characters.js"></script>
+  <script src="assets/models/kerala.js"></script>
+  <script src="assets/models/bus.js"></script>
+  <script src="js/districts.js"></script>
   <script src="js/terrain.js"></script>
   <script src="js/world.js"></script>
   <script src="js/entities.js"></script>
+  <script src="js/highway.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/fx.js"></script>
+  <script src="js/vehicle.js"></script>
   <script src="js/player.js"></script>
   <script src="js/missions.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/preview.js"></script>
+  <script src="js/net.js"></script>
+  <script src="js/account.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
