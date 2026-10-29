@@ -185,14 +185,14 @@ window.KT = window.KT || {};
     M.stoneGrey = KT.mat('stoneGrey', { map: tex('stone_path'), color: 0x9a968e }, 0.35);
     M.bamboo = KT.mat('bamboo', { map: tex('thatch'), color: 0xe0c48a }, 0.6);
     M.palmBark = KT.mat('palmBark', { map: tex('palm_bark'), color: 0xffffff }, 1.0);
-    M.rock = KT.mat('rock', { color: 0x8b8781, roughness: 0.95, flatShading: true });
-    M.rockMoss = KT.mat('rockMoss', { color: 0x6f7f4e, roughness: 0.95, flatShading: true });
+    M.rock = KT.mat('rock', { color: 0x8b8781, roughness: 0.95 });
+    M.rockMoss = KT.mat('rockMoss', { color: 0x6f7f4e, roughness: 0.95 });
     M.bark = KT.mat('bark', { color: 0x6b4a33, roughness: 0.95 });
     M.barkLight = KT.mat('barkLight', { color: 0x8e7a62, roughness: 0.95 });
-    M.leaf = KT.mat('leaf', { color: 0x3f7f2c, roughness: 0.8, flatShading: true });
-    M.leafLight = KT.mat('leafLight', { color: 0x5d9b35, roughness: 0.8, flatShading: true });
-    M.leafDark = KT.mat('leafDark', { color: 0x2c5e25, roughness: 0.8, flatShading: true });
-    M.teaLeaf = KT.mat('teaLeaf', { color: 0x4f9a3a, roughness: 0.8, flatShading: true });
+    M.leaf = KT.mat('leaf', { color: 0x3f7f2c, roughness: 0.8 });
+    M.leafLight = KT.mat('leafLight', { color: 0x5d9b35, roughness: 0.8 });
+    M.leafDark = KT.mat('leafDark', { color: 0x2c5e25, roughness: 0.8 });
+    M.teaLeaf = KT.mat('teaLeaf', { color: 0x4f9a3a, roughness: 0.8 });
     M.frond = KT.mat('frond', { map: tex('palm_frond'), alphaTest: 0.45, side: T.DoubleSide, roughness: 0.75 });
     M.banana = KT.mat('banana', { map: tex('banana_leaf'), alphaTest: 0.45, side: T.DoubleSide, roughness: 0.7 });
     M.foliage = KT.mat('foliage', { map: tex('foliage'), alphaTest: 0.45, side: T.DoubleSide, roughness: 0.8 });
@@ -329,12 +329,12 @@ window.KT = window.KT || {};
   };
   const G = KT.G = {
     box: (w, h, d) => new T.BoxGeometry(w, h, d),
-    cyl: (rt, rb, h, s) => new T.CylinderGeometry(rt, rb, h, s || 12),
-    sph: (r, ws, hs) => new T.SphereGeometry(r, ws || 12, hs || 8),
-    cone: (r, h, s) => new T.ConeGeometry(r, h, s || 12),
+    cyl: (rt, rb, h, s) => new T.CylinderGeometry(rt, rb, h, s || 20),
+    sph: (r, ws, hs) => new T.SphereGeometry(r, ws || 18, hs || 12),
+    cone: (r, h, s) => new T.ConeGeometry(r, h, s || 18),
     ico: (r, d) => new T.IcosahedronGeometry(r, d === undefined ? 1 : d),
     dodec: (r) => new T.DodecahedronGeometry(r, 0),
-    torus: (r, t, rs, ts, arc) => new T.TorusGeometry(r, t, rs || 6, ts || 16, arc),
+    torus: (r, t, rs, ts, arc) => new T.TorusGeometry(r, t, rs || 8, ts || 24, arc),
     plane: (w, h, ws, hs) => new T.PlaneGeometry(w, h, ws || 1, hs || 1),
     capsule: (r, l, cs, rs) => new T.CapsuleGeometry(r, l, cs || 4, rs || 10)
   };
@@ -351,7 +351,35 @@ window.KT = window.KT || {};
       const s = map[k];
       P.setXYZ(i, P.getX(i) * s, P.getY(i) * s, P.getZ(i) * s);
     }
+    // weld normals so the blob shades smoothly (icosahedra are non-indexed)
     g.computeVertexNormals();
+    const N = g.attributes.normal;
+    const acc = {};
+    const key = (i) => P.getX(i).toFixed(4) + ',' + P.getY(i).toFixed(4) + ',' + P.getZ(i).toFixed(4);
+    for (let i = 0; i < P.count; i++) {
+      const k = key(i);
+      const v = acc[k] || (acc[k] = [0, 0, 0]);
+      v[0] += N.getX(i); v[1] += N.getY(i); v[2] += N.getZ(i);
+    }
+    for (let i = 0; i < P.count; i++) {
+      const v = acc[key(i)];
+      const l = Math.hypot(v[0], v[1], v[2]) || 1;
+      N.setXYZ(i, v[0] / l, v[1] / l, v[2] / l);
+    }
+    return g;
+  };
+
+  // Rounded box: an extruded rounded rectangle (w x h, depth d, radius r).
+  KT.roundBox = function (w, h, d, r) {
+    const s = new T.Shape();
+    const x = -w / 2 + r, y = -h / 2 + r, ww = w - 2 * r, hh = h - 2 * r;
+    s.moveTo(x, y - r);
+    s.lineTo(x + ww, y - r); s.quadraticCurveTo(x + ww + r, y - r, x + ww + r, y);
+    s.lineTo(x + ww + r, y + hh); s.quadraticCurveTo(x + ww + r, y + hh + r, x + ww, y + hh + r);
+    s.lineTo(x, y + hh + r); s.quadraticCurveTo(x - r, y + hh + r, x - r, y + hh);
+    s.lineTo(x - r, y); s.quadraticCurveTo(x - r, y - r, x, y - r);
+    const g = new T.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r * 0.9, bevelSegments: 3, curveSegments: 5 });
+    g.translate(0, 0, -Math.max(0.001, d - 2 * r) / 2);
     return g;
   };
 
@@ -419,7 +447,7 @@ window.KT = window.KT || {};
   KT.skinMaterial = null;
   KT.skinify = function (root) {
     if (!KT.skinMaterial) {
-      KT.skinMaterial = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0.05 });
+      KT.skinMaterial = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, metalness: 0.05, side: T.DoubleSide });
     }
     const rootJoint = new T.Group();
     root.add(rootJoint);
@@ -473,10 +501,10 @@ window.KT = window.KT || {};
     geo.setAttribute('skinWeight', new T.BufferAttribute(sW, 4));
     geo.setIndex(new T.BufferAttribute(idx, 1));
     geo.computeBoundingSphere();
+    geo.boundingSphere.radius *= 1.4; // room for animated poses
     const sm = new T.SkinnedMesh(geo, KT.skinMaterial);
     sm.castShadow = true;
     sm.receiveShadow = true;
-    sm.frustumCulled = false;
     root.add(sm);
     root.updateMatrixWorld(true);
     sm.bind(new T.Skeleton(joints));
@@ -490,9 +518,13 @@ window.KT = window.KT || {};
     this.protos = {};
     this.lists = {};
   };
-  KT.Instancer.prototype.define = function (key, builder) {
+  // builder: detailed prototype. opts.low: cheap prototype used beyond
+  // opts.lodDist; opts.maxDist: chunks further than this are not drawn.
+  KT.Instancer.prototype.define = function (key, builder, opts) {
     this.protos[key] = builder;
     this.lists[key] = [];
+    this.lod = this.lod || {};
+    this.lod[key] = opts || {};
   };
   KT.Instancer.prototype.add = function (key, x, y, z, ry, s, sy) {
     const m = new T.Matrix4();
@@ -502,28 +534,75 @@ window.KT = window.KT || {};
     this.lists[key].push(m);
     return m;
   };
+  // Instances are split into spatial chunks so off-screen vegetation is
+  // frustum-culled instead of always being drawn.
   KT.Instancer.prototype.build = function (scene, opts) {
     opts = opts || {};
+    const CH = opts.chunk || 160;
     const meshes = [];
+    const v = new T.Vector3();
     Object.keys(this.lists).forEach((key) => {
       const list = this.lists[key];
       if (!list.length) return;
-      const proto = this.protos[key]();
-      proto.children.forEach((child) => {
-        if (!child.isMesh) return;
-        const im = new T.InstancedMesh(child.geometry, child.material, list.length);
-        list.forEach((m, i) => im.setMatrixAt(i, m));
-        im.instanceMatrix.needsUpdate = true;
-        im.castShadow = child.castShadow && !(opts.noShadow && opts.noShadow[key]);
-        im.receiveShadow = true;
-        im.computeBoundingSphere && im.computeBoundingSphere();
-        im.name = key;
-        im.frustumCulled = false;
-        scene.add(im);
-        meshes.push(im);
+      const chunks = new Map();
+      list.forEach((m) => {
+        v.setFromMatrixPosition(m);
+        const k = Math.floor(v.x / CH) + ',' + Math.floor(v.z / CH);
+        if (!chunks.has(k)) chunks.set(k, []);
+        chunks.get(k).push(m);
       });
+      const lod = (this.lod && this.lod[key]) || {};
+      const records = new Map();
+      chunks.forEach((mats, ck) => records.set(ck, { key, high: [], low: [], maxDist: lod.maxDist || 1e9, lodDist: lod.lodDist || 0 }));
+      this.chunks = this.chunks || [];
+      records.forEach((r) => this.chunks.push(r));
+      const variants = [['high', this.protos[key]()]];
+      if (lod.low) variants.push(['low', lod.low()]);
+      variants.forEach(([level, proto]) => proto.children.forEach((child) => {
+        if (!child.isMesh) return;
+        if (!child.geometry.boundingSphere) child.geometry.computeBoundingSphere();
+        const pr = child.geometry.boundingSphere.radius + child.geometry.boundingSphere.center.length();
+        chunks.forEach((mats, ck) => {
+          const geo = child.geometry.clone();
+          const im = new T.InstancedMesh(geo, child.material, mats.length);
+          const box = new T.Box3();
+          let maxS = 1;
+          mats.forEach((m, i) => {
+            im.setMatrixAt(i, m);
+            box.expandByPoint(v.setFromMatrixPosition(m));
+            maxS = Math.max(maxS, m.getMaxScaleOnAxis());
+          });
+          im.instanceMatrix.needsUpdate = true;
+          // bounding sphere covering every instance in this chunk
+          const sphere = new T.Sphere();
+          box.getBoundingSphere(sphere);
+          sphere.radius += pr * maxS;
+          geo.boundingSphere = sphere;
+          im.castShadow = child.castShadow && !(opts.noShadow && opts.noShadow[key]);
+          im.receiveShadow = true;
+          im.name = key;
+          scene.add(im);
+          meshes.push(im);
+          const rec = records.get(ck);
+          rec[level].push(im);
+          rec.center = sphere.center;
+          rec.radius = sphere.radius;
+          if (level === 'low') im.visible = false;
+        });
+      }));
     });
     return meshes;
+  };
+
+  // Show the right level of detail for each chunk based on camera distance.
+  KT.Instancer.prototype.updateLOD = function (camPos) {
+    (this.chunks || []).forEach((c) => {
+      const d = Math.max(0, Math.hypot(c.center.x - camPos.x, c.center.z - camPos.z) - c.radius * 0.7);
+      const visible = d < c.maxDist;
+      const useLow = c.low.length > 0 && d > c.lodDist;
+      c.high.forEach((m) => { m.visible = visible && !useLow; });
+      c.low.forEach((m) => { m.visible = visible && useLow; });
+    });
   };
 
   // Wind sway for foliage materials (vertex shader injection).

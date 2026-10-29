@@ -15,7 +15,7 @@
     gestureTime: 0,
     obj: null,
     cfg: null,
-    radius: 0.35,
+    radius: 0.42,
     distance: 0
   };
   const WALK = 3.4, RUN = 7.2;
@@ -62,8 +62,16 @@
     if (wading) target *= 0.5;
     P.speed += (target - P.speed) * (1 - Math.exp(-dt * (target > P.speed ? 8 : 10)));
     const step = P.speed * dt;
-    _next.set(P.pos.x + Math.sin(P.heading) * step, P.pos.y, P.pos.z + Math.cos(P.heading) * step);
-    KT.World.resolve(_next, P.radius);
+    // move in small sub-steps so fast movement or low frame rates can never
+    // tunnel through walls, trees or people
+    _next.copy(P.pos);
+    const agents = KT.Entities.agentColliders ? KT.Entities.agentColliders(P.pos) : null;
+    const nSub = Math.max(1, Math.ceil(step / 0.12));
+    for (let i = 0; i < nSub; i++) {
+      _next.x += Math.sin(P.heading) * step / nSub;
+      _next.z += Math.cos(P.heading) * step / nSub;
+      KT.World.resolve(_next, P.radius, agents);
+    }
     const b = Geo.BOUNDS;
     _next.x = KT.clamp(_next.x, b.minX, b.maxX);
     _next.z = KT.clamp(_next.z, b.minZ, b.maxZ);
@@ -79,31 +87,62 @@
     }
     // jumping & gravity
     const ground = KT.World.groundY(P.pos.x, P.pos.z, P.pos.y);
+    const anim = P.obj.userData.anim;
     if (input.consume('jump') && P.grounded) {
-      P.vy = 7.2; P.grounded = false; P.gesture = null;
+      P.vy = 7.4; P.grounded = false; P.gesture = null;
+      P.airTime = 0;
+      // each jump gets a little personality; sprinting jumps become flips
+      const styles = ['reach', 'star', 'tuck', 'reach'];
+      P.jumpStyle = P.speed > 5.5 ? 'flip' : styles[(P.jumpCount = (P.jumpCount || 0) + 1) % styles.length];
+      if (P.jumpStyle === 'flip') P.vy = 8.2;
       KT.Audio.play('jump');
+      KT.FX.puff(P.pos, 5, 0.6);
     }
     P.vy -= 22 * dt;
     P.pos.y += P.vy * dt;
+    const wasAir = !P.grounded;
     if (P.pos.y <= ground.y) {
-      if (!P.grounded && P.vy < -6) KT.Audio.play('land');
-      P.pos.y = ground.y; P.vy = 0; P.grounded = true;
+      P.pos.y = ground.y; P.grounded = true;
     } else if (P.pos.y > ground.y + 0.25) {
       P.grounded = false;
     } else if (P.vy <= 0) {
-      P.pos.y = ground.y; P.vy = 0; P.grounded = true;
+      P.pos.y = ground.y; P.grounded = true;
     }
+    if (P.grounded && wasAir) {
+      if (P.vy < -4) {
+        P.landTime = Math.min(0.3, -P.vy * 0.03);
+        KT.Audio.play('land');
+        KT.FX.puff(P.pos, 9, 1);
+        P.speed *= 0.6;
+      }
+      P.vy = 0;
+    } else if (P.grounded) P.vy = 0;
+    if (!P.grounded) P.airTime = (P.airTime || 0) + dt;
     // gestures
     if (input.consume('namaskaram')) startGesture('namaskaram', 2.2);
     if (input.consume('wave')) startGesture('wave', 2.0);
     if (P.gesture) { P.gestureTime -= dt; if (P.gestureTime <= 0) P.gesture = null; }
     // animation
     let state = 'idle';
-    if (!P.grounded) state = P.vy > 0 ? 'jump' : 'fall';
+    if (P.landTime > 0) { P.landTime -= dt; state = 'land'; }
+    else if (!P.grounded) state = (P.vy > -2 || P.jumpStyle === 'flip' || P.jumpStyle === 'tuck') && P.airTime < 1.2 ? 'jump' : 'fall';
     else if (P.speed > 4.8) state = 'run';
     else if (P.speed > 0.4) state = 'walk';
     else if (P.gesture) state = P.gesture;
+    anim.air = P.grounded ? 0 : P.airTime;
+    anim.jumpStyle = P.jumpStyle;
     KT.Models.animateCharacter(P.obj, state, dt, state === 'walk' ? P.speed / WALK : P.speed / RUN);
+    // front flip: spin the body around the waist while airborne
+    const hips = P.obj.userData.rig.hips;
+    if (!P.grounded && P.jumpStyle === 'flip' && P.airTime > 0.06) {
+      anim.flipping = true;
+      const total = 2 * 8.2 / 22; // time to land on flat ground
+      const f = KT.clamp((P.airTime - 0.06) / (total - 0.12), 0, 1);
+      hips.rotation.set(f * Math.PI * 2, 0, 0);
+    } else if (anim.flipping) {
+      anim.flipping = false;
+      hips.rotation.set(0, 0, 0);
+    }
     P.obj.position.copy(P.pos);
     P.obj.rotation.y = P.heading;
     P.state = state;
@@ -123,6 +162,7 @@
     if (stepT <= 0) {
       stepT = state === 'run' ? 0.3 : 0.44;
       KT.Audio.play(wading ? 'splash' : 'step');
+      if (state === 'run' && !wading) KT.FX.puff(P.pos, 1, 0.25);
     }
   }
 
@@ -231,6 +271,25 @@
     return false;
   }
 
+  function blocksCamera(x, z, y) {
+    const list = KT.World.nearbyColliders(x, z, 1);
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      if (c.noCamera) continue;
+      if (c.maxY !== undefined && y > c.maxY) continue;
+      if (y - KT.Geo.height(c.x, c.z) > (c.type === 'box' ? 6 : 9)) continue;
+      if (c.type === 'circle') {
+        if (c.r < 0.9) continue; // thin poles & trunks never shove the camera
+        if (Math.hypot(x - c.x, z - c.z) < c.r + 0.15) return true;
+      } else {
+        const dx = x - c.x, dz = z - c.z;
+        const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
+        if (Math.abs(lx) < c.hw + 0.2 && Math.abs(lz) < c.hd + 0.2) return true;
+      }
+    }
+    return false;
+  }
+
   Cam.update = function (dt, camera, input) {
     const l = input.takeLook();
     if (l.dx || l.dy) Cam.idle = 0; else Cam.idle += dt;
@@ -264,9 +323,16 @@
     const minY = Math.max(gy, 0) + 0.5;
     if (desired.y < minY) desired.y = minY;
     // avoid clipping into big colliders (pull in towards the player)
-    for (let i = 0; i < 6; i++) {
-      if (!insideBuilding(desired.x, desired.z, desired.y)) break;
-      desired.lerp(target, 0.3);
+    // pull the camera in front of any wall or trunk between it and the player
+    const steps = 16;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const x = KT.lerp(target.x, desired.x, t), y = KT.lerp(target.y, desired.y, t), z = KT.lerp(target.z, desired.z, t);
+      if (blocksCamera(x, z, y)) {
+        const back = Math.max(1.4 / Math.max(Cam.dist, 1.4), (i - 1.5) / steps);
+        desired.set(KT.lerp(target.x, desired.x, back), KT.lerp(target.y, desired.y, back), KT.lerp(target.z, desired.z, back));
+        break;
+      }
     }
     camera.position.lerp(desired, 1 - Math.exp(-dt * 14));
     camera.lookAt(target);

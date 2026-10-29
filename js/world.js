@@ -425,8 +425,8 @@
     scatter(inst, 'banyanTree', 5, [-300, -190, -40, 120], { collider: 1.4, clear: 8 });
     scatter(inst, 'mangrove', 30, [328, 345, -165, 165], { collider: 0.5, clear: 2, minH: -0.6 });
     // tea estate rows on the hills
-    for (let z = -205; z > -350; z -= 3.0) {
-      for (let x = -175; x < 150; x += 2.1) {
+    for (let z = -205; z > -350; z -= 3.3) {
+      for (let x = -175; x < 150; x += 2.4) {
         const wx = x + Math.sin(z * 0.3) * 0.8, wz = z + Math.sin(x * 0.05) * 3;
         const h = Geo.height(wx, wz);
         if (h < 6) continue;
@@ -456,7 +456,7 @@
   }
 
   function defineInstances(inst) {
-    for (let v = 0; v < 3; v++) inst.define('coconutPalm' + v, () => Models.coconutPalm(v * 17 + 3));
+    for (let v = 0; v < 3; v++) inst.define('coconutPalm' + v, () => Models.coconutPalm(v * 17 + 3), { low: () => Models.coconutPalmLow(v * 17 + 3), lodDist: 140 });
     inst.define('arecaPalm', Models.arecaPalm);
     inst.define('bananaTree', Models.bananaTree);
     inst.define('mangoTree', Models.mangoTree);
@@ -464,21 +464,21 @@
     inst.define('banyanTree', Models.banyanTree);
     inst.define('forestTree0', () => Models.forestTree(1));
     inst.define('forestTree1', () => Models.forestTree(7));
-    inst.define('teaBush', Models.teaBush);
+    inst.define('teaBush', Models.teaBush, { maxDist: 170 });
     inst.define('mangrove', Models.mangrove);
     inst.define('floweringBush0', () => Models.floweringBush(KT.M.flowerRed));
     inst.define('floweringBush1', () => Models.floweringBush(KT.M.flowerPink));
     inst.define('floweringBush2', () => Models.floweringBush(KT.M.flowerYellow));
-    inst.define('rock', () => Models.rock(3));
+    inst.define('rock', () => Models.rock(3), { maxDist: 260 });
     inst.define('boulders', Models.boulders);
-    inst.define('grassTuft', Models.grassTuft);
-    inst.define('flowerPatch', Models.flowerPatch);
-    inst.define('fallenLog', Models.fallenLog);
-    inst.define('treeStump', Models.treeStump);
-    inst.define('paddyRice', Models.paddyRice);
-    inst.define('fence', () => Models.woodenFence(2.1));
+    inst.define('grassTuft', Models.grassTuft, { maxDist: 70 });
+    inst.define('flowerPatch', Models.flowerPatch, { maxDist: 90 });
+    inst.define('fallenLog', Models.fallenLog, { maxDist: 160 });
+    inst.define('treeStump', Models.treeStump, { maxDist: 160 });
+    inst.define('paddyRice', Models.paddyRice, { maxDist: 150 });
+    inst.define('fence', () => Models.woodenFence(2.1), { maxDist: 220 });
     inst.define('lampPost', Models.lampPost);
-    inst.define('bench', Models.bench);
+    inst.define('bench', Models.bench, { maxDist: 160 });
   }
 
   // ------------------------------------------------------------ landmarks
@@ -544,7 +544,8 @@
     buildVegetation(inst);
     await tick();
     progress(0.7, 'Growing the forests...');
-    World.instanced = inst.build(scene, { noShadow: { grassTuft: true, flowerPatch: true, paddyRice: true, teaBush: quality !== 'high' } });
+    World.inst = inst;
+    World.instanced = inst.build(scene, { noShadow: { grassTuft: true, flowerPatch: true, paddyRice: true, teaBush: quality !== 'high' }, chunk: 120 });
     World.instanced.forEach((m) => {
       const n = m.name;
       if (n.indexOf('coconutPalm') === 0 || n === 'arecaPalm' || n === 'bananaTree') {
@@ -600,6 +601,8 @@
       c.position.x += dt * (1.5 + (i % 5) * 0.3);
       if (c.position.x > 1600) c.position.x = -1600;
     });
+    World.lodTimer = (World.lodTimer || 0) - dt;
+    if (World.lodTimer <= 0 && camera) { World.lodTimer = 0.25; World.inst.updateLOD(camera.position); }
     KT.Entities.update(dt, World.animTime, player, camera);
   };
 })();

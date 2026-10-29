@@ -26,7 +26,7 @@
   // Curved tapering trunk using a tube whose radius shrinks with height.
   function trunkGeometry(points, r0, r1, radial) {
     const curve = new T.CatmullRomCurve3(points);
-    const tub = 10, rad = radial || 8;
+    const tub = 16, rad = radial || 12;
     const g = new T.TubeGeometry(curve, tub, 1, rad, false);
     const P = g.attributes.position;
     const c = new T.Vector3(), v = new T.Vector3();
@@ -83,9 +83,38 @@
     // coconuts
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
-      part(top, G.sph(0.2, 6, 4), KT.M.coconut, Math.cos(a) * 0.32, -0.35 - (i % 2) * 0.15, Math.sin(a) * 0.32);
+      part(top, G.sph(0.2, 8, 6), KT.M.coconut, Math.cos(a) * 0.32, -0.35 - (i % 2) * 0.15, Math.sin(a) * 0.32);
     }
     part(top, G.sph(0.3, 8, 6), KT.M.barkLight, 0, -0.1, 0, 0, 0, 0, 1, 0.6, 1);
+    return KT.bake(g);
+  };
+
+  // Distant palm: same silhouette with a fraction of the triangles.
+  Models.coconutPalmLow = function (seed) {
+    const rng = KT.makeRng(seed || 3);
+    const g = new T.Group();
+    const h = 8.5;
+    const lean = 1.2 + rng() * 0.6;
+    const pts = [new T.Vector3(0, 0, 0), new T.Vector3(lean * 0.1, h * 0.3, 0), new T.Vector3(lean * 0.45, h * 0.65, 0), new T.Vector3(lean, h, 0)];
+    const curve = new T.CatmullRomCurve3(pts);
+    g.add(new T.Mesh(new T.TubeGeometry(curve, 5, 0.22, 5, false), KT.M.palmBark));
+    const top = new T.Group();
+    top.position.set(lean, h, 0);
+    g.add(top);
+    const fg = new T.PlaneGeometry(1.6, 4.6, 1, 3);
+    fg.translate(0, 2.3, 0);
+    const P = fg.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const y = P.getY(i), t = y / 4.6;
+      P.setXYZ(i, P.getX(i), Math.sin(t * Math.PI * 0.55) * 1.15 - t * t * 2.6, y);
+    }
+    fg.computeVertexNormals();
+    for (let i = 0; i < 8; i++) {
+      const f = new T.Mesh(fg, KT.M.frond);
+      f.rotation.y = (i / 8) * Math.PI * 2;
+      f.rotation.x = -0.2;
+      top.add(f);
+    }
     return KT.bake(g);
   };
 
@@ -129,6 +158,19 @@
     return KT.bake(g);
   };
 
+  // Crossed alpha-tested leaf cards that break up a canopy's silhouette.
+  const cardGeo = new T.PlaneGeometry(1, 1);
+  function leafCards(g, x, y, z, size, seed) {
+    for (let k = 0; k < 3; k++) {
+      const c = new T.Mesh(cardGeo, KT.M.foliage);
+      c.position.set(x, y + (k - 1) * size * 0.12, z);
+      c.rotation.set((k === 2 ? Math.PI / 2 : 0.2), k * Math.PI / 3 + seed, 0);
+      c.scale.set(size * 2, size * 1.6, 1);
+      c.castShadow = true;
+      g.add(c);
+    }
+  }
+
   function canopyTree(opts) {
     const g = new T.Group();
     const rng = KT.makeRng(opts.seed || 5);
@@ -145,8 +187,9 @@
       const a = rng() * Math.PI * 2;
       const r = rng() * opts.spread;
       const s = opts.blobR * (0.7 + rng() * 0.5);
-      part(g, KT.blob(s, 1, 0.18, i + (opts.seed || 1)), mats[i % 3],
-        Math.cos(a) * r, th + opts.blobR * 0.6 + rng() * opts.blobR * 0.9, Math.sin(a) * r, 0, 0, 0, 1, 0.8, 1);
+      const bx = Math.cos(a) * r, by = th + opts.blobR * 0.6 + rng() * opts.blobR * 0.9, bz = Math.sin(a) * r;
+      part(g, KT.blob(s, opts.detail === undefined ? 2 : opts.detail, 0.16, i + (opts.seed || 1)), mats[i % 3], bx, by, bz, 0, 0, 0, 1, 0.8, 1);
+      leafCards(g, bx, by, bz, s * 1.25, i);
     }
     return g;
   }
@@ -170,7 +213,7 @@
   };
 
   Models.banyanTree = function () {
-    const g = canopyTree({ trunkH: 3.5, trunkR: 0.9, blobs: 16, blobR: 2.6, spread: 5.5, seed: 31 });
+    const g = canopyTree({ trunkH: 3.5, trunkR: 0.9, blobs: 16, blobR: 2.6, spread: 5.5, seed: 31, detail: 1 });
     const rng = KT.makeRng(77);
     for (let i = 0; i < 26; i++) {
       const a = rng() * Math.PI * 2, r = 1.5 + rng() * 5;
@@ -189,15 +232,15 @@
     const h = 7;
     part(g, G.cyl(0.22, 0.4, h, 7), KT.M.bark, 0, h / 2, 0);
     for (let i = 0; i < 4; i++) {
-      part(g, KT.blob(2.2 - i * 0.35, 1, 0.2, (seed || 1) + i), i % 2 ? KT.M.leafDark : KT.M.leaf, 0, h - 1 + i * 1.4, 0, 0, i, 0, 1, 0.65, 1);
+      part(g, KT.blob(2.2 - i * 0.35, 1, 0.18, (seed || 1) + i), i % 2 ? KT.M.leafDark : KT.M.leaf, 0, h - 1 + i * 1.4, 0, 0, i, 0, 1, 0.65, 1);
+      leafCards(g, 0, h - 1 + i * 1.4, 0, (2.2 - i * 0.35) * 1.1, i);
     }
     return KT.bake(g);
   };
 
   Models.teaBush = function () {
     const g = new T.Group();
-    part(g, KT.blob(0.5, 0, 0.12, 3), KT.M.teaLeaf, 0, 0.42, 0, 0, 0, 0, 1.5, 0.75, 1.3);
-    part(g, KT.blob(0.38, 0, 0.15, 4), KT.mat('teaLeafLight', { color: 0x67b347, roughness: 0.8, flatShading: true }), 0.15, 0.62, 0.05, 0, 0.7, 0, 1.4, 0.6, 1.2);
+    part(g, KT.blob(0.5, 1, 0.1, 3), KT.M.teaLeaf, 0, 0.45, 0, 0, 0, 0, 1.5, 0.78, 1.3);
     return KT.bake(g);
   };
 
@@ -221,22 +264,31 @@
     for (let i = 0; i < 16; i++) {
       const a = rng() * Math.PI * 2, e = rng() * 1.2;
       const r = 0.92;
-      part(g, G.ico(0.11, 0), fm, Math.cos(a) * Math.cos(e) * r * 1.2, 0.6 + Math.sin(e) * r * 0.85, Math.sin(a) * Math.cos(e) * r * 1.2);
+      // hibiscus-like blossom: five rounded petals around a golden centre
+      const fl = new T.Group();
+      fl.position.set(Math.cos(a) * Math.cos(e) * r * 1.2, 0.6 + Math.sin(e) * r * 0.85, Math.sin(a) * Math.cos(e) * r * 1.2);
+      fl.lookAt(fl.position.x * 3, fl.position.y * 2, fl.position.z * 3);
+      g.add(fl);
+      for (let k = 0; k < 5; k++) {
+        const pa = (k / 5) * Math.PI * 2;
+        part(fl, G.sph(0.06, 8, 6), fm, Math.cos(pa) * 0.06, Math.sin(pa) * 0.06, 0, 0, 0, pa, 1, 0.65, 0.3);
+      }
+      part(fl, G.sph(0.025, 6, 5), KT.M.flowerYellow, 0, 0, 0.02);
     }
     return KT.bake(g);
   };
 
   Models.rock = function (seed) {
     const g = new T.Group();
-    part(g, KT.blob(1, 1, 0.3, seed || 2), KT.M.rock, 0, 0.35, 0, 0, 0, 0, 1.2, 0.7, 1);
+    part(g, KT.blob(1, 2, 0.22, seed || 2), KT.M.rock, 0, 0.35, 0, 0, 0, 0, 1.2, 0.7, 1);
     return KT.bake(g);
   };
 
   Models.boulders = function () {
     const g = new T.Group();
-    part(g, KT.blob(1.4, 1, 0.25, 12), KT.M.rock, 0, 0.7, 0, 0, 0, 0, 1, 0.9, 1);
-    part(g, KT.blob(0.9, 1, 0.25, 13), KT.M.rockMoss, 1.5, 0.45, 0.5);
-    part(g, KT.blob(0.6, 1, 0.3, 14), KT.M.rock, -1.1, 0.3, 0.7);
+    part(g, KT.blob(1.4, 2, 0.2, 12), KT.M.rock, 0, 0.7, 0, 0, 0, 0, 1, 0.9, 1);
+    part(g, KT.blob(0.9, 2, 0.2, 13), KT.M.rockMoss, 1.5, 0.45, 0.5);
+    part(g, KT.blob(0.6, 2, 0.22, 14), KT.M.rock, -1.1, 0.3, 0.7);
     return KT.bake(g);
   };
 

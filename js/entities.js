@@ -177,7 +177,8 @@
       hair: female ? rng.pick(['default', 'braid', 'bun', 'loose']) : rng.pick(['default', 'short', 'wavy', 'curly']),
       skin: rng.pick(SKINS), hairColor: rng() < 0.15 ? 0x6b6b6b : 0x1d130e,
       acc: def.acc || { backpack: def.tourist, hat: def.tourist && rng() < 0.4, sunglasses: def.tourist && rng() < 0.5, camera: def.tourist && rng() < 0.4 },
-      scale: 0.9 + rng() * 0.1
+      scale: 0.9 + rng() * 0.1,
+      lite: true
     };
     const obj = Models.character(cfg);
     spawn(obj, def.x, def.z, def.rot || 0);
@@ -471,6 +472,21 @@
     scene.add(E.beacon);
   };
 
+  // People and animals near the player act as solid obstacles.
+  E.agentColliders = function (pos) {
+    const out = [];
+    const add = (w, r) => {
+      const o = w.obj;
+      if (Math.abs(o.position.x - pos.x) > 8 || Math.abs(o.position.z - pos.z) > 8) return;
+      if (Math.abs(o.position.y - pos.y) > 2.5) return;
+      out.push({ type: 'circle', x: o.position.x, z: o.position.z, r: r });
+    };
+    E.npcs.forEach((w) => add(w, 0.3));
+    E.animals.forEach((w) => { if (w.home || w.static) add(w, Math.min(1.6, (w.obj.userData.radius || 0.5) * 0.8 * w.obj.scale.x)); });
+    if (E.dancer) add({ obj: E.dancer }, 0.4);
+    return out;
+  };
+
   // dynamic colliders of boats (for the canoe)
   E.boatColliders = function () {
     const out = [];
@@ -524,7 +540,7 @@
     const animDist = 140;
     E.npcs.forEach((w) => {
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);
-      w.obj.visible = d < 260;
+      w.obj.visible = d < 140;
       updateWanderer(w, dt, player);
       if (d < animDist) {
         let state = w.moving ? 'walk' : (w.talking ? 'wave' : 'idle');
@@ -536,7 +552,7 @@
     });
     E.animals.forEach((w) => {
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);
-      w.obj.visible = d < 300;
+      w.obj.visible = d < (w.kind === 'elephant' ? 260 : 170);
       if (w.home) updateWanderer(w, dt, player);
       if (d < animDist && w.obj.userData.animate) w.obj.userData.animate(t + w.obj.id, w.moving, 6);
     });

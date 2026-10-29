@@ -9,7 +9,7 @@
 
   // Lofted wooden hull. sheer(t) gives gunwale height along the length.
   function hullGeometry(L, W, depth, sheerFn, widthPow) {
-    const N = 28, K = 10;
+    const N = 44, K = 14;
     const pos = [], uv = [], idx = [];
     for (let i = 0; i <= N; i++) {
       const t = i / N;

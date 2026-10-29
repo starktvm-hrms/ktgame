@@ -22,7 +22,7 @@ then visit http://localhost:8080.
 | --- | --- | --- |
 | Move | W A S D / arrows | Left joystick |
 | Look / zoom | Drag mouse / wheel | Drag right side |
-| Run · Jump | Shift · Space | Run · Jump buttons |
+| Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
 | Talk, canoe, climb | E | E button |
 | Camera mode (photos) | C, snap with C / Space | Eye button |
 | Namaskaram · Wave | N · Q | 🙏 button |

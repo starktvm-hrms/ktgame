@@ -133,6 +133,19 @@
       part(g, G.cyl(0.06, 0.06, 0.5, 6), M().brass, -ridgeHalf - 0.4, roofY + roofH + 0.55, pzc - 0.2);
       part(g, G.cyl(0.06, 0.06, 0.5, 6), M().brass, ridgeHalf + 0.4, roofY + roofH + 0.55, pzc - 0.2);
     }
+    // ridge cap tiles along the hip ridge and rafter tails under the eaves
+    const rz = pzc - 0.2;
+    part(g, G.cyl(0.09, 0.09, rw * 0.42 + 0.1, 12), M().terracotta, 0, roofY + roofH + 0.03, rz, 0, 0, Math.PI / 2);
+    for (let x = -rw / 2 + 0.3; x < rw / 2 - 0.2; x += 0.55) {
+      [-1, 1].forEach((sd) => part(g, G.box(0.07, 0.09, 0.45), M().woodDark, x, roofY - 0.12, rz + sd * (rd / 2 - 0.25)));
+    }
+    for (let z = -rd / 2 + 0.6; z < rd / 2 - 0.4; z += 0.55) {
+      [-1, 1].forEach((sd) => part(g, G.box(0.45, 0.09, 0.07), M().woodDark, sd * (rw / 2 - 0.25), roofY - 0.12, rz + z));
+    }
+    // plinth moulding, corner pilasters and window sills
+    part(g, G.box(pw + 0.08, 0.1, pd + 0.08), M().stoneGrey, 0, plinthH - 0.03, pzc);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach((c) => part(g, G.box(0.22, wallH, 0.22), M().plasterCream, c[0] * (w / 2), y0 + wallH / 2, -0.4 + c[1] * (d / 2)));
+    [-w * 0.3, w * 0.3].forEach((x) => part(g, G.box(1.2, 0.07, 0.22), M().woodDark, x, y0 + 0.92, front + 0.06));
     // potted plants by steps
     pot(g, -1.5, 0, pzc + pd / 2 + 0.7);
     pot(g, 1.5, 0, pzc + pd / 2 + 0.7);
@@ -530,6 +543,11 @@
     part(g, G.sph(0.2, 8, 6), M().brass, 0, 5.4, 0);
     part(g, G.cyl(1.0, 1.0, 0.5, 12), M().wood, 0, 0.75, 0);
     g.userData.colliders = [{ type: 'circle', x: 0, z: 0, r: 1.2 }];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      if (i === 2) continue; // entrance gap
+      g.userData.colliders.push({ type: 'circle', x: Math.cos(a) * 2.6, z: Math.sin(a) * 2.6, r: 0.25 });
+    }
     return KT.bake(g);
   };
 

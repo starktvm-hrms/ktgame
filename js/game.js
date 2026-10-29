@@ -50,6 +50,7 @@
     onResize();
     window.addEventListener('resize', onResize);
     KT.Input.init(canvas);
+    KT.FX.init(scene);
     KT.initMaterials();
     await KT.World.build(scene, { quality: Game.settings.quality }, KT.UI.progress);
     decorateMap();
@@ -300,6 +301,7 @@
       if (st !== 'photo') KT.Player.update(dt, frozen, KT.CameraRig);
       KT.CameraRig.update(dt, Game.camera, input);
       KT.World.update(dt, KT.Player, Game.camera);
+      KT.FX.update(dt);
       KT.World.followSun(KT.Player.pos);
       gameplay(dt);
       Game.data.playTime += dt;

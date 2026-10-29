@@ -10,9 +10,17 @@
     part(g, G.cyl(0.22, 0.28, 0.4, 8), M().darkGrey, 0, 0.2, 0);
     part(g, G.cyl(0.07, 0.1, 3.4, 8), M().woodDark, 0, 2.0, 0);
     part(g, G.box(0.7, 0.08, 0.08), M().woodDark, 0.25, 3.5, 0);
-    part(g, G.box(0.3, 0.42, 0.3), M().lampGlow, 0.55, 3.15, 0);
-    part(g, G.cone(0.28, 0.25, 4), M().black, 0.55, 3.48, 0, 0, Math.PI / 4);
-    part(g, G.box(0.34, 0.05, 0.34), M().black, 0.55, 2.93, 0);
+    // Victorian-style lantern: glowing core, glass, frame, cap & finial
+    part(g, G.cyl(0.1, 0.08, 0.3, 16), M().lampGlow, 0.55, 3.15, 0);
+    part(g, G.cyl(0.17, 0.13, 0.4, 6), M().glass, 0.55, 3.15, 0);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      part(g, G.cyl(0.012, 0.012, 0.42, 6), M().black, 0.55 + Math.cos(a) * 0.155, 3.15, Math.sin(a) * 0.155);
+    }
+    part(g, G.cone(0.24, 0.22, 6), M().black, 0.55, 3.46, 0);
+    part(g, G.sph(0.04), M().brass, 0.55, 3.6, 0);
+    part(g, G.cyl(0.13, 0.15, 0.05, 6), M().black, 0.55, 2.93, 0);
+    part(g, G.cyl(0.025, 0.025, 0.25, 8), M().black, 0.55, 3.45, 0);
     return KT.bake(g);
   };
 
@@ -92,6 +100,7 @@
     part(g, G.box(L, 0.1, 0.06), M().wood, 0, 0.55, 0);
     part(g, G.box(L, 0.1, 0.06), M().wood, 0, 0.95, 0);
     part(g, G.box(0.14, 1.15, 0.14), M().woodDark, -L / 2, 0.57, 0);
+    part(g, G.cone(0.11, 0.14, 4), M().woodDark, -L / 2, 1.21, 0, 0, Math.PI / 4);
     return KT.bake(g);
   };
 
