@@ -256,12 +256,23 @@
     return KT.bake(g);
   };
 
+  // Five-lobed blossom as a single light lathe-like disc.
+  const flowerGeo = (function () {
+    const shape = new T.Shape();
+    for (let i = 0; i <= 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      const r = 0.075 * (0.65 + 0.35 * Math.abs(Math.cos(a * 2.5)));
+      if (i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r); else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    return new T.ExtrudeGeometry(shape, { depth: 0.014, bevelEnabled: false });
+  })();
+
   Models.floweringBush = function (flowerMat) {
     const g = new T.Group();
     const rng = KT.makeRng(9);
     part(g, KT.blob(0.8, 1, 0.18, 7), KT.M.leafDark, 0, 0.6, 0, 0, 0, 0, 1.2, 0.85, 1.2);
     const fm = flowerMat || KT.M.flowerRed;
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 12; i++) {
       const a = rng() * Math.PI * 2, e = rng() * 1.2;
       const r = 0.92;
       // hibiscus-like blossom: five rounded petals around a golden centre
@@ -269,11 +280,8 @@
       fl.position.set(Math.cos(a) * Math.cos(e) * r * 1.2, 0.6 + Math.sin(e) * r * 0.85, Math.sin(a) * Math.cos(e) * r * 1.2);
       fl.lookAt(fl.position.x * 3, fl.position.y * 2, fl.position.z * 3);
       g.add(fl);
-      for (let k = 0; k < 5; k++) {
-        const pa = (k / 5) * Math.PI * 2;
-        part(fl, G.sph(0.06, 8, 6), fm, Math.cos(pa) * 0.06, Math.sin(pa) * 0.06, 0, 0, 0, pa, 1, 0.65, 0.3);
-      }
-      part(fl, G.sph(0.025, 6, 5), KT.M.flowerYellow, 0, 0, 0.02);
+      part(fl, flowerGeo, fm, 0, 0, 0);
+      part(fl, G.sph(0.022, 4, 3), KT.M.flowerYellow, 0, 0, 0.02);
     }
     return KT.bake(g);
   };

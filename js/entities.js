@@ -157,16 +157,19 @@
   }
 
   // ---------------------------------------------------------------- NPCs
-  const SKINS = [0xc08660, 0xa86f4c, 0x8d5a3b, 0xd2a07a, 0xb57a52];
+  const SKINS = [0xd9a27c, 0xc08660, 0xa8704c, 0x8d5a3b, 0xe2b08c];
   const MALE_LOCAL = [
     { outfit: 'mundu', colors: { top: 0xf8f6ef } }, { outfit: 'mundu', colors: { top: 0x7fb3e0 } },
     { outfit: 'mundu', colors: { top: 0xe7c46a, bottom: 0x2f6f4f, border: 0x2f6f4f } }, { outfit: 'formal' },
-    { outfit: 'casual', colors: { top: 0x8a3b3b } }, { outfit: 'hiking' }
+    { outfit: 'casual', colors: { top: 0x8a3b3b } }, { outfit: 'hiking' },
+    { outfit: 'tee' }, { outfit: 'tee', colors: { top: 0xd2492a, bottom: 0x3a5a8a } }, { outfit: 'sweater' },
+    { outfit: 'coat' }, { outfit: 'sweater', colors: { top: 0x6a3fa0, bottom: 0x2a2f3a } }
   ];
   const FEMALE_LOCAL = [
     { outfit: 'saree' }, { outfit: 'saree', colors: { bottom: 0xe5b7c8, border: 0xb3261e, top: 0xb3261e } },
     { outfit: 'saree', colors: { bottom: 0x9fd3c7, border: 0xd4a434, top: 0x2a7f6f } }, { outfit: 'churidar' },
-    { outfit: 'churidar', colors: { top: 0xd65a8a, dupatta: 0xf7e3b5 } }, { outfit: 'casual', colors: { top: 0x6a5acd } }
+    { outfit: 'churidar', colors: { top: 0xd65a8a, dupatta: 0xf7e3b5 } }, { outfit: 'casual', colors: { top: 0x6a5acd } },
+    { outfit: 'hiking' }, { outfit: 'overalls' }, { outfit: 'overalls', colors: { bottom: 0xe0a030, top: 0x2a2a2a } }
   ];
 
   function makeNPC(def, rng) {
@@ -174,16 +177,21 @@
     const pick = def.look || rng.pick(female ? FEMALE_LOCAL : MALE_LOCAL);
     const cfg = {
       gender: female ? 'female' : 'male', outfit: pick.outfit, colors: pick.colors,
-      hair: female ? rng.pick(['default', 'braid', 'bun', 'loose']) : rng.pick(['default', 'short', 'wavy', 'curly']),
-      skin: rng.pick(SKINS), hairColor: rng() < 0.15 ? 0x6b6b6b : 0x1d130e,
+      hair: female ? rng.pick(['default', 'braid', 'bun', 'loose', 'curly']) : rng.pick(['default', 'short', 'wavy', 'curly']),
+      skin: rng.pick(SKINS), hairColor: rng() < 0.15 ? 0x9a9a96 : rng.pick([0x1d130e, 0x2a1a12, 0x3a2414]),
+      beard: !female && rng() < 0.18, glasses: rng() < 0.18,
       acc: def.acc || { backpack: def.tourist, hat: def.tourist && rng() < 0.4, sunglasses: def.tourist && rng() < 0.5, camera: def.tourist && rng() < 0.4 },
       scale: 0.9 + rng() * 0.1,
       lite: true
     };
     const obj = Models.character(cfg);
     spawn(obj, def.x, def.z, def.rot || 0);
+    // distant stand-in with far fewer triangles
+    const far = Models.character(Object.assign({}, cfg, { lite: 'far' }));
+    far.visible = false;
+    World.scene.add(far);
     const w = makeWanderer(obj, {
-      name: def.name, lines: def.lines, radius: def.radius || 8, static: !!def.static,
+      name: def.name, lines: def.lines, radius: def.radius || 8, static: !!def.static, far: far,
       route: def.route, speed: def.speed || 1.0 + rng() * 0.3, pose: def.pose, id: def.id, kind: 'npc'
     });
     E.npcs.push(w);
@@ -540,14 +548,17 @@
     const animDist = 140;
     E.npcs.forEach((w) => {
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);
-      w.obj.visible = d < 140;
       updateWanderer(w, dt, player);
+      const near = d < 32;
+      w.obj.visible = near;
+      w.far.visible = !near && d < 140;
+      if (w.far.visible) { w.far.position.copy(w.obj.position); w.far.rotation.y = w.obj.rotation.y; }
       if (d < animDist) {
         let state = w.moving ? 'walk' : (w.talking ? 'wave' : 'idle');
         if (w.talking && w.talkTime > 2.5) state = 'idle';
         if (w.id === 'guide' && !w.talking && Math.sin(t * 0.4) > 0.85) state = 'namaskaram';
         if (w.talking) w.talkTime = (w.talkTime || 0) + dt; else w.talkTime = 0;
-        Models.animateCharacter(w.obj, state, dt, w.speed / 1.1);
+        Models.animateCharacter(near ? w.obj : w.far, state, dt, w.speed / 1.1);
       }
     });
     E.animals.forEach((w) => {

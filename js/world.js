@@ -466,9 +466,9 @@
     inst.define('forestTree1', () => Models.forestTree(7));
     inst.define('teaBush', Models.teaBush, { maxDist: 170 });
     inst.define('mangrove', Models.mangrove);
-    inst.define('floweringBush0', () => Models.floweringBush(KT.M.flowerRed));
-    inst.define('floweringBush1', () => Models.floweringBush(KT.M.flowerPink));
-    inst.define('floweringBush2', () => Models.floweringBush(KT.M.flowerYellow));
+    inst.define('floweringBush0', () => Models.floweringBush(KT.M.flowerRed), { maxDist: 130 });
+    inst.define('floweringBush1', () => Models.floweringBush(KT.M.flowerPink), { maxDist: 130 });
+    inst.define('floweringBush2', () => Models.floweringBush(KT.M.flowerYellow), { maxDist: 130 });
     inst.define('rock', () => Models.rock(3), { maxDist: 260 });
     inst.define('boulders', Models.boulders);
     inst.define('grassTuft', Models.grassTuft, { maxDist: 70 });
