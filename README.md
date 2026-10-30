@@ -197,7 +197,7 @@ and voice is not available.
 
 The game is cel-shaded in a soft, hand-painted style: light falls in two
 gentle bands, shadows are crisp, and the shade is light and cool. On Medium
-and High quality, thin warm-brown ink lines trace the outlines and the
+and High quality, light ink lines trace the outlines and the
 colours are graded warmer. Choose **Classic** under Settings → Graphics style
 for the earlier look (it applies the next time the game loads).
 

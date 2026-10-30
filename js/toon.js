@@ -1,7 +1,7 @@
 // Cel-shaded "Ghibli" look: soft two-band toon lighting with cool, light
 // shade and crisp shadow edges (patched into three.js's lighting chunks for
 // every material), a painted, less bumpy finish, and a final pass that draws
-// thin warm-brown ink lines along silhouettes and creases and grades the
+// light ink lines along silhouettes and creases and grades the
 // colour warmer. "Classic" turns it all off (it needs a reload, because the
 // shaders are compiled with it).
 (function () {
@@ -18,7 +18,7 @@
     };
     // the light falls in two soft bands, and shadow edges are crisp
     S.lights_pars_begin = [
-      'float ktToon( float x ) { return smoothstep( 0.0, 0.1, x ) * ( 0.85 + 0.15 * smoothstep( 0.35, 0.75, x ) ); }',
+      'float ktToon( float x ) { return smoothstep( 0.0, 0.1, x ) * ( 0.7 + 0.3 * smoothstep( 0.3, 0.8, x ) ); }',
       'float ktShadow( float s ) { return smoothstep( 0.32, 0.62, s ); }',
       S.lights_pars_begin
     ].join('\n');
@@ -33,7 +33,7 @@
       'reflectedLight.directSpecular += irradiance * BRDF_GGX(',
       'reflectedLight.directSpecular += 0.45 * irradiance * BRDF_GGX(');
     // the shade is light and cool, lit by the blue sky
-    S.lights_fragment_end = S.lights_fragment_end + '\nreflectedLight.indirectDiffuse *= vec3( 1.2, 1.26, 1.55 );\n';
+    S.lights_fragment_end = S.lights_fragment_end + '\nreflectedLight.indirectDiffuse *= vec3( 1.04, 1.08, 1.22 );\n';
     Toon.enabled = true;
   };
 
@@ -70,7 +70,7 @@
     'void main() {',
     '  vec3 c = texture2D( tColor, vUv ).rgb;',
     '  float d = viewD( vUv );',
-    '  vec2 o = texel * 2.0;',
+    '  vec2 o = texel;',
     '  float l = viewD( vUv - vec2( o.x, 0.0 ) ), r = viewD( vUv + vec2( o.x, 0.0 ) );',
     '  float u = viewD( vUv + vec2( 0.0, o.y ) ), b = viewD( vUv - vec2( 0.0, o.y ) );',
     // creases and silhouettes: where the depth bends, not along smooth slopes
@@ -79,10 +79,10 @@
     '  float sil = ( d - near ) / max( d, 0.5 );',
     '  float e = max( smoothstep( 0.03, 0.10, lap ), smoothstep( 0.06, 0.2, sil ) );',
     '  e *= 1.0 - smoothstep( 220.0, 700.0, min( d, near ) );',
-    '  c = mix( c, vec3( 0.075, 0.05, 0.035 ), e * ink );',
+    '  c = mix( c, c * 0.4 + vec3( 0.02, 0.014, 0.01 ), e * ink );', // a light line, tinted by what it outlines
     // a warm, slightly richer grade (in linear light, before tone mapping)
     '  float g = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) );',
-    '  c = mix( vec3( g ), c, 1.05 ) * vec3( 1.03, 1.0, 0.96 );',
+    '  c = mix( vec3( g ), c, 1.04 ) * vec3( 1.015, 1.0, 0.98 ) * 0.9;',
     '  gl_FragColor = vec4( max( c, 0.0 ), 1.0 );',
     '  #include <tonemapping_fragment>',
     '  #include <encodings_fragment>',
@@ -103,7 +103,7 @@
     qScene = new T.Scene();
     qCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     quad = new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
-      uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, texel: { value: new T.Vector2() }, cameraNear: { value: 0.1 }, cameraFar: { value: 6000 }, ink: { value: 0.9 } },
+      uniforms: { tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, texel: { value: new T.Vector2() }, cameraNear: { value: 0.1 }, cameraFar: { value: 6000 }, ink: { value: 0.5 } },
       vertexShader: vert, fragmentShader: frag, depthTest: false, depthWrite: false
     }));
     quad.frustumCulled = false;
