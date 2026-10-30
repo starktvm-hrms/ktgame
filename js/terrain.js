@@ -20,13 +20,13 @@
     { name: 'village road', w: 3.2, pts: [[16, 40], [-10, 36], [-45, 30], [-90, 40], [-130, 46], [-165, 48], [-205, 52], [-250, 40], [-300, 20]] },
     { name: 'temple road', w: 3.0, pts: [[-45, 30], [-58, -10], [-75, -45], [-105, -70], [-130, -86]] },
     { name: 'church lane', w: 2.4, pts: [[-58, -10], [-35, -40], [-15, -70], [-15, -85]] },
-    { name: 'hill trail', w: 2.8, pts: [[-105, -70], [-95, -120], [-80, -165], [-60, -205], [-45, -245], [-35, -280], [-30, -300]] },
+    { name: 'palace road', w: 2.8, pts: [[-105, -70], [-95, -120], [-80, -165], [-60, -205], [-45, -245], [-35, -280], [-30, -300]] },
     { name: 'north trail', w: 2.8, pts: [[Geo.promenadeX(-168), -168], [5, -190], [-25, -215], [-45, -245]] },
-    { name: 'tea estate lane', w: 2.4, pts: [[-60, -205], [-10, -225], [40, -238], [80, -255]] },
+    { name: 'palace lane', w: 2.4, pts: [[-60, -205], [-10, -225], [40, -238], [80, -255]] },
     { name: 'beach road', w: 3.0, pts: [[-45, 30], [-38, 80], [-25, 130], [0, 175], [30, 205], [50, 222]] },
     { name: 'south promenade link', w: 3.0, pts: [[Geo.promenadeX(168), 168], [22, 190], [30, 205]] },
     { name: 'beach walk', w: 2.6, pts: [[-150, 222], [-60, 224], [50, 222], [100, 228], [112, 236]] },
-    { name: 'forest trail', w: 2.4, pts: [[-205, 52], [-225, 90], [-255, 110], [-285, 80], [-290, 30], [-270, -20], [-240, -40], [-215, 0], [-205, 52]] }
+    { name: 'coir village path', w: 2.4, pts: [[-205, 52], [-225, 90], [-255, 110], [-285, 80], [-290, 30], [-270, -20], [-240, -40], [-215, 0], [-205, 52]] }
   ];
   Geo.PROMENADE_Z = [-170, 170];
 
@@ -74,14 +74,14 @@
     let h = 1.1 + KT.fbm(x * 0.012, z * 0.012, 3) * 1.6;
     // gentle swells inland
     h += Math.max(0, KT.fbm(x * 0.006 + 7, z * 0.006 - 3, 3)) * 5 * KT.smoothstep(-20, -120, x);
-    // Munnar tea hills to the north
+    // Krishnapuram Palace grounds to the north: a low rise among the palms
     const hill = KT.smoothstep(-170, -330, z);
-    if (hill > 0) h += hill * (26 + 16 * KT.fbm(x * 0.01 + 3, z * 0.01, 4)) + hill * hill * 10 * Math.max(0, KT.noise(x * 0.02, z * 0.02));
-    // Periyar forest hills to the west
+    if (hill > 0) h += hill * (2.5 + 2 * KT.fbm(x * 0.01 + 3, z * 0.01, 4));
+    // coconut groves and the coir village to the west
     const fw = KT.smoothstep(-160, -340, x);
-    if (fw > 0) h += fw * (5 + 7 * Math.max(0, KT.fbm(x * 0.015, z * 0.015, 3)));
-    // far mountains (outside play area)
-    const far = Math.max(-z - 380, Math.abs(x) - 380, 0);
+    if (fw > 0) h += fw * (0.8 + 1.2 * Math.max(0, KT.fbm(x * 0.015, z * 0.015, 3)));
+    // far Western Ghats, only to the east beyond the lake (outside play area)
+    const far = Math.max(x - 380, 0);
     if (far > 0) h += KT.smoothstep(0, 400, far) * (90 + 70 * KT.fbm(x * 0.004, z * 0.004, 4)) * (z > 240 ? 0 : 1);
     // building plateaus
     for (let i = 0; i < Geo.FLATS.length; i++) {
@@ -101,7 +101,7 @@
       const t = KT.smoothstep(-1.5, 9, li);
       h = KT.lerp(Math.min(h, 1.0), -3.6 + KT.noise(x * 0.05, z * 0.05) * 0.6, t);
     }
-    // Kovalam headland near the lighthouse
+    // the dune the Alappuzha lighthouse stands on
     const hd = Math.hypot(x - 118, z - 244);
     if (hd < 30) h += (1 - KT.smoothstep(6, 30, hd)) * 5.5;
     // beach and Arabian sea to the south
@@ -147,7 +147,7 @@
         if (z > 190) sand = KT.smoothstep(190, 206, z);
         if (li > -4 && h < 1.2) sand = Math.max(sand, (1 - KT.smoothstep(0.2, 1.1, h)) * 0.8);
         if (h < 0.15) sand = Math.max(sand, 0.6);
-        const tea = KT.smoothstep(-185, -205, z) * (1 - mud) * (h > 8 ? 1 : 0.3);
+        const tea = 0; // (no tea estates in Alappuzha)
         let paddy = 0;
         if (x > -112 && x < -62 && z > 62 && z < 134) paddy = 1;
         const k = (j * N + i) * 4;

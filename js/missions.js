@@ -10,11 +10,11 @@
     { id: 'nets', title: 'Cheena Vala', desc: 'Walk south along the promenade to the Chinese fishing nets and meet Joseph.', type: 'talk', npc: 'fisher', reward: { coins: 30, xp: 50 } },
     { id: 'canoe', title: 'Row the Backwaters', desc: 'Take the canoe at the end of the houseboat jetty and paddle to Pathiramanal Island.', type: 'island', reward: { coins: 60, xp: 90 } },
     { id: 'kathakali', title: 'Kathakali Evening', desc: 'Watch the Kathakali performance at the village stage.', type: 'watch', time: 8, reward: { coins: 40, xp: 60 } },
-    { id: 'pooram', title: 'Pooram Festival', desc: 'Visit the temple elephants and greet them with a Namaskaram (press N).', type: 'gesture', gesture: 'namaskaram', x: -130, z: -88, r: 16, reward: { coins: 50, xp: 80 } },
-    { id: 'munnar', title: 'Tea Trails of Munnar', desc: 'Hike up through the tea estates and climb the viewpoint tower.', type: 'climb', reward: { coins: 60, xp: 100 } },
-    { id: 'periyar', title: 'Wildlife of Periyar', desc: 'Photograph a peacock, a deer and an elephant (press C for camera).', type: 'photo', kinds: ['peacock', 'deer', 'elephant'], reward: { coins: 80, xp: 120 } },
-    { id: 'kovalam', title: 'Sunset at Kovalam', desc: 'Travel south to Kovalam beach and reach the lighthouse.', type: 'reach', x: 118, z: 238, r: 10, reward: { coins: 50, xp: 80 } },
-    { id: 'beach', title: 'Eco Hero', desc: 'Clean up Kovalam beach: collect plastic waste from the sand.', type: 'collect', group: 'beach', count: 5, reward: { coins: 100, xp: 150 } },
+    { id: 'pooram', title: 'Temple Festival', desc: 'Visit the elephants at the Ambalappuzha temple and greet them with a Namaskaram (press N).', type: 'gesture', gesture: 'namaskaram', x: -130, z: -88, r: 16, reward: { coins: 50, xp: 80 } },
+    { id: 'munnar', title: 'Krishnapuram Palace', desc: 'Follow the palace road north to Krishnapuram Palace and see its famous Gajendra Moksham mural.', type: 'reach', x: -30, z: -288, r: 14, reward: { coins: 60, xp: 100 } },
+    { id: 'periyar', title: 'Birds of the Backwaters', desc: 'Photograph an egret, a kingfisher and a cormorant (press C for camera).', type: 'photo', kinds: ['egret', 'kingfisher', 'cormorant'], reward: { coins: 80, xp: 120 } },
+    { id: 'kovalam', title: 'Sunset at Alappuzha Beach', desc: 'Walk south to Alappuzha beach and reach the old lighthouse.', type: 'reach', x: 118, z: 238, r: 10, reward: { coins: 50, xp: 80 } },
+    { id: 'beach', title: 'Eco Hero', desc: 'Clean up Alappuzha beach: collect plastic waste from the sand.', type: 'collect', group: 'beach', count: 5, reward: { coins: 100, xp: 150 } },
     { id: 'districts', title: 'Grand Kerala Tour', desc: 'Take the KSRTC bus from the village stand and drive through the gates of all 14 districts, from Thiruvananthapuram to Kasaragod.', type: 'districts', count: 14, reward: { coins: 300, xp: 500 } }
   ];
 
@@ -96,7 +96,7 @@
           const d = w.obj.position.distanceTo(P.pos);
           if (d < bd) { bd = d; best = w.obj.position; }
         });
-        return best || { x: -240, y: 0, z: 40 };
+        return best || { x: 150, y: 0, z: -30 };
       }
       case 'reach': return { x: m.x, y: 0, z: m.z };
       default: return null;

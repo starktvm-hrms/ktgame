@@ -848,7 +848,7 @@
     Game.save(true);
   };
 
-  // ---------------------------------------------- Kovalam lighthouse
+  // -------------------------------------------- Alappuzha lighthouse
   // Step inside (a level of its own), climb to the gallery at the top of
   // the tower on the home map, or go back out to the beach.
   Game.enterLighthouse = async function (opts) {
@@ -858,7 +858,7 @@
     Game.switching = true;
     KT.Audio.play('door');
     Game.setState('travel');
-    await fade(true, opts.from === 'gallery' ? 'Down the spiral stairs\u2026' : 'Vizhinjam Lighthouse');
+    await fade(true, opts.from === 'gallery' ? 'Down the spiral stairs\u2026' : 'Alappuzha Lighthouse');
     await nextFrame();
     LH.build();
     const sp = opts.at || (opts.from === 'gallery' ? LH.spawnStairs : LH.spawnIn);
@@ -874,14 +874,14 @@
     await fade(false);
     Game.switching = false;
     if (!opts.quiet && opts.from !== 'gallery') {
-      KT.UI.banner('Vizhinjam Lighthouse', 'വിഴിഞ്ഞം വിളക്കുമാടം  \u2022  Kovalam', 'title');
+      KT.UI.banner('Alappuzha Lighthouse', 'ആലപ്പുഴ വിളക്കുമാടം  \u2022  1862', 'title');
       const d = Game.data;
       if (!d.lhVisited) { d.lhVisited = true; Game.addXP(20); setTimeout(() => KT.UI.toast('Read the exhibits and climb the spiral stairs to the gallery at the top!', 'info'), 1500); }
     }
   };
   Game.leaveLighthouse = function () {
     const o = KT.Lighthouse.outside;
-    return Game.goHome({ at: o, heading: o.heading, quiet: true, title: 'Kovalam Beach' });
+    return Game.goHome({ at: o, heading: o.heading, quiet: true, title: 'Alappuzha Beach' });
   };
   Game.climbLighthouse = async function () {
     const LH = KT.Lighthouse, g = LH.galleryAt;
@@ -889,7 +889,7 @@
     KT.CameraRig.yaw = g.camYaw; KT.CameraRig.snap = true;
     const d = Game.data;
     KT.UI.toast('What a view over the Arabian Sea! Press E by the door to go back down.', 'info');
-    if (!d.lhTop) { d.lhTop = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the Vizhinjam lighthouse! +20 coins', 'star'); }
+    if (!d.lhTop) { d.lhTop = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the Alappuzha lighthouse! +20 coins', 'star'); }
   };
   function lighthouseGameplay(dt) {
     const P = KT.Player, LH = KT.Lighthouse;
@@ -899,7 +899,7 @@
     $('speedo').classList.add('hidden');
     KT.UI.drawCompass(-KT.CameraRig.yaw, null, P.pos);
     lhUiT += dt;
-    if (lhUiT > 0.1) { lhUiT = 0; KT.UI.drawMinimap(LH.mapPos(), P.heading, null, 'Vizhinjam Lighthouse \u2022 inside'); }
+    if (lhUiT > 0.1) { lhUiT = 0; KT.UI.drawMinimap(LH.mapPos(), P.heading, null, 'Alappuzha Lighthouse \u2022 inside'); }
   }
   let lhUiT = 0;
 

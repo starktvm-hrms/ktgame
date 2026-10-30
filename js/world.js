@@ -190,23 +190,27 @@
     site('well', -54, 42, 0, 3);
     site('directionSign', -40, 22, 0);
     site('church', -15, -104, 0, 15, 2.2);
-    // Thrissur-style temple with festival elephants
+    // Ambalappuzha Sri Krishna Temple with its festival elephants
     site('temple', -130, -120, 0, 27);
-    // Munnar
-    site('hillHouse', 46, -252, Math.PI, 8);
-    site('watchTower', -30, -307, 0, 6);
+    // Krishnapuram Palace
+    site('keralaHouse', 46, -252, Math.PI, 9);
+    site('palace', -30, -300, 0, 18);
     site('gazebo', 78, -268, 0, 5);
-    site('entranceArch', -64.5, -196, -0.46, 0, 0, { lines: ['Munnar Tea Estates', 'Western Ghats'] });
-    // Kovalam
+    site('entranceArch', -64.5, -196, -0.46, 0, 0, { lines: ['Krishnapuram Palace', 'Kayamkulam • 18th century'] });
+    // Alappuzha beach
     site('coastalHouse', -82, 206, 0, 8);
     site('coastalHouse', -128, 205, 0, 8);
     site('coastalHouse', 160, 207, 0, 8);
     site('thatchedHut', -22, 213, 0, 4);
     site('thatchedHut', 2, 214, 0, 4);
     site('lighthouse', 118, 246, Math.PI); // door faces the beach (north)
-    // Periyar
-    site('entranceArch', -168, 49, HP + 0.08, 0, 0, { lines: ['Periyar Tiger Reserve', 'Thekkady'] });
-    site('watchTowerForest', -262, 104, 0.4, 5);
+    site('pier', 40, 236, 0);
+    // the coir village among the coconut groves
+    site('entranceArch', -168, 49, HP + 0.08, 0, 0, { lines: ['Coir Village', 'The golden fibre of Alappuzha'] });
+    site('thatchedHut', -232, 96, 0.4, 4);
+    site('thatchedHut', -262, 70, -0.6, 4);
+    site('thatchedHut', -214, 12, 1.2, 4);
+    site('villageHouse', -270, 20, 0.8, 8);
     // promenade arch
     site('entranceArch', PX(40), 40, 0, 0, 0, { lines: ['Alleppey Backwaters', 'Venice of the East'] });
   };
@@ -243,9 +247,21 @@
       case 'gazebo': obj = Models.gazebo(); break;
       case 'entranceArch': obj = Models.entranceArch(s.lines); break;
       case 'lighthouse': obj = Models.lighthouse(); break;
+      case 'palace': {
+        // Krishnapuram Palace: Travancore-style gabled halls round a courtyard
+        obj = new T.Group();
+        const hall = Models.heritageHall([0xf1e6cf, 0x7a4426, 0x8e3b24]);
+        obj.add(hall);
+        const wing = Models.heritageHall([0xf1e6cf, 0x7a4426, 0x8e3b24]);
+        wing.scale.setScalar(0.7); wing.position.set(13, 0, -4); wing.rotation.y = -HP;
+        obj.add(wing);
+        obj.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 9, hd: 7 }, { type: 'box', x: 13, z: -4, hw: 5, hd: 6 }];
+        break;
+      }
+      case 'pier': obj = Models.pier(46); obj.rotation.y = Math.PI; break;
       case 'directionSign':
         obj = Models.directionSign([
-          { text: 'Temple', angle: 2.14 }, { text: 'Backwaters', angle: 0 }, { text: 'Kovalam Beach', angle: -1.37 }, { text: 'Periyar', angle: -2.97 }
+          { text: 'Temple', angle: 2.14 }, { text: 'Backwaters', angle: 0 }, { text: 'Alappuzha Beach', angle: -1.37 }, { text: 'Coir Village', angle: -2.97 }
         ]);
         obj.userData.colliders = [{ type: 'circle', x: 0, z: 0, r: 0.3 }];
         break;
@@ -433,33 +449,23 @@
     scatter(inst, 'floweringBush0', 45, [-120, 15, -100, 200], { collider: 0.6, clear: 1.2 });
     scatter(inst, 'floweringBush1', 35, [-120, 15, -100, 200], { collider: 0.6, clear: 1.2 });
     scatter(inst, 'floweringBush2', 25, [-200, 200, 180, 215], { collider: 0.6, clear: 1.2 });
-    // forest (Periyar)
-    scatter(inst, 'forestTree0', 120, [-360, -165, -200, 160], { collider: 0.5, clear: 3.5 });
-    scatter(inst, 'forestTree1', 100, [-360, -165, -200, 160], { collider: 0.5, clear: 3.5, scale: 1.2 });
-    scatter(inst, 'banyanTree', 5, [-300, -190, -40, 120], { collider: 1.4, clear: 8 });
+    // coconut groves round the coir village
+    palm(260, [-360, -165, -200, 160], 21);
+    scatter(inst, 'arecaPalm', 50, [-360, -165, -200, 160], { collider: 0.3, clear: 1.5, seed: 22 });
+    scatter(inst, 'banyanTree', 3, [-300, -190, -40, 120], { collider: 1.4, clear: 8 });
     scatter(inst, 'mangrove', 30, [328, 345, -165, 165], { collider: 0.5, clear: 2, minH: -0.6 });
-    // tea estate rows on the hills
-    for (let z = -205; z > -350; z -= 3.3) {
-      for (let x = -175; x < 150; x += 2.4) {
-        const wx = x + Math.sin(z * 0.3) * 0.8, wz = z + Math.sin(x * 0.05) * 3;
-        const h = Geo.height(wx, wz);
-        if (h < 6) continue;
-        if (Geo.pathDistance(wx, wz).d < 3.2) continue;
-        if (World.isBlocked(wx, wz, 1.2)) continue;
-        if (KT.noise(wx * 0.03, wz * 0.03) > 0.38) continue; // clearings
-        inst.add('teaBush', wx, h - 0.15, wz, (x * 13.7) % 6.28, 0.9 + ((x * 7.1 + z) % 1 + 1) % 1 * 0.3);
-      }
-    }
-    scatter(inst, 'forestTree0', 40, [-200, 160, -360, -200], { collider: 0.5, clear: 4, seed: 91 });
+    // palms, mangoes and gardens round Krishnapuram Palace
+    palm(160, [-200, 160, -360, -200], 23, (x, z) => Math.hypot(x + 30, z + 300) > 26);
+    scatter(inst, 'mangoTree', 24, [-200, 160, -360, -200], { collider: 0.7, clear: 3.5, seed: 24 });
+    scatter(inst, 'floweringBush0', 40, [-80, 20, -340, -260], { collider: 0.6, clear: 1.2, seed: 25 });
     // ground cover
     scatter(inst, 'grassTuft', 2200, [-200, 30, -200, 230], { clear: 0.1, seed: 5 });
     scatter(inst, 'grassTuft', 600, [-360, -160, -150, 150], { clear: 0.1, seed: 6 });
     scatter(inst, 'flowerPatch', 260, [-140, 20, -120, 200], { clear: 0.2 });
     scatter(inst, 'rock', 60, [-360, 200, -350, 230], { collider: 0.9, clear: 1.2 });
-    scatter(inst, 'boulders', 22, [-360, -160, -200, 160], { collider: 1.6, clear: 2.5 });
+
     scatter(inst, 'boulders', 8, [100, 140, 228, 262], { collider: 1.6, clear: 2, minH: -1, filter: (x, z) => Math.hypot(x - 118, z - 246) > 7 });
-    scatter(inst, 'fallenLog', 14, [-350, -170, -150, 150], { collider: 0.6, clear: 2 });
-    scatter(inst, 'treeStump', 14, [-350, -170, -150, 150], { collider: 0.5, clear: 1.5 });
+
     // paddy field rice
     for (let x = -110; x < -64; x += 1.7) {
       for (let z = 64; z < 132; z += 1.7) {
@@ -503,18 +509,18 @@
     { id: 'island', name: 'Pathiramanal Island', x: 175, z: -10, r: 28, icon: 'island', desc: 'A tiny bird-watchers’ paradise in Vembanad Lake.' },
     { id: 'stage', name: 'Kathakali Stage', x: -22, z: 52, r: 14, icon: 'mask', desc: 'Classical dance-drama with elaborate make-up and costumes.' },
     { id: 'church', name: "St. Mary's Church", x: -15, z: -100, r: 16, icon: 'church', desc: 'Kerala has some of the oldest churches in India.' },
-    { id: 'temple', name: 'Vadakkunnathan-style Temple', x: -130, z: -112, r: 28, icon: 'temple', desc: 'Home of the Pooram elephant festival.' },
+    { id: 'temple', name: 'Ambalappuzha Sri Krishna Temple', x: -130, z: -112, r: 28, icon: 'temple', desc: 'Famous for its palpayasam, the sweet rice-and-milk offering.' },
     { id: 'paddy', name: 'Kuttanad Paddy Fields', x: -87, z: 98, r: 26, icon: 'leaf', desc: 'The "Rice Bowl of Kerala", farmed below sea level.' },
-    { id: 'munnar', name: 'Munnar Viewpoint', x: -30, z: -307, r: 12, icon: 'tower', desc: 'Rolling tea gardens of the Western Ghats.' },
-    { id: 'kovalam', name: 'Kovalam Lighthouse', x: 118, z: 246, r: 16, icon: 'light', desc: 'Vizhinjam lighthouse overlooking Lighthouse Beach.' },
-    { id: 'periyar', name: 'Periyar Forest', x: -240, z: 40, r: 40, icon: 'tree', desc: 'Elephants, deer and peacocks roam this tiger reserve.' }
+    { id: 'palace', name: 'Krishnapuram Palace', x: -30, z: -300, r: 22, icon: 'temple', desc: 'An 18th-century Travancore palace with the Gajendra Moksham mural.' },
+    { id: 'lighthouse', name: 'Alappuzha Lighthouse', x: 118, z: 246, r: 16, icon: 'light', desc: 'Built in 1862, one of the oldest lighthouses on Kerala’s coast.' },
+    { id: 'coir', name: 'Coir Village', x: -240, z: 40, r: 40, icon: 'tree', desc: 'Coconut husk is spun into coir, the golden fibre of Alappuzha.' }
   ];
 
   World.zoneAt = function (x, z) {
-    if (z > 192) return 'Kovalam Beach';
-    if (z < -185) return 'Munnar Tea Hills';
-    if (x < -165) return 'Periyar Forest';
-    if (Math.hypot(x + 130, z + 118) < 40) return 'Thrissur Temple';
+    if (z > 192) return 'Alappuzha Beach';
+    if (z < -185) return 'Krishnapuram Palace';
+    if (x < -165) return 'Coir Village';
+    if (Math.hypot(x + 130, z + 118) < 40) return 'Ambalappuzha Temple';
     if (x > SX(z) - 1 && x < 340 && Math.abs(z) < 172) return Math.hypot(x - 175, z + 10) < 34 ? 'Pathiramanal Island' : 'Vembanad Lake';
     if (x > PX(z) - 12) return 'Alleppey';
     if (x > -112 && x < -62 && z > 62 && z < 134) return 'Kuttanad';

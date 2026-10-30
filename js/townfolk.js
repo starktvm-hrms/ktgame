@@ -118,7 +118,7 @@
   const TOURIST_LOOKS = [['male', 'hiking'], ['female', 'casual'], ['male', 'tee'], ['female', 'saree'], ['male', 'casual'], ['female', 'churidar'], ['male', 'formal']];
   function addTourists(hub, rng) {
     const Hw = KT.Highway;
-    Hw.sightList().filter((sg) => sg.hub === hub.index).forEach((sg, k) => {
+    Hw.sightList().filter((sg) => sg.hub === hub.index && !sg.dest).forEach((sg, k) => {
       // a ring path round the attraction, leaving out blocked points
       const ring = [];
       const R = sg.r + 3.5, n = 10;

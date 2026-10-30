@@ -654,7 +654,7 @@
       g.fillStyle = fill; g.fill();
       if (stroke) { g.strokeStyle = stroke; g.lineWidth = 2; g.stroke(); }
     };
-    const coast = Hw.COAST.map(geo);
+    const coast = Hw.coastPts.filter((p, i) => i % 4 === 0).map((p) => toMap(p.x, p.z)).reverse(); // south to north
     const far = (W + H) * 20, cN = coast[coast.length - 1];
     poly([[coast[0][0], far]].concat(coast, [[cN[0], -far], [-far, -far], [-far, far]]), '#3f7fa0');
     const land = coast.concat(KERALA_EAST.map(geo));
@@ -681,9 +681,9 @@
     drawRoadPath(g, 0, sEnd, toMap, 4 + 2 * Math.min(view.zoom, 3), '#2d2d2d');
     drawRoadPath(g, 0, sEnd, toMap, 1.5, '#ffd34d');
     // highway numbers
-    const shields = branches.map((R) => { const f = R.frame(R.len * 0.5); return [R.nh.replace('NH ', ''), Hw.toLonLat(f.x, f.z)]; });
-    [['66', Hw.toLonLat(Hw.frame(Hw.hubS(0) + 1500).x, Hw.frame(Hw.hubS(0) + 1500).z)]].concat(shields).forEach(([num, ll]) => {
-      const mid = geo([ll.lat, ll.lon]);
+    const shields = branches.filter((R) => /^NH /.test(R.nh)).map((R) => [R.nh.replace('NH ', ''), R.frame(R.len * 0.5)]);
+    [['66', Hw.frame(Hw.hubS(0) + 1500)]].concat(shields).forEach(([num, f]) => {
+      const mid = toMap(f.x, f.z);
       g.font = 'bold 10px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       const w = g.measureText(num).width + 6;
       g.fillStyle = '#f2d03b'; g.fillRect(mid[0] - w / 2, mid[1] - 7, w, 14);

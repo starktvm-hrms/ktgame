@@ -37,7 +37,7 @@
   }
   G.unread = function (g) { return (g.lastMessageId || 0) > (lastRead()[g.id] || 0); };
   function where(p) {
-    if (p.l === 2) return 'Kovalam lighthouse';
+    if (p.l === 2) return 'Alappuzha lighthouse';
     if (p.l === 1) {
       const st = KT.Highway.status({ x: p.x, z: p.z });
       return 'Highway near ' + KT.DISTRICTS[st.nearest].name;

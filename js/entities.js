@@ -40,8 +40,8 @@
       'Watch the eyes and the hand gestures — the mudras. Without a single word, they tell the whole story.'
     ],
     devotee: [
-      'At Thrissur Pooram, thirty caparisoned elephants stand in rows wearing golden nettipattams.',
-      'The kudamattam — the swift changing of bright silk umbrellas atop the elephants — is a sight you will never forget!',
+      'This is the Ambalappuzha Sri Krishna Temple. Every day the god is offered palpayasam, a sweet pudding of rice and milk.',
+      'At the temple festival the elephants wear golden nettipattams, and the Velakali dancers re-enact old battles.',
       'Greet the elephants respectfully with a Namaskaram — press N with your palms together.'
     ],
     church: [
@@ -49,22 +49,22 @@
       'Kerala is a land where temples, churches and mosques stand side by side in harmony.'
     ],
     manager: [
-      'Welcome to Munnar, 1,600 metres up in the Western Ghats. Tea has grown on these slopes since the 1880s.',
-      'Every twelve years the hills turn blue when the Neelakurinji flowers bloom!',
-      'The best view is from the watch tower at the very top of the trail. Climb it!'
+      'Welcome to Krishnapuram Palace, rebuilt by Marthanda Varma of Travancore in the 18th century.',
+      'Look for the Gajendra Moksham mural: about 14 square metres, it is one of the largest wall paintings in Kerala.',
+      'The gabled roofs, narrow corridors and dormer windows are classic Travancore palace style. The museum keeps old coins, bronzes and weapons.'
     ],
     picker: [
-      'We pick only two leaves and a bud — that makes the finest tea.',
-      'A good picker gathers more than 30 kilograms of leaves in a day.'
+      'We soak coconut husks in the backwaters for months. Then we beat them to free the fibre.',
+      'The fibre is spun into yarn on a wooden wheel, the ratt. It becomes rope, mats and carpets.'
     ],
     ranger: [
-      'Welcome to Periyar Tiger Reserve in Thekkady — home to elephants, gaur, sambar deer and the elusive tiger.',
-      'Wildlife photographers wanted! Press C for camera mode and capture a peacock, a deer and an elephant.',
-      'Please keep a safe distance and never feed the animals.'
+      'Alappuzha is the coir capital of India. The first coir factory here opened in 1859.',
+      'Coir is called the golden fibre. Mats from Alappuzha go all over the world.',
+      'Birdwatchers welcome! Press C for camera mode and photograph an egret, a kingfisher and a cormorant along the backwaters.'
     ],
     keeper: [
-      'This is the Vizhinjam lighthouse, 36 metres tall and guiding ships since 1972.',
-      'Kovalam has three crescent beaches — Lighthouse, Hawah and Samudra. Ayurveda massages and fresh seafood await!',
+      'This is the Alappuzha lighthouse, built in 1862, one of the oldest on Kerala’s coast.',
+      'Next to it the old pier reaches into the sea. Long ago ships loaded coir, pepper and cardamom here.',
       'Some careless visitors left plastic on the sand. Please help keep our beach clean.'
     ],
     villager: [
@@ -218,8 +218,8 @@
     makeNPC({ id: 'kfan', name: 'Ravi (Kathakali fan)', gender: 'male', look: { outfit: 'formal' }, acc: {}, x: -34, z: 50, rot: HP, static: true, lines: FACTS.kathakaliFan }, rng);
     makeNPC({ id: 'devotee', name: 'Lakshmi (Devotee)', gender: 'female', look: { outfit: 'saree' }, acc: {}, x: -122, z: -84, rot: Math.PI, static: true, lines: FACTS.devotee }, rng);
     makeNPC({ id: 'church', name: 'Thomas (Caretaker)', gender: 'male', look: { outfit: 'formal', colors: { top: 0xf2f2f2 } }, acc: {}, x: -9, z: -88, rot: 0, static: true, lines: FACTS.church }, rng);
-    makeNPC({ id: 'manager', name: 'Meera (Tea Estate)', gender: 'female', look: { outfit: 'hiking', colors: { top: 0x2f7a4a } }, acc: { hat: true }, x: 40, z: -240, rot: 0, static: true, lines: FACTS.manager }, rng);
-    makeNPC({ id: 'ranger', name: 'Suresh (Forest Ranger)', gender: 'male', look: { outfit: 'hiking', colors: { top: 0x55603a, bottom: 0x55603a } }, acc: { hat: true }, x: -163, z: 44, rot: -HP, static: true, lines: FACTS.ranger }, rng);
+    makeNPC({ id: 'manager', name: 'Meera (Palace Guide)', gender: 'female', look: { outfit: 'saree' }, acc: {}, x: -30, z: -284, rot: 0, static: true, lines: FACTS.manager }, rng);
+    makeNPC({ id: 'ranger', name: 'Suresh (Coir Maker)', gender: 'male', look: { outfit: 'mundu', colors: { top: 0xd9b56a } }, acc: {}, x: -163, z: 44, rot: -HP, static: true, lines: FACTS.ranger }, rng);
     makeNPC({ id: 'keeper', name: 'Abdul (Lighthouse Keeper)', gender: 'male', look: { outfit: 'mundu', colors: { top: 0x2f4f8f } }, acc: {}, x: 112, z: 236, rot: 0, static: true, lines: FACTS.keeper }, rng);
     // promenade walkers
     for (let i = 0; i < 7; i++) {
@@ -237,8 +237,8 @@
     for (let i = 0; i < 4; i++) makeNPC({ id: 'pilgrim' + i, name: 'Pilgrim', x: -136 + i * 4, z: -80, radius: 6, lines: [FACTS.devotee[i % 2]] }, rng);
     // beach
     for (let i = 0; i < 5; i++) makeNPC({ id: 'beach' + i, name: rng.pick(['Sam', 'Anna', 'Vivek', 'Neha', 'Oliver']) + ' (Beachgoer)', tourist: true, x: -100 + i * 40, z: 224, radius: 16, lines: [rng.pick(FACTS.tourist), FACTS.keeper[2]] }, rng);
-    // tea pickers
-    for (let i = 0; i < 4; i++) makeNPC({ id: 'picker' + i, name: 'Tea picker', gender: 'female', look: { outfit: 'saree', colors: { bottom: 0x8a5ab0, border: 0xd4a434, top: 0x6a3a90 } }, acc: { hat: true }, x: -10 + i * 22, z: -228 - i * 6, radius: 8, lines: FACTS.picker }, rng);
+    // coir spinners in the village
+    for (let i = 0; i < 4; i++) makeNPC({ id: 'picker' + i, name: 'Coir spinner', gender: 'female', look: { outfit: 'saree', colors: { bottom: 0x8a5ab0, border: 0xd4a434, top: 0x6a3a90 } }, acc: {}, x: -222 - (i % 2) * 18, z: 30 + i * 16, radius: 6, lines: FACTS.picker }, rng);
     // Kathakali performer on stage
     const stage = World.sites.kathakaliStage[0];
     const dancer = Models.kathakaliDancer();
@@ -266,16 +266,10 @@
       World.addCollider({ type: 'circle', x, z: -92, r: 2.0 });
       w.kind = 'elephant';
     });
-    // wild elephants in Periyar
-    addAnimal(Models.elephant(false, 9), -270, -10, 1, { radius: 30, speed: 0.9, kind: 'elephant' });
-    addAnimal(Models.elephant(false, 10), -290, 20, 2, { radius: 25, speed: 0.8, kind: 'elephant' });
-    addAnimal(Models.elephant(false, 11), -255, 0, 2, { radius: 20, speed: 0.7, kind: 'elephant' }).obj.scale.setScalar(0.6);
-    // deer herd
-    for (let i = 0; i < 7; i++) addAnimal(Models.deer(), -225 + (i % 3) * 4, 85 + Math.floor(i / 3) * 4, i, { radius: 18, speed: 1.4, kind: 'deer' });
-    // peacocks
-    [[-212, 25], [-236, 66], [-190, 78], [-60, 100]].forEach((p, i) => addAnimal(Models.peacock(), p[0], p[1], i, { radius: 8, speed: 0.5, kind: 'peacock' }));
-    // monkeys on the temple wall & forest
-    [[-150.6, -125], [-109.4, -100], [-260, 60], [-262, 62], [-210, 40]].forEach((p, i) => {
+    // a peacock in the village gardens
+    [[-60, 100]].forEach((p, i) => addAnimal(Models.peacock(), p[0], p[1], i, { radius: 8, speed: 0.5, kind: 'peacock' }));
+    // monkeys on the temple wall
+    [[-150.6, -125], [-109.4, -100]].forEach((p, i) => {
       const m = addAnimal(Models.monkey(), p[0], p[1], i * 2, { static: true, kind: 'monkey' });
       if (i < 2) m.obj.position.y = Geo.height(p[0], p[1]) + 2.6;
     });
@@ -291,7 +285,9 @@
       b.position.copy(p);
       b.rotation.y = i;
       World.scene.add(b);
-      E.animals.push({ obj: b, static: true, kind: b.userData.kind, moving: false, wait: 0 });
+      const w = { obj: b, static: true, kind: b.userData.kind, moving: false, wait: 0 };
+      E.animals.push(w);
+      E.photoTargets.push(w);
     });
     for (let i = 0; i < 3; i++) {
       const k = Models.kingfisher();
@@ -300,7 +296,9 @@
       k.position.set(PX(z) + 2.55, World.promenadeY(z) + 1.0, z);
       k.rotation.y = HP;
       World.scene.add(k);
-      E.animals.push({ obj: k, static: true, kind: 'kingfisher', moving: false, wait: 0 });
+      const w = { obj: k, static: true, kind: 'kingfisher', moving: false, wait: 0 };
+      E.animals.push(w);
+      E.photoTargets.push(w);
     }
   }
 

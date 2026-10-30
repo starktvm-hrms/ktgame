@@ -2,8 +2,9 @@
 
 A 3D third-person exploration game for the browser, built for Kerala Tourism.
 Walk the Alleppey promenade, paddle a canoe across Vembanad Lake, watch a
-Kathakali performance, greet the Pooram elephants, hike the Munnar tea hills,
-photograph Periyar's wildlife and clean up Kovalam beach — then board a
+Kathakali performance, greet the elephants at the Ambalappuzha temple, visit
+Krishnapuram Palace and the coir village, photograph the backwater birds and
+climb the old Alappuzha lighthouse — then board a
 KSRTC Super Fast bus and drive the Kerala highway through all 14 districts,
 together with other travellers online.
 
@@ -55,11 +56,16 @@ Progress is then saved in the browser only.
 3. Cheena Vala — visit the Chinese fishing nets
 4. Row the Backwaters — paddle to Pathiramanal Island
 5. Kathakali Evening — watch the performance
-6. Pooram Festival — greet the temple elephants with a Namaskaram
-7. Tea Trails of Munnar — climb the viewpoint tower
-8. Wildlife of Periyar — photograph a peacock, a deer and an elephant
-9. Sunset at Kovalam — reach the lighthouse
-10. Eco Hero — clean the beach
+6. Temple Festival — greet the Ambalappuzha temple elephants with a Namaskaram
+7. Krishnapuram Palace — find the palace and its Gajendra Moksham mural
+8. Birds of the Backwaters — photograph an egret, a kingfisher and a cormorant
+9. Sunset at Alappuzha Beach — reach the old lighthouse
+10. Eco Hero — clean Alappuzha beach
+
+The home map is all Alappuzha: the promenade and backwaters, the
+Ambalappuzha Sri Krishna Temple, Krishnapuram Palace, the coir village in
+the coconut groves, Pathiramanal Island, Kuttanad paddy fields, and the beach
+with its pier and the lighthouse of 1862.
 11. Grand Kerala Tour — drive the KSRTC bus through the gates of all 14 districts
 
 Also: landmarks to discover (stars), coins along every path, XP and levels,
@@ -115,7 +121,7 @@ town, each with an information board (press E to read about it):
 
 | District | Attractions |
 | --- | --- |
-| Thiruvananthapuram | Sree Padmanabhaswamy Temple, Napier Museum, Varkala Cliff, Kovalam Beach, Ponmudi Hills |
+| Thiruvananthapuram | Each on its own road (below) |
 | Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake, Palaruvi Waterfalls, Thenmala Eco-tourism |
 | Pathanamthitta | Sabarimala, Aranmula Snake Boats, Gavi Forest, Konni Elephant Camp, Perunthenaruvi Waterfalls |
 | Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse, Ambalappuzha Temple, Pathiramanal Island, Arthunkal Basilica |
@@ -187,12 +193,35 @@ On Supabase, chat, member positions and voice signalling use Realtime
 broadcast channels. With the Node server, chat is checked every few seconds
 and voice is not available.
 
-## Kovalam lighthouse
+## Thiruvananthapuram's sights
 
-The red and white Vizhinjam lighthouse stands on the headland above Kovalam
-beach. Press E at its door to go inside: read the exhibits about its
-history and the great Fresnel lens, ring the ship's bell, and talk to Abdul
-the keeper. Then take the spiral stairs up to the gallery at the top for the
+Thiruvananthapuram's sights stand at their real places, each reached by its
+own road. The city is drawn larger than the map scale so they fit, and the
+coast stretches with it:
+
+- **MG Road** loops from the highway past Museum Junction (Napier Museum, the
+  Zoo, Kanakakkunnu Palace), Statue Junction (the Secretariat) and East Fort
+  (Sree Padmanabhaswamy Temple with the Padmatheertham tank, Kuthiramalika
+  Palace, the East Fort gateway and the Meshan Mani clock, which shows the
+  real time). It then runs to Shankhumugham Beach, with the mermaid
+  sculpture, and to the lake at Akkulam Tourist Village before rejoining the
+  highway. The main highway begins at a junction on MG Road, and NH 66 leaves
+  East Fort for Neyyattinkara.
+- **Ponmudi Road** climbs past Koyikkal Palace at Nedumangad and the Kallar
+  Meenmutty falls to the misty top of Ponmudi Hills. A side road runs to
+  Aruvikkara Dam.
+- A short road from Attingal leads to the jetty for Ponnumthuruthu Island
+  and its temple.
+
+The Arabian Sea lies along the whole coast. Beaches are only where the land
+meets the sea.
+
+## Alappuzha lighthouse
+
+The Alappuzha lighthouse, built in 1862, stands by the beach and its old
+pier. Press E at its door to go inside: read the exhibits about its history
+and the great Fresnel lens, ring the ship's bell, and talk to Abdul the
+keeper. Then take the spiral stairs up to the gallery at the top for the
 view over the Arabian Sea.
 
 ## Live time and weather
@@ -218,7 +247,8 @@ lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
 js/                   game code (terrain, world, highway, vehicle, entities, player,
                       missions, UI, audio, net = multiplayer client, account = sign-in & profiles,
                       groups = groups & chat, voice = WebRTC voice chat,
-                      lighthouse = Kovalam lighthouse interior, sky = time of day & weather,
+                      lighthouse = Alappuzha lighthouse interior, sky = time of day & weather,
+                      destinations = sights on their own roads (Thiruvananthapuram),
                       townfolk = people, tourists and street traffic in the district towns)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function

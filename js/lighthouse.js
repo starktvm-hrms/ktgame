@@ -1,4 +1,4 @@
-// Inside the Vizhinjam lighthouse at Kovalam: a small level of its own
+// Inside the Alappuzha lighthouse: a small level of its own
 // (KT.L interface, level code 2) with exhibits, the keeper and the spiral
 // stairs, plus the lantern gallery at the top of the tower on the home map.
 (function () {
@@ -16,21 +16,21 @@
   };
 
   const FACTS = {
-    history: ['The Vizhinjam lighthouse stands on a rocky headland above Kovalam’s Lighthouse Beach.',
-      'It was lit in 1972. The tower is about 36 metres tall and painted in red and white bands so ships can recognise it by day.',
-      'Vizhinjam itself is an ancient port — traders sailed here long before the lighthouse, and today a big new deep-water port is being built nearby.'],
+    history: ['The Alappuzha lighthouse was built in 1862, in the reign of the Maharaja of Travancore. It is one of the oldest lighthouses on Kerala’s coast.',
+      'For years its lamp burned coconut oil. Later came kerosene, and today the light is electric.',
+      'Alappuzha grew into a busy port in the 18th century under Raja Kesavadas, the Diwan of Travancore. Ships came for coir, pepper and cardamom.'],
     lens: ['This is a Fresnel lens, invented by the French engineer Augustin-Jean Fresnel in 1822.',
       'Rings of glass prisms bend the light of a small lamp into one strong beam that can be seen far out at sea.',
       'As the lens turns, sailors see a flash at a fixed rhythm. Each lighthouse has its own rhythm, so captains know exactly which one they are looking at.'],
     works: ['How does a lighthouse work?',
       'At dusk the lamp is switched on and the lens starts to rotate. The beam sweeps the sea all night.',
       'In the old days a keeper climbed the stairs every evening to trim the wick and wind the clockwork that turned the lens. Today it is electric and automatic.'],
-    beaches: ['Kovalam has three crescent beaches: Lighthouse Beach, Hawah Beach and Samudra Beach.',
-      'From the gallery at the top you can see all of them, the fishing boats of Vizhinjam harbour and the Arabian Sea.',
-      'Fishermen still go out in traditional boats at dawn. Look out for them from the top!'],
+    beaches: ['Alappuzha beach is a long stretch of golden sand beside the town.',
+      'The old pier reaches far into the sea. Ships once tied up here to load cargo bound for the world.',
+      'From the gallery at the top you can see the beach, the pier, the town and the backwaters beyond.'],
     ship: ['A model of a coastal sailing ship, the kind that carried pepper, cardamom and coir from Kerala’s ports.',
       'Lighthouses along the Malabar coast kept these ships safe from the rocks at night.'],
-    keeper: ['Namaskaram! I’m Abdul, the keeper. Welcome inside the Vizhinjam lighthouse.',
+    keeper: ['Namaskaram! I’m Abdul, the keeper. Welcome inside the Alappuzha lighthouse.',
       'The exhibits tell the story of this tower and its great lens. Walk up and press E to read them.',
       'When you’re ready, take the spiral stairs — the view from the gallery at the top is the best on the whole coast!']
   };
@@ -88,7 +88,7 @@
     const border = new T.Mesh(new T.RingGeometry(R - 0.9, R - 0.55, 48), new T.MeshStandardMaterial({ color: 0x9c2a22, roughness: 0.7 }));
     border.rotation.x = -Math.PI / 2; border.position.y = 0.01;
     room.add(border);
-    const rose = KT.textTexture([{ text: 'N', size: 90 }, { text: '✦', size: 150 }, { text: 'VIZHINJAM 1972', size: 34 }], { width: 512, height: 512, bg: '#8a6a2e', borderColor: '#c9953a', color: '#f7e7b5' });
+    const rose = KT.textTexture([{ text: 'N', size: 90 }, { text: '✦', size: 150 }, { text: 'ALAPPUZHA 1862', size: 34 }], { width: 512, height: 512, bg: '#8a6a2e', borderColor: '#c9953a', color: '#f7e7b5' });
     const roseM = new T.Mesh(new T.CircleGeometry(1.1, 32), new T.MeshStandardMaterial({ map: rose, roughness: 0.5, metalness: 0.3 }));
     roseM.rotation.x = -Math.PI / 2; roseM.rotation.z = Math.PI; roseM.position.set(0, 0.012, 4.4);
     room.add(roseM);
@@ -142,10 +142,10 @@
     room.add(door);
     part(room, G.box(1.8, 0.2, 0.2), M.woodDark, dp.x, 2.6, dp.z - 0.05);
     part(room, G.sph(0.06, 8, 6), M.brass, 0.5, 1.2, dp.z - 0.06);
-    const exitSign = board('EXIT • Kovalam Beach', [], 1.6, 0.4);
+    const exitSign = board('EXIT • Alappuzha Beach', [], 1.6, 0.4);
     exitSign.position.set(0, 3.0, dp.z - 0.05); exitSign.rotation.y = Math.PI;
     room.add(exitSign);
-    interact('lh-exit', 'Go outside to Kovalam beach', { x: 0, z: R - 1.0 }, 2.0, () => KT.Game.leaveLighthouse());
+    interact('lh-exit', 'Go outside to Alappuzha beach', { x: 0, z: R - 1.0 }, 2.0, () => KT.Game.leaveLighthouse());
 
     // central spiral staircase
     part(room, G.cyl(0.3, 0.32, HGT + 0.6, 16), M.white, 0, (HGT + 0.6) / 2, 0);
@@ -187,9 +187,9 @@
     interact('lh-lens', 'Look at the Fresnel lens', ring(Math.PI, 3.6), 1.8, read('The Fresnel lens', FACTS.lens, 'lens'));
 
     // information boards on the wall
-    [[0.7, 'Vizhinjam Lighthouse', ['Lit in 1972 • about 36 m tall', 'Red & white day-mark bands', 'Guarding the Kovalam coast'], 'history', FACTS.history],
+    [[0.7, 'Alappuzha Lighthouse', ['Built in 1862', 'Once lit with coconut oil', 'Guarding the Alappuzha coast'], 'history', FACTS.history],
      [-0.7, 'How it works', ['A lamp + a rotating lens', '= a sweeping beam of light', 'Every tower flashes its own rhythm'], 'works', FACTS.works],
-     [0.22, 'Kovalam Beaches', ['Lighthouse • Hawah • Samudra', 'Fishing boats at dawn', 'Climb up for the view!'], 'beaches', FACTS.beaches]].forEach(([k, title, lines, key, facts]) => {
+     [0.22, 'Alappuzha Beach', ['Golden sand • the old pier', 'Ships, coir and spices', 'Climb up for the view!'], 'beaches', FACTS.beaches]].forEach(([k, title, lines, key, facts]) => {
       const a = Math.PI * k;
       const p = ring(a, R - 0.17);
       const b = board(title, lines, 2.1, 1.4);
@@ -370,7 +370,7 @@
     LH.outside = { x: s.x + fx * 6.3, z: s.z + fz * 6.3, heading: s.rot };
     const doorV = new T.Vector3(LH.door.x, KT.Geo.height(LH.door.x, LH.door.z), LH.door.z);
     KT.Entities.interactables.push({
-      id: 'lighthouse-in', label: 'Enter the Vizhinjam lighthouse', radius: 3.6,
+      id: 'lighthouse-in', label: 'Enter the Alappuzha lighthouse', radius: 3.6,
       pos: () => doorV,
       enabled: () => KT.Player.pos.y < base + 10,
       action: () => KT.Game.enterLighthouse()

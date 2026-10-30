@@ -30,19 +30,58 @@
     pkd: [76.6548, 10.7867], mlp: [76.0711, 11.051], kkd: [75.7804, 11.2588], wyd: [76.08, 11.61],
     knr: [75.3704, 11.8745], ksd: [74.9869, 12.4996]
   };
-  Hw.geo = (lon, lat) => ({ x: (lon - 76) * 109.3 * KM, z: -(lat - 8.5) * 111 * KM });
-  Hw.toLonLat = (x, z) => ({ lon: 76 + x / (109.3 * KM), lat: 8.5 - z / (111 * KM) });
+  // Cities are drawn larger than the map scale so their sights fit: around
+  // each centre the land is stretched k times out to r0 km, easing back to
+  // the true scale by r1 km (the coast and the roads stretch with it).
+  const WARPS = [{ lat: 8.5241, lon: 76.9366, k: 2.2, r0: 6, r1: 18 }];
+  WARPS.forEach((w) => { w.x = (w.lon - 76) * 109.3; w.y = (w.lat - 8.5) * 111; w.slope = (w.r1 - w.r0 * w.k) / (w.r1 - w.r0); });
+  Hw.geo = function (lon, lat) {
+    let x = (lon - 76) * 109.3, y = (lat - 8.5) * 111;
+    for (let i = 0; i < WARPS.length; i++) {
+      const w = WARPS[i], dx = x - w.x, dy = y - w.y, r = Math.hypot(dx, dy);
+      if (r >= w.r1 || r < 1e-6) continue;
+      const f = r < w.r0 ? r * w.k : w.r0 * w.k + (r - w.r0) * w.slope;
+      x = w.x + dx * f / r; y = w.y + dy * f / r;
+    }
+    return { x: x * KM, z: -y * KM };
+  };
   // the Arabian Sea coastline (longitude at each latitude)
   const COAST = [[8.2, 77.15], [8.38, 76.99], [8.5, 76.9], [8.75, 76.7], [8.88, 76.57], [9.1, 76.47], [9.3, 76.42],
     [9.49, 76.32], [9.7, 76.28], [9.97, 76.23], [10.2, 76.16], [10.5, 76.03], [10.77, 75.92], [11.0, 75.85],
     [11.25, 75.77], [11.5, 75.6], [11.7, 75.5], [11.87, 75.35], [12.1, 75.17], [12.3, 75.08], [12.5, 74.98], [12.8, 74.85]];
   Hw.COAST = COAST;
-  Hw.coastX = function (z) {
-    const lat = 8.5 - z / (111 * KM);
+  // the coastline in game space, sampled finely (it stretches with the cities)
+  const coastLon = (lat) => {
     let i = 0;
     while (i < COAST.length - 2 && COAST[i + 1][0] < lat) i++;
     const a = COAST[i], b = COAST[i + 1], t = KT.clamp((lat - a[0]) / (b[0] - a[0]), 0, 1);
-    return (a[1] + (b[1] - a[1]) * t - 76) * 109.3 * KM;
+    return a[1] + (b[1] - a[1]) * t;
+  };
+  const CPTS = [];
+  for (let lat = COAST[0][0]; lat <= COAST[COAST.length - 1][0] + 1e-9; lat += 0.002) CPTS.push(Hw.geo(coastLon(lat), lat));
+  CPTS.sort((a, b) => a.z - b.z);
+  Hw.coastPts = CPTS;
+  Hw.coastX = function (z) {
+    let lo = 0, hi = CPTS.length - 1;
+    if (z <= CPTS[0].z) return CPTS[0].x;
+    if (z >= CPTS[hi].z) return CPTS[hi].x;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (CPTS[m].z < z) lo = m; else hi = m; }
+    const a = CPTS[lo], b = CPTS[hi], t = (z - a.z) / ((b.z - a.z) || 1);
+    return a.x + (b.x - a.x) * t;
+  };
+  // the sea: its level, and how land meets it
+  const SEA_Y = -6;
+  Hw.SEA_Y = SEA_Y;
+  // hills that the land and the roads rise over: { x, z, h, r }
+  const HILLS = [{ ll: [8.76, 77.116], h: 62, r: 650 }]; // Ponmudi
+  HILLS.forEach((hl) => Object.assign(hl, Hw.geo(hl.ll[1], hl.ll[0])));
+  const hillAt = (x, z) => {
+    let h = 0;
+    for (let i = 0; i < HILLS.length; i++) {
+      const hl = HILLS[i], d2 = ((x - hl.x) * (x - hl.x) + (z - hl.z) * (z - hl.z)) / (hl.r * hl.r);
+      if (d2 < 9) h += hl.h * Math.exp(-d2 * 1.6);
+    }
+    return h;
   };
   // how far into the Western Ghats a point is (0 on the plains, 1 in the hills)
   Hw.ghats = (x, z) => KT.smoothstep(1300, 3100, x - Hw.coastX(z));
@@ -122,7 +161,7 @@
           const R = (la * lb * Math.hypot(ax + bx, az + bz)) / Math.max(1e-9, 2 * cross);
           if (R < minR) minR = R;
           minE = Math.min(minE, _b.x - Hw.coastX(_b.z));
-          if (opts.avoidTowns) for (let h = 0; h < HUB_XZ.length; h++) minH = Math.min(minH, Math.hypot(_b.x - HUB_XZ[h].x, _b.z - HUB_XZ[h].z));
+          if (opts.avoidTowns) for (let h = 0; h < HUB_XZ.length; h++) if (h !== opts.home) minH = Math.min(minH, Math.hypot(_b.x - HUB_XZ[h].x, _b.z - HUB_XZ[h].z));
         }
         // wide enough is enough: then the shortest (lowest tension) wins;
         // keep out of the sea and the towns
@@ -181,7 +220,7 @@
     const PY = [];
     for (let i = 0; i < PX.length; i++) {
       const s = i * STEP + phase;
-      PY.push(4 + 5 * Math.sin(s / 1700) + 2.5 * Math.sin(s / 530 + 2) + 30 * Hw.ghats(PX[i], PZ[i]));
+      PY.push(4 + 5 * Math.sin(s / 1700) + 2.5 * Math.sin(s / 530 + 2) + 30 * Hw.ghats(PX[i], PZ[i]) + hillAt(PX[i], PZ[i]));
     }
     for (let pass = 0; pass < 2; pass++) {
       const src = PY.slice(), R = 60;
@@ -284,7 +323,7 @@
   const MAIN = (function () {
     const C = [];
     KT.DISTRICTS.forEach((d, i) => {
-      C.push(Object.assign({}, HUB_XZ[i], { hub: i, back: i === 0 ? 400 : 250, fwd: i === KT.DISTRICTS.length - 1 ? 600 : 250 }));
+      C.push(Object.assign({}, HUB_XZ[i], { hub: i, back: i === 0 ? 290 : 250, fwd: i === KT.DISTRICTS.length - 1 ? 600 : 250 }));
       (VIA[i] || []).forEach((v) => C.push(Object.assign(Hw.geo(v[2], v[1]), { way: Hw.WAYPOINTS.push({ name: v[0], lat: v[1], lon: v[2], road: v[3] }) - 1 })));
     });
     const cv = curveThrough(C);
@@ -320,7 +359,6 @@
   // from / to: { hub: id } (just outside the district town), { way: town on
   // the main road }, { near: [lat, lon] } or { road: nh, town: name }.
   const BRANCHES = [
-    { nh: 'NH 66', name: 'Neyyattinkara', from: { hub: 'tvm', off: 300 }, via: [['Neyyattinkara', 8.4, 77.08], ['Parassala', 8.34, 77.15]], end: 'Tamil Nadu border' },
     { nh: 'NH 744', name: 'Punalur', from: { hub: 'klm', off: 620 }, via: [['Kottarakkara', 9.0, 76.77], ['Punalur', 9.02, 76.93], ['Thenmala', 8.96, 77.06], ['Aryankavu', 8.97, 77.15]], end: 'Tamil Nadu border' },
     { nh: 'NH 66', name: 'Kayamkulam', from: { hub: 'klm' }, via: [['Karunagappally', 9.06, 76.53], ['Kayamkulam', 9.17, 76.5], ['Haripad', 9.285, 76.46], ['Ambalappuzha', 9.38, 76.41]], to: { hub: 'alp' } },
     { nh: 'NH 183', name: 'Kumily', from: { hub: 'ktm', off: 800 }, via: [['Ponkunnam', 9.57, 76.75], ['Mundakayam', 9.53, 76.88], ['Kuttikkanam', 9.58, 76.97], ['Vandiperiyar', 9.57, 77.09], ['Kumily', 9.61, 77.17]], end: 'Tamil Nadu border' },
@@ -332,15 +370,26 @@
     { nh: 'NH 544', name: 'Walayar', from: { hub: 'pkd' }, via: [['Walayar', 10.84, 76.84]], end: 'Tamil Nadu border' },
     { nh: 'NH 766', name: 'Sulthan Bathery', from: { hub: 'wyd' }, via: [['Sulthan Bathery', 11.665, 76.26], ['Muthanga', 11.67, 76.4]], end: 'Karnataka border' },
     { nh: 'NH 66', name: 'Vadakara', from: { hub: 'kkd' }, via: [['Quilandy', 11.44, 75.7], ['Vadakara', 11.6, 75.6], ['Thalassery', 11.75, 75.5]], to: { hub: 'knr' } },
-    { nh: 'NH 66', name: 'Manjeshwar', from: { hub: 'ksd' }, via: [['Manjeshwar', 12.72, 74.93]], end: 'Karnataka border' }
+    { nh: 'NH 66', name: 'Manjeshwar', from: { hub: 'ksd' }, via: [['Manjeshwar', 12.72, 74.93]], end: 'Karnataka border' },
+    // ---- Thiruvananthapuram: roads to the sights (see districts.js)
+    { nh: 'MG Road', name: 'East Fort', city: 'tvm', from: { hub: 'tvm', off: 380 }, meetMainStart: 1,
+      via: [['Museum Junction', 8.51, 76.9555], ['Statue Junction', 8.4987, 76.9488], ['East Fort', 8.483, 76.946], ['Shankhumugham', 8.4795, 76.923], ['Akkulam', 8.53, 76.905]], to: { hub: 'tvm', off: 620 } },
+    { nh: 'NH 66', name: 'Neyyattinkara', from: { road: 'MG Road', town: 'East Fort', shift: 70 }, via: [['Neyyattinkara', 8.4, 77.08], ['Parassala', 8.34, 77.15]], end: 'Tamil Nadu border' },
+    { nh: 'Ponmudi Road', name: 'Ponmudi', city: 'tvm', from: { hub: 'tvm', off: 900 },
+      via: [['Nedumangad', 8.6045, 77.0013], ['Vithura', 8.675, 77.085], ['Kallar', 8.735, 77.09], ['Ponmudi', 8.76, 77.116]], dest: 'Ponmudi hilltop' },
+    { nh: 'Aruvikkara Road', name: 'Aruvikkara Dam', city: 'tvm', from: { road: 'Ponmudi Road', town: 'Nedumangad', shift: -90 },
+      via: [['Aruvikkara', 8.574, 77.025]], dest: 'Aruvikkara Dam' },
+    { nh: 'Ponnumthuruthu Road', name: 'Ponnumthuruthu', city: 'tvm', from: { way: 'Attingal' },
+      via: [['Ponnumthuruthu Jetty', 8.674, 76.802]], dest: 'Ponnumthuruthu Island' }
   ];
   // where a branch meets another road: { road, s }
   function junctionOn(spec, toward) {
     if (spec.hub) {
       const i = KT.DISTRICTS.findIndex((d) => d.id === spec.hub), off = spec.off || 380;
       // the side of the town with a clear way to where the branch is
-      // heading (not back across the main road), then the nearer one
-      const cands = [HUB_S[i] - off, HUB_S[i] + off].filter((s) => s > 20 && s < MAIN.len - 20);
+      // heading (not back across the main road), then the nearer one; a
+      // spot another junction already uses is left alone
+      const cands = [HUB_S[i] - off, HUB_S[i] + off].filter((s) => s > 20 && s < MAIN.len - 20 && !MAIN.junctions.some((j) => Math.abs(j.s - s) < 100));
       let best = cands[0], bd = -1e12;
       cands.forEach((s) => {
         const L = leave({ road: MAIN, s }, toward);
@@ -357,9 +406,9 @@
     }
     if (spec.way) return { road: MAIN, s: Hw.WAYPOINTS.find((w) => w.name === spec.way).s };
     if (spec.near) { const q = Hw.geo(spec.near[1], spec.near[0]); return { road: MAIN, s: MAIN.project(q.x, q.z).s }; }
-    const R = Hw.roads.find((r) => r.nh === spec.road && r.towns.some((t) => t.name === spec.town));
+    const R = Hw.roads.find((r) => (r.nh === spec.road || r.name === spec.road) && r.towns.some((t) => t.name === spec.town));
     const t = R.towns.find((w) => w.name === spec.town);
-    return { road: R, s: KT.clamp(t.s, 60, R.len - 40) };
+    return { road: R, s: KT.clamp(t.s + (spec.shift || 0), 60, R.len - 40) };
   }
   // leave a road at J heading for point P: a start point beside the road and
   // a direction at least 35 degrees off the road
@@ -377,20 +426,26 @@
   BRANCHES.forEach((def, bi) => {
     const towns = def.via.map((v) => Object.assign(Hw.geo(v[2], v[1]), { name: v[0], lat: v[1], lon: v[2], road: def.nh }));
     const J0 = junctionOn(def.from, towns[0]), L0 = leave(J0, towns[0]);
-    const C = [{ x: L0.x, z: L0.z, t: L0.t }].concat(towns.map((w) => ({ x: w.x, z: w.z })));
+    const C = [{ x: L0.x, z: L0.z, t: L0.t }].concat(towns.map((w, k) => ({ x: w.x, z: w.z, town: k })));
+    if (def.meetMainStart !== undefined) {
+      // pass through the start of the main road
+      const m0 = MAIN.frame(0);
+      C.splice(def.meetMainStart + 1, 0, { x: m0.x, z: m0.z });
+    }
     let J1 = null, L1 = null;
     if (def.to) {
       J1 = junctionOn(def.to, towns[towns.length - 1]);
       L1 = leave(J1, towns[towns.length - 1]);
       C.push({ x: L1.x, z: L1.z, t: { x: -L1.t.x, z: -L1.t.z } });
     }
-    const cv = curveThrough(C, { avoidTowns: true, passes: 2, angles: 20 });
+    const home = def.city ? KT.DISTRICTS.findIndex((d) => d.id === def.city) : -1;
+    const cv = curveThrough(C, { avoidTowns: true, passes: 2, angles: 20, home });
     const PY = heightProfile(cv.PX, cv.PZ, 5000 + bi * 1777);
-    const R = makeRoad(cv.PX, cv.PZ, PY, { id: bi + 1, nh: def.nh, name: def.name, end: def.end || null });
+    const R = makeRoad(cv.PX, cv.PZ, PY, { id: bi + 1, nh: def.nh, name: def.name, end: def.end || null, dest: def.dest || null, city: def.city || null });
     // meet the other roads at their height
     levelAt(PY, 0, L0.y, 30, 240);
     if (J1) levelAt(PY, R.len, L1.y, 30, 240);
-    R.towns = towns.map((w, i) => ({ name: w.name, lat: w.lat, lon: w.lon, road: def.nh, s: cv.S[i + 1] }));
+    R.towns = towns.map((w, i) => ({ name: w.name, lat: w.lat, lon: w.lon, road: def.nh, s: cv.S[C.findIndex((c) => c.town === i)] }));
     R.start = { road: J0.road, s: J0.s, side: L0.side };
     R.finish = J1 ? { road: J1.road, s: J1.s, side: L1.side } : null;
     // junctions are remembered on both roads (no kerbs, poles or shops there)
@@ -399,6 +454,15 @@
     if (J1) {
       R.junctions.push({ s: R.len, side: 0, other: J1.road });
       J1.road.junctions.push({ s: J1.s, side: L1.side, other: R });
+    }
+    // the main road starts at Thiruvananthapuram: where a branch passes its
+    // very start, the main road meets it at a T-junction
+    const m0 = MAIN.frame(0), pm = R.project(m0.x, m0.z);
+    if (pm.d < 14 && pm.s > 30 && pm.s < R.len - 30) {
+      levelAt(PY, pm.s, m0.y, 30, 240);
+      const side = pm.lat < 0 ? -1 : 1;
+      R.junctions.push({ s: pm.s, side, other: MAIN });
+      MAIN.junctions.push({ s: 0, side: 0, other: R });
     }
     Hw.roads.push(R);
   });
@@ -464,6 +528,9 @@
       if (side < 0) r.u0 = -u; else r.u1 = u;
     });
   });
+  // lakes: { x, z, r, y, island: { x, z, r } } and level pads for buildings
+  // { x, z, r, y }, both added by the destinations (KT.Dest)
+  const LAKES = Hw.LAKES = [], PADS = Hw.PADS = [];
   const inRiver = (r, x, z, pad) => Math.abs(x - r.cx) <= RIVER_HALF + pad && Math.abs(z - r.cz) <= RIVER_HALF + pad;
 
   // ------------------------------------------------------------- terrain
@@ -474,18 +541,38 @@
     // Western Ghats rising inland, low coastal plain towards the sea
     const gh = Hw.ghats(x, z);
     h += gh * (25 + 30 * Math.max(0, KT.fbm(x * 0.003, z * 0.003, 3)));
-    h -= (1 - KT.smoothstep(0, 900, x - Hw.coastX(z))) * 3;
+    const E = x - Hw.coastX(z);
+    h -= (1 - KT.smoothstep(0, 900, E)) * 3;
+    // the beach slopes down under the sea
+    if (E < 140) h = KT.lerp(h, SEA_Y + 1.2 + E * (E < 0 ? 0.06 : 0.03), 1 - KT.smoothstep(30, 140, E));
+    // hills (Ponmudi)
+    h += hillAt(x, z);
     // road embankments
     const w = 1 - KT.smoothstep(8, 30 + 30 * gh, Math.abs(lat));
     h = KT.lerp(h, roadY(s) - 0.2, w);
     const b = Hw.nearBranch(x, z, 90);
     if (b) h = KT.lerp(h, b.road.y(b.s) - 0.2, 1 - KT.smoothstep(8, 30 + 30 * gh, b.d));
+    // level ground for the sights
+    for (let i = 0; i < PADS.length; i++) {
+      const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
+      if (d < P.r + 18) h = KT.lerp(h, P.y, 1 - KT.smoothstep(P.r, P.r + 18, d));
+    }
     // flat ground around each district centre
     const hi = Hw.hubIndexAt(s);
     const hs = Hw.hubS(hi);
     if (Math.abs(s - hs) < 330) {
       const d = Math.hypot(s - hs, lat);
       h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
+    }
+    // lakes (and their islands)
+    for (let i = 0; i < LAKES.length; i++) {
+      const L = LAKES[i], d = Math.hypot(x - L.x, z - L.z);
+      if (d > L.r + 30) continue;
+      h = KT.lerp(h, L.y - 2.4, 1 - KT.smoothstep(L.r * 0.75, L.r + 25, d));
+      if (L.island) {
+        const di = Math.hypot(x - L.island.x, z - L.island.z);
+        if (di < L.island.r) h = KT.lerp(h, L.y + 1.3, 1 - KT.smoothstep(L.island.r * 0.6, L.island.r, di));
+      }
     }
     // river valleys
     for (let i = 0; i < RIVERS.length; i++) {
@@ -499,6 +586,11 @@
     return h;
   };
   Hw.waterLevelAt = function (x, z) {
+    for (let i = 0; i < LAKES.length; i++) {
+      const L = LAKES[i], d = Math.hypot(x - L.x, z - L.z);
+      if (d < L.r + 4 && !(L.island && Math.hypot(x - L.island.x, z - L.island.z) < L.island.r * 0.7)) return L.y;
+    }
+    if (x - Hw.coastX(z) < 25) return SEA_Y;
     for (let i = 0; i < RIVERS.length; i++) {
       const r = RIVERS[i];
       if (!inRiver(r, x, z, 60)) continue;
@@ -805,6 +897,8 @@
     if (a > ROAD_HALF - 0.5 && a < 10) _c.lerp(new T.Color(0.75, 0.48, 0.32), 1 - KT.smoothstep(7.5, 10, a)); // laterite shoulder
     const wl = Hw.waterLevelAt(x, z);
     if (wl > -1e8 && h < wl + 1.5) _c.lerp(new T.Color(0.85, 0.78, 0.6), KT.smoothstep(wl + 1.5, wl, h));
+    const E = x - Hw.coastX(z);
+    if (E < 90 && h < SEA_Y + 8) _c.lerp(new T.Color(0.93, 0.85, 0.66), KT.smoothstep(SEA_Y + 8, SEA_Y + 5, h) * (1 - KT.smoothstep(50, 90, E))); // beach sand
     return _c;
   }
 
@@ -1001,6 +1095,15 @@
         placeSign(board, sb, e < 0 ? -(ROAD_HALF + 2.6) : ROAD_HALF + 2.6, e < 0 ? Math.PI / 2 + 0.5 : -Math.PI / 2 + 0.5);
       });
     });
+    // a paved turning place where a road ends at a sight
+    if (R.dest && R.len >= a0 && R.len < s1 + 0.01) {
+      const f = R.frame(R.len - 6);
+      const plaza = new T.Mesh(new T.CircleGeometry(13, 32), mats.paver);
+      plaza.rotation.x = -Math.PI / 2;
+      plaza.position.set(f.x, R.y(R.len) + 0.07, f.z);
+      plaza.receiveShadow = true;
+      group.add(plaza);
+    } else
     // a check-post where a highway reaches the state border
     if (!R.main && !R.finish && R.len >= a0 && R.len < s1 + 0.01) {
       const s = R.len - 6, f = R.frame(s), y = R.y(s);
@@ -1230,12 +1333,49 @@
   const SIGHT_R = { church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
+  const DEST_R = { gopuramTemple: 30, palace: 20, fortGate: 16, clockTower: 10, secretariat: 34, museum: 18, zoo: 30, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
   Hw.sightList = function () {
     if (sightCache) return sightCache;
     sightCache = [];
     KT.DISTRICTS.forEach((d, i) => {
       let k = 0;
       d.sights.forEach((sg, j) => {
+        if (sg.place) {
+          // a destination on its own road
+          const pl = sg.place, R = Hw.roads.find((r) => r.nh === pl.road);
+          if (!R) return;
+          const town = R.towns.find((t) => t.name === pl.stop);
+          const s0 = pl.stop === 'end' ? R.len : town.s, rr = DEST_R[sg.kind] || 22;
+          const end = pl.stop === 'end';
+          const E = (x, z) => x - Hw.coastX(z);
+          let best = null;
+          // try the given spot, then nearby ones, until it is clear of the
+          // roads, the other sights and the district towns
+          const tries = end ? [[0, 0]] : [];
+          const lat0 = typeof pl.lat === 'number' ? pl.lat : 72;
+          if (!end) [0, 30, -30, 60, -60, 90, -90, 130, -130].forEach((da) => [1, -1].forEach((sg2) => [0, 20, 40].forEach((dl) => tries.push([da, sg2 * (Math.abs(lat0) + dl) * Math.sign(lat0 || 1)]))));
+          for (let t = 0; t < tries.length && !best; t++) {
+            const s = s0 + (pl.along || 0) + tries[t][0], f = R.frame(s);
+            let lat = tries[t][1];
+            if (pl.lat === 'sea' || pl.lat === 'land') {
+              // towards the coast (a beach sits right on it) or away from it
+              const toSea = E(f.x + f.rx, f.z + f.rz) < E(f.x, f.z) ? 1 : -1;
+              if (pl.lat === 'land') lat = -toSea * Math.abs(lat);
+              else { lat = toSea * 20; for (let k = 0; k < 150 && E(f.x + f.rx * lat, f.z + f.rz * lat) > 18; k++) lat += toSea * 8; }
+            }
+            const x = f.x + f.rx * lat, z = f.z + f.rz * lat;
+            const okRoads = Hw.roads.every((o) => {
+              if (!o.near(x, z, rr + 20)) return true;
+              const p = o.project(x, z);
+              return p.d >= rr + 8 || (end && o === R);
+            });
+            const okSights = sightCache.every((o) => !o.dest || Math.hypot(o.x - x, o.z - z) >= rr + o.r + 4);
+            const okTowns = HUB_XZ.every((c) => Math.hypot(c.x - x, c.z - z) >= 205 + rr);
+            if ((okRoads && okSights && okTowns) || t === tries.length - 1) best = { s, lat, x, z };
+          }
+          sightCache.push({ id: d.id + ':' + j, name: sg.name, icon: sg.icon, facts: sg.facts, kind: sg.kind, def: sg, district: d, hub: i, dest: true, road: R, s: best.s, lat: best.lat, x: best.x, z: best.z, r: rr });
+          return;
+        }
         const slot = sg.kind === 'main' ? MAIN_SPOT : SIGHT_SLOTS[k++];
         if (!slot) return;
         const q = Hw.at(Hw.hubS(i) + slot.along, slot.lat);
@@ -1267,7 +1407,7 @@
       if (obj.userData.actors) h.actors = (h.actors || []).concat(obj.userData.actors);
       return placed;
     };
-    Hw.sightList().filter((sg) => sg.hub === hub.index).forEach((sg) => {
+    Hw.sightList().filter((sg) => sg.hub === hub.index && !sg.dest).forEach((sg) => {
       sightBoard(hub, sg);
       if (sg.kind === 'main') return;
       const a = sg.along, l = sg.lat, side = Math.sign(l), rot = faceRoad(l);
@@ -1672,9 +1812,37 @@
     scene.fog = new T.Fog(0xc8e0ec, 220, 1150);
     progress && progress('Planting the roadside palms...');
     makePools(scene);
+    scene.add(buildSea());
+    if (KT.Dest) KT.Dest.prepare();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     Hw.built = true;
   };
+
+  // the Arabian Sea: one strip from just inside the coastline far out west
+  function buildSea() {
+    const P = Hw.coastPts, pos = [], uv = [], idx = [];
+    const pts = [{ x: P[0].x, z: P[0].z - 6000 }];
+    for (let i = 0; i < P.length; i += 5) pts.push(P[i]);
+    pts.push({ x: P[P.length - 1].x, z: P[P.length - 1].z + 6000 });
+    pts.forEach((p, n) => {
+      pos.push(p.x + 12, SEA_Y, p.z, p.x - 6000, SEA_Y, p.z);
+      uv.push((p.x + 12) / 30, p.z / 30, (p.x - 6000) / 30, p.z / 30);
+      if (n > 0) { const a = (n - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    });
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    mats.sea = mats.water.clone();
+    mats.sea.color.set(0x1f6e8c);
+    mats.sea.opacity = 0.96;
+    const m = new T.Mesh(geo, mats.sea);
+    m.receiveShadow = true;
+    m.renderOrder = -1;
+    return m;
+  }
 
   function buildHorizon() {
     const g = new T.RingGeometry(1000, 2600, 96, 3);
@@ -1685,7 +1853,9 @@
       const x = P.getX(i), z = P.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
       const east = Math.max(0, Math.cos(a)); // ghats to the east
       const hgt = (r > 1100 ? 1 : 0) * (40 + 120 * east + 50 * (KT.fbm(Math.cos(a) * 3, Math.sin(a) * 3, 4) + 0.5));
-      P.setY(i, hgt * KT.smoothstep(1000, 1600, r) - 5);
+      // the far land sinks under the sea to the west
+      const west = KT.smoothstep(-0.1, -0.45, Math.cos(a));
+      P.setY(i, KT.lerp(hgt * KT.smoothstep(1000, 1600, r) - 5, SEA_Y - 8, west));
       col.push(0.32, 0.5 + east * 0.05, 0.42);
     }
     g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
@@ -1694,6 +1864,7 @@
     return m;
   }
 
+  Hw.waterMaterial = () => mats.water;
   // ---------------------------------------------------------- streaming
   // free a streamed-out group: its geometry and the text on its signs
   function disposeGroup(g) {
@@ -1755,6 +1926,8 @@
     Hw.tiles.forEach((t, key) => {
       if (!want.has(key)) { Hw.scene.remove(t.mesh); t.mesh.geometry.dispose(); Hw.tiles.delete(key); changed = true; }
     });
+    // sights on their own roads
+    if (KT.Dest) budget = KT.Dest.stream(pos, budget);
     // hubs: build when close, show only nearby ones
     Hw.hubs.forEach((h) => {
       const d = Math.abs(h.s - pr.s);
@@ -1875,6 +2048,7 @@
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
     });
     KT.Townfolk.update(dt, player);
+    if (KT.Dest) KT.Dest.update(dt, Hw.animTime);
     Hw.npcs.forEach((w) => {
       if (!w.obj.parent || !w.obj.parent.visible) return;
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);
