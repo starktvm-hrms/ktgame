@@ -167,6 +167,13 @@
         PY[i] = sum / c;
       }
     }
+    // level road through each town, easing into the slope outside it
+    HUB_S.forEach((hs) => {
+      const yh = PY[Math.round(hs / STEP)];
+      for (let i = Math.max(0, Math.floor((hs - 480) / STEP)); i <= Math.min(PY.length - 1, Math.ceil((hs + 480) / STEP)); i++) {
+        PY[i] = KT.lerp(PY[i], yh, 1 - KT.smoothstep(320, 480, Math.abs(i * STEP - hs)));
+      }
+    });
   })();
   const LAST = PX.length - 1, PATH_LEN = LAST * STEP;
   const roadY = (s) => {
@@ -1229,12 +1236,15 @@
         const al = Math.min(a, a1), s = hub.s + al, y = roadY(s) + 0.14;
         const i0 = Hw.at(s, sd * FOOT0), i1 = Hw.at(s, sd * FOOT1);
         const yk = roadY(s) - 0.2;
-        // kerb face, top surface
-        pos.push(i0.x, yk, i0.z, i0.x, y, i0.z, i1.x, y, i1.z);
-        uv.push(al / 4, 0, al / 4, 0.06, al / 4, (FOOT1 - FOOT0) / 4);
+        // the outer edge slopes down into the ground, so it never floats
+        const i2 = Hw.at(s, sd * (FOOT1 + 0.7)), yg = Math.min(y - 0.05, Hw.height(i2.x, i2.z) - 0.06);
+        // kerb face, top surface, outer slope
+        pos.push(i0.x, yk, i0.z, i0.x, y, i0.z, i1.x, y, i1.z, i2.x, yg, i2.z);
+        uv.push(al / 4, 0, al / 4, 0.06, al / 4, (FOOT1 - FOOT0) / 4, al / 4, (FOOT1 - FOOT0 + 0.7) / 4);
         if (n > 0) {
-          const p = base + (n - 1) * 3, q = base + n * 3;
-          const tri = sd > 0 ? [[p, q, p + 1], [p + 1, q, q + 1], [p + 1, q + 1, p + 2], [p + 2, q + 1, q + 2]] : [[p, p + 1, q], [p + 1, q + 1, q], [p + 1, p + 2, q + 1], [p + 2, q + 2, q + 1]];
+          const p = base + (n - 1) * 4, q = base + n * 4;
+          const tri = sd > 0 ? [[p, q, p + 1], [p + 1, q, q + 1], [p + 1, q + 1, p + 2], [p + 2, q + 1, q + 2], [p + 2, q + 2, p + 3], [p + 3, q + 2, q + 3]]
+            : [[p, p + 1, q], [p + 1, q + 1, q], [p + 1, p + 2, q + 1], [p + 2, q + 2, q + 1], [p + 2, p + 3, q + 2], [p + 3, q + 3, q + 2]];
           tri.forEach((t) => idx.push(...t));
         }
         n++;
