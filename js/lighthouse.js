@@ -284,6 +284,7 @@
   LH.groundY = () => _ground;
   LH.height = () => 0;
   LH.isWater = () => false;
+  LH.deepWater = () => false;
   LH.nearbyColliders = () => LH.colliders;
   LH.agentColliders = () => null;
   LH.vehicleObstacles = () => [];

@@ -109,6 +109,7 @@
     return { y, onPlatform: false };
   };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
+  Hw.deepWater = (x, z, gy) => gy < Hw.waterLevelAt(x, z) - 0.6;
 
   // --------------------------------------------------------- collisions
   function cellKeys(minX, minZ, maxX, maxZ, fn) {

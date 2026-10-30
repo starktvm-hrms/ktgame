@@ -99,6 +99,7 @@
   World.height = (x, z) => Geo.height(x, z);
   World.bounds = Geo.BOUNDS;
   World.isWater = (x, z) => World.groundY(x, z).y < -0.3;
+  World.deepWater = (x, z, gy) => gy < -0.55;
   World.agentColliders = (pos) => (KT.Entities.agentColliders ? KT.Entities.agentColliders(pos) : null);
   KT.L = World;
 

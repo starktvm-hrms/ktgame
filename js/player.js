@@ -77,7 +77,9 @@
     _next.x = KT.clamp(_next.x, b.minX, b.maxX);
     _next.z = KT.clamp(_next.z, b.minZ, b.maxZ);
     const g = KT.L.groundY(_next.x, _next.z, P.pos.y);
-    const tooDeep = g.y < -0.55;
+    // too deep to wade: each map knows where its water is (the highway dips
+    // below sea level around Kochi, so height alone can't tell)
+    const tooDeep = KT.L.deepWater ? KT.L.deepWater(_next.x, _next.z, g.y) : g.y < -0.55;
     const tooHigh = P.grounded && g.y > P.pos.y + 0.75;
     if (!tooDeep && !tooHigh) {
       P.distance += Math.hypot(_next.x - P.pos.x, _next.z - P.pos.z);
