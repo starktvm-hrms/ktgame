@@ -454,7 +454,14 @@
       if (Math.hypot(KT.Player.pos.x + 130, KT.Player.pos.z + 92) < 18) KT.Audio.play('trumpet');
     }
   };
-  Game.onEvent = function () { /* reserved for future hooks */ };
+  Game.saveSettings = () => store(SETTINGS_KEY, Game.settings);
+  Game.onEvent = function (name) {
+    // the first ride: tell the player about the radio
+    if (name === 'boardBus' && Game.data && !Game.data.radioHint) {
+      Game.data.radioHint = true;
+      setTimeout(() => KT.UI.toast('\u{1F4FB} Press U to switch on the Malayalam radio. Press U again for the next station.', 'info'), 2500);
+    }
+  };
 
   function discover(l) {
     const d = Game.data;
@@ -583,6 +590,7 @@
     if (I.consume('players')) { KT.Account.openPlayers(); return; }
     if (I.consume('garage')) { Game.openGarage(); return; }
     if (I.consume('travel')) { Game.openTravel(); return; }
+    if (I.consume('radio')) KT.Radio.key();
     if (I.consume('groups')) { KT.Groups.open(); return; }
     if (I.consume('mic')) KT.Voice.toggle(KT.Groups.active);
     if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
@@ -1295,6 +1303,7 @@
     document.addEventListener('pointerlockchange', updateMouseHint);
     $('mouse-hint').onclick = () => KT.Input.lockPointer();
     const saveSettings = () => store(SETTINGS_KEY, s);
+    KT.Radio.init();
     $('set-music').oninput = (e) => { s.music = +e.target.value; KT.Audio.setVolumes(s.music, s.sfx); saveSettings(); };
     $('set-sfx').oninput = (e) => { s.sfx = +e.target.value; KT.Audio.setVolumes(s.music, s.sfx); saveSettings(); };
     $('set-sens').oninput = (e) => { s.sensitivity = +e.target.value; KT.Input.sensitivity = s.sensitivity; saveSettings(); };

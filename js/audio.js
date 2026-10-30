@@ -44,9 +44,14 @@
   A.setVolumes = function (music, sfx) {
     A.music = music; A.sfx = sfx;
     if (!A.ctx) return;
-    musicBus.gain.setTargetAtTime(music * 0.5, A.ctx.currentTime, 0.1);
+    musicBus.gain.setTargetAtTime(A.ducked ? 0 : music * 0.5, A.ctx.currentTime, 0.1);
     sfxBus.gain.setTargetAtTime(sfx, A.ctx.currentTime, 0.1);
     ambBus.gain.setTargetAtTime(sfx * 0.6, A.ctx.currentTime, 0.1);
+  };
+  // the game's music fades out while the radio plays
+  A.duckMusic = function (on) {
+    A.ducked = on;
+    if (A.ctx) musicBus.gain.setTargetAtTime(on ? 0 : A.music * 0.5, A.ctx.currentTime, 0.4);
   };
   A.setMuted = function (m) {
     A.muted = m;

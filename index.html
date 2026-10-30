@@ -125,6 +125,15 @@
       </div>
     </div>
 
+    <div id="radio-panel" class="panel hidden" aria-live="polite">
+      <span class="r-ic">&#x1F4FB;</span>
+      <div class="r-info"><div id="radio-name">Malayalam radio</div><div class="r-sub"><span id="radio-state">Tuning&hellip;</span> <span id="radio-count"></span> &middot; U next</div></div>
+      <button id="radio-prev" class="r-btn" title="Previous station">&#x23EE;</button>
+      <button id="radio-next" class="r-btn" title="Next station (U)">&#x23ED;</button>
+      <input id="radio-vol" type="range" min="0" max="1" step="0.05" title="Radio volume">
+      <button id="radio-off" class="r-btn" title="Switch off the radio">&#x23FB;</button>
+    </div>
+
     <div id="mission-panel" class="panel">
       <div class="m-head"><span class="leaf-ic">&#x1F343;</span> Current Mission <span class="chev">&rsaquo;</span></div>
       <div class="m-body">
@@ -249,6 +258,7 @@
         <tr><td>KSRTC bus</td><td>E to board / get off &middot; W/S accelerate &amp; brake &middot; A/D steer &middot; Space handbrake &middot; H horn &middot; V driver view</td></tr>
         <tr><td>Profile / Players / My vehicles</td><td>J / O / G</td></tr>
         <tr><td>Fast travel</td><td>Y</td></tr>
+        <tr><td>Malayalam radio</td><td>U to switch on &middot; U again for the next station</td></tr>
         <tr><td>Fishing (Kochi)</td><td>E at a Fishing Point to cast &middot; E / Space to haul when the marker is in the green</td></tr>
       </table>
       <div class="modal-buttons">
@@ -396,6 +406,7 @@
   <script src="js/fishing.js"></script>
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/radio.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/vehicle.js"></script>
   <script src="js/player.js"></script>

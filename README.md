@@ -209,6 +209,23 @@ edges of the map: the state border to the east (with a strip beyond it),
 a little way out to sea in the west, and Kerala's north and south ends.
 Deep water still has to be crossed by bridge or boat.
 
+## Malayalam radio
+
+Press **U** to switch on the radio, and **U** again for the next station. It
+plays anywhere: in the KSRTC bus, on your own vehicles or on foot. The
+panel at the bottom shows the station, with previous/next, volume and
+power, and the game's music fades out while the radio plays.
+
+The stations are live internet streams of Kerala's radio. The list comes
+from [Radio Browser](https://www.radio-browser.info), a free public
+directory, each time the radio is first switched on, so stream addresses
+stay current. Only working `https` streams are kept, with Akashvani (All
+India Radio) first, then Radio Mango, Club FM, Red FM and the rest by
+popularity. A station that is off the air is skipped, and a stream that
+drops reconnects. HLS streams play through hls.js. The radio needs an
+internet connection. The broadcasts belong to their stations: check each
+station's terms before a public release.
+
 ## Fast travel
 
 Press Y, or the compass button at the top right, or Fast travel on the big
@@ -268,12 +285,14 @@ or to an always sunny day.
 index.html            entry point
 css/style.css         HUD and menus
 lib/three.min.js      three.js r149 (MIT, vendored — no CDN needed)
+lib/hls.min.js        hls.js 1.5.17 (Apache-2.0, vendored) for HLS radio streams, loaded on demand
 js/                   game code (terrain, world, highway, vehicle, entities, player,
                       missions, UI, audio, net = multiplayer client, account = sign-in & profiles,
                       groups = groups & chat, voice = WebRTC voice chat,
                       lighthouse = Alappuzha lighthouse interior, sky = time of day & weather,
                       destinations = sights on their own roads (Thiruvananthapuram),
                       toon = cel-shaded lighting, ink outlines and colour grade,
+                      radio = Malayalam internet radio,
                       townfolk = people, tourists and street traffic in the district towns)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function

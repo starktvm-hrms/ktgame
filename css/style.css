@@ -293,6 +293,16 @@ body[data-state="loading"] #hud, body[data-state="menu"] #hud { display: none; }
 #route-next { font-weight: 700; font-size: 0.95rem; }
 #route-bar { width: 100%; height: auto; display: block; }
 #speedo { position: absolute; right: 24px; bottom: 150px; width: 170px; height: 170px; pointer-events: none; }
+#radio-panel { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.7rem; pointer-events: auto; max-width: min(560px, 94vw); }
+#radio-panel .r-ic { font-size: 1.5rem; font-family: system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif; }
+#radio-panel .r-info { min-width: 0; flex: 1; }
+#radio-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+#radio-panel .r-sub { font-size: 0.75rem; color: var(--muted); }
+#radio-state.live { color: #ff5a5a; font-weight: 700; letter-spacing: 0.06em; }
+#radio-panel .r-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: inherit; border-radius: 10px; width: 34px; height: 34px; cursor: pointer; font-size: 0.95rem; }
+#radio-panel .r-btn:hover { background: rgba(47, 191, 113, 0.25); }
+#radio-vol { width: 80px; }
+body.touch #radio-panel { bottom: auto; top: 160px; }
 #fade { position: fixed; inset: 0; background: #0b1a14; z-index: 45; display: flex; align-items: center; justify-content: center; transition: opacity 0.35s; }
 #fade-text { font-family: Georgia, serif; font-size: 1.6rem; color: var(--gold); }
 body[data-state="profile"] #hud, body[data-state="players"] #hud, body[data-state="district"] #hud { pointer-events: none; }
