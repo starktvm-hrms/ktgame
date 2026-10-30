@@ -193,6 +193,14 @@ On Supabase, chat, member positions and voice signalling use Realtime
 broadcast channels. With the Node server, chat is checked every few seconds
 and voice is not available.
 
+## Graphics style
+
+The game is cel-shaded in a soft, hand-painted style: light falls in two
+gentle bands, shadows are crisp, and the shade is light and cool. On Medium
+and High quality, thin warm-brown ink lines trace the outlines and the
+colours are graded warmer. Choose **Classic** under Settings → Graphics style
+for the earlier look (it applies the next time the game loads).
+
 ## Open world
 
 The highway map is open: leave the road and walk or drive anywhere across
@@ -265,6 +273,7 @@ js/                   game code (terrain, world, highway, vehicle, entities, pla
                       groups = groups & chat, voice = WebRTC voice chat,
                       lighthouse = Alappuzha lighthouse interior, sky = time of day & weather,
                       destinations = sights on their own roads (Thiruvananthapuram),
+                      toon = cel-shaded lighting, ink outlines and colour grade,
                       townfolk = people, tourists and street traffic in the district towns)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function

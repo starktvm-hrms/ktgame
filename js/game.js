@@ -9,7 +9,7 @@
   const Game = KT.Game = {
     state: 'loading',
     data: null,
-    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true, sky: 'live' },
+    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true, sky: 'live', style: 'cel' },
     cfg: { gender: 'male', outfit: 'casual', hair: 'default', acc: { backpack: true, camera: false, hat: false, sunglasses: false } }
   };
 
@@ -31,6 +31,8 @@
   Game.boot = async function () {
     const s = load(SETTINGS_KEY);
     if (s) Object.assign(Game.settings, s);
+    // the cel-shaded look is built into every shader, so it is set up first
+    if (Game.settings.style !== 'classic') KT.Toon.patchShaders();
     const canvas = $('game');
     let renderer;
     try {
@@ -46,6 +48,7 @@
     renderer.shadowMap.enabled = Game.settings.quality !== 'low';
     renderer.shadowMap.type = T.PCFSoftShadowMap;
     KT.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    KT.Toon.init(renderer, { outlines: Game.settings.quality !== 'low', samples: 4 });
     applyPixelRatio();
     const scene = Game.scene = new T.Scene();
     const camera = Game.camera = new T.PerspectiveCamera(60, 1, 0.1, 6000);
@@ -160,6 +163,7 @@
   function onResize() {
     const w = window.innerWidth, h = window.innerHeight;
     Game.renderer.setSize(w, h, false);
+    KT.Toon.resize(Game.renderer);
     Game.camera.aspect = w / h;
     Game.camera.updateProjectionMatrix();
   }
@@ -531,7 +535,8 @@
     KT.GFX.update(Math.min(dt, 0.1));
     KT.Audio.updateMusic();
     if (Game.state !== 'menu' && Game.state !== 'loading' && Game.state !== 'auth' && Game.level === 'home') KT.Audio.updateAmbience(dt, KT.Player.pos);
-    Game.renderer.render(Game.scene, Game.camera);
+    if ((toonT -= dt) <= 0) { toonT = 2; KT.Toon.tune(Game.scene); }
+    KT.Toon.render(Game.renderer, Game.scene, Game.camera);
     if (Game.pendingPhoto) capturePhoto();
   }
 
@@ -547,7 +552,7 @@
 
   // The big map opens centred on the player at the last zoom level; it can
   // be zoomed and dragged (KT.UI.bindMapZoom) and repaints while open.
-  let mapRedrawT = 0;
+  let mapRedrawT = 0, toonT = 0;
   function drawMap() {
     const P = KT.Player;
     const o = P.mode === 'bus' && P.bus ? P.bus.obj.position : P.pos;
@@ -878,7 +883,8 @@
       const R = sg.road, end = sg.def.place.stop === 'end';
       const s = end ? R.len - 18 : sg.s - 18, q = R.at(s, end ? -8 : Math.sign(sg.lat || 1) * 8);
       await Game.goHighway({ spot: { x: q.x, z: q.z, heading: Math.atan2(sg.x - q.x, sg.z - q.z) }, quiet: true });
-      KT.UI.toast(sg.icon + ' ' + sg.name + ' • your bus waits at the ' + KT.DISTRICTS[Game.lastHub].name + ' bus stand. Press Y to travel again.', 'info');
+      const stand = KT.DISTRICTS[Hw.status(q).nearest];
+      KT.UI.toast(sg.icon + ' ' + sg.name + ' • your bus waits at the ' + stand.name + ' bus stand. Press Y to travel again.', 'info');
     }
   };
 
@@ -1294,6 +1300,8 @@
     $('set-sens').oninput = (e) => { s.sensitivity = +e.target.value; KT.Input.sensitivity = s.sensitivity; saveSettings(); };
     $('set-invert').onchange = (e) => { s.invertY = e.target.checked; KT.Input.invertY = s.invertY; saveSettings(); };
     $('set-lock').onchange = (e) => { s.mouseLook = e.target.checked; KT.Input.mouseLook = s.mouseLook; saveSettings(); };
+    $('set-style').value = s.style || 'cel';
+    $('set-style').onchange = (e) => { s.style = e.target.value; saveSettings(); $('quality-note').classList.remove('hidden'); };
     $('set-quality').onchange = (e) => {
       s.quality = e.target.value; saveSettings();
       $('quality-note').classList.remove('hidden');

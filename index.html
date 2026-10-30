@@ -222,6 +222,12 @@
             <option value="day">Always sunny daytime</option>
           </select>
         </label>
+        <label>Graphics style
+          <select id="set-style">
+            <option value="cel">Cel-shaded (hand-painted look)</option>
+            <option value="classic">Classic</option>
+          </select>
+        </label>
         <label>Graphics quality
           <select id="set-quality">
             <option value="low">Low (fast)</option>
@@ -229,7 +235,7 @@
             <option value="high">High (shadows+)</option>
           </select>
         </label>
-        <p id="quality-note" class="muted hidden">Quality changes apply the next time the game loads.</p>
+        <p id="quality-note" class="muted hidden">Style and quality changes apply the next time the game loads.</p>
       </div>
       <h3>Controls</h3>
       <table class="controls">
@@ -398,6 +404,7 @@
   <script src="js/lighthouse.js"></script>
   <script src="js/sky.js"></script>
   <script src="js/graphics.js"></script>
+  <script src="js/toon.js"></script>
   <script src="js/preview.js"></script>
   <script src="lib/supabase.min.js"></script>
   <script src="js/net.js"></script>
