@@ -147,6 +147,7 @@
       <button id="btn-online" class="chip-stat online-chip" title="Players online (O)"><span class="net-dot"></span><span id="online-count">offline</span></button>
       <button id="btn-groups" class="icon-btn" title="Groups &amp; chat (T)">&#x1F465;<span id="groups-badge" class="badge hidden"></span></button>
       <button id="btn-garage" class="icon-btn" title="My vehicles (G)">&#x1F6B2;</button>
+      <button id="btn-travel" class="icon-btn" title="Fast travel (Y)">&#x1F9ED;</button>
       <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
     </div>
 
@@ -241,6 +242,7 @@
         <tr><td>Map / View</td><td>M / V (first or third person)</td></tr>
         <tr><td>KSRTC bus</td><td>E to board / get off &middot; W/S accelerate &amp; brake &middot; A/D steer &middot; Space handbrake &middot; H horn &middot; V driver view</td></tr>
         <tr><td>Profile / Players / My vehicles</td><td>J / O / G</td></tr>
+        <tr><td>Fast travel</td><td>Y</td></tr>
         <tr><td>Fishing (Kochi)</td><td>E at a Fishing Point to cast &middot; E / Space to haul when the marker is in the green</td></tr>
       </table>
       <div class="modal-buttons">
@@ -253,7 +255,7 @@
   <!-- Big map -->
   <div id="bigmap" class="screen hidden">
     <div class="modal map-modal">
-      <div class="modal-head"><h2>Map of Kerala Explorer</h2><button id="btn-map-close" class="btn small">&#x2715; Close</button></div>
+      <div class="modal-head"><h2>Map of Kerala Explorer</h2><div class="modal-buttons head-buttons"><button id="btn-map-travel" class="btn small">&#x1F9ED; Fast travel</button><button id="btn-map-close" class="btn small">&#x2715; Close</button></div></div>
       <div class="map-stage">
         <canvas id="bigmap-canvas" width="900" height="900"></canvas>
         <div class="map-zoom">
@@ -296,6 +298,15 @@
       <div class="modal-head"><h2 id="district-name"></h2><button id="btn-district-close" class="btn small">&#x2715; Close</button></div>
       <p id="district-ml" class="district-ml"></p>
       <ul id="district-facts"></ul>
+    </div>
+  </div>
+
+  <!-- Fast travel -->
+  <div id="fasttravel" class="screen hidden">
+    <div class="modal travel-modal">
+      <div class="modal-head"><h2>Fast Travel <small class="muted">(Y)</small></h2><button id="btn-travel-close" class="btn small">&#x2715; Close</button></div>
+      <p class="muted">Jump straight to any district's bus stand, a sight, or home. Your KSRTC bus will wait at the nearest bus stand.</p>
+      <div id="travel-list"></div>
     </div>
   </div>
 

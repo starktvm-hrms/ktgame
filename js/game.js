@@ -228,10 +228,10 @@
     Game.state = s;
     document.body.dataset.state = s;
     KT.Input.enabled = s === 'playing';
-    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage', 'groups'].forEach((id) => {
+    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage', 'groups', 'fasttravel'].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') || (id === 'groups' && s === 'groups') ||
+      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') || (id === 'groups' && s === 'groups') || (id === 'fasttravel' && s === 'fasttravel') ||
         (id === 'pause' && s === 'paused') || (id === 'bigmap' && s === 'map') || (id === 'photo-ui' && s === 'photo') ||
         (id === 'album' && s === 'album') || (id === 'certificate' && s === 'certificate') ||
         (id === 'profile-page' && s === 'profile') || (id === 'players' && s === 'players') || (id === 'district' && s === 'district');
@@ -517,8 +517,8 @@
       mapRedrawT = 0.5;
       drawMap();
     }
-    if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage' || st === 'groups') {
-      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage'))) {
+    if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage' || st === 'groups' || st === 'fasttravel') {
+      if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage')) || (st === 'fasttravel' && input.consume('travel'))) {
         if (st === 'groups') KT.Groups.close(); else Game.setState('playing');
       }
     }
@@ -577,6 +577,7 @@
     if (I.consume('profile')) { KT.Account.openProfile(); return; }
     if (I.consume('players')) { KT.Account.openPlayers(); return; }
     if (I.consume('garage')) { Game.openGarage(); return; }
+    if (I.consume('travel')) { Game.openTravel(); return; }
     if (I.consume('groups')) { KT.Groups.open(); return; }
     if (I.consume('mic')) KT.Voice.toggle(KT.Groups.active);
     if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
@@ -784,7 +785,7 @@
     const homeIdx = KT.DISTRICTS.findIndex((d) => d.home);
     // opts.at: arrive at a spot on the highway (joining a friend), the bus
     // waits at the nearest district bus stand
-    const idx = opts.at ? Hw.status(opts.at).nearest
+    const idx = opts.spot ? Hw.status(opts.spot).nearest : opts.at ? Hw.status(opts.at).nearest
       : opts.hub !== undefined && opts.hub !== null ? KT.clamp(opts.hub, 0, KT.DISTRICTS.length - 1) : homeIdx;
     if (!opts.quiet) KT.Audio.play('door');
     Game.setState('travel');
@@ -804,15 +805,16 @@
       KT.Vehicle.settle(Hw.bus);
     }
     const P = KT.Player;
-    const foot = opts.at ? Hw.at(Hw.project(opts.at.x, opts.at.z).s, Hw.project(opts.at.x, opts.at.z).lat) : Hw.at(hub.s, -10.2);
-    if (opts.at) Hw.stream(foot, 999);
+    const foot = opts.spot ? new THREE.Vector3(opts.spot.x, 0, opts.spot.z)
+      : opts.at ? Hw.at(Hw.project(opts.at.x, opts.at.z).s, Hw.project(opts.at.x, opts.at.z).lat) : Hw.at(hub.s, -10.2);
+    if (opts.at || opts.spot) Hw.stream(foot, 999);
     P.pos.set(foot.x, Hw.groundY(foot.x, foot.z).y, foot.z);
-    P.heading = hub.stopHeading;
+    P.heading = opts.spot && opts.spot.heading !== undefined ? opts.spot.heading : hub.stopHeading;
     P.vy = 0;
     switchLevel(Hw, Hw.scene);
     KT.Traffic.initHighway();
-    if (opts.board !== false) P.boardBus(Hw.bus);
-    KT.CameraRig.yaw = hub.stopHeading + Math.PI;
+    if (opts.board !== false && !opts.spot) P.boardBus(Hw.bus);
+    KT.CameraRig.yaw = P.heading + Math.PI;
     Game.lastHub = idx;
     Hw.update(0.016, P, Game.camera);
     await nextFrame();
@@ -827,6 +829,59 @@
   };
 
   // Back to the Alleppey backwaters map, beside the village bus stand.
+  // ------------------------------------------------------- fast travel
+  // Straight to any district's bus stand, a sight on its own road, or home.
+  Game.openTravel = function () {
+    if (!Game.data || Game.switching) return;
+    renderTravel();
+    Game.setState('fasttravel');
+  };
+  function renderTravel() {
+    const Hw = KT.Highway, list = $('travel-list');
+    const visited = Game.data.districts || [];
+    const here = Game.level === 'highway' ? Hw.status(KT.Player.pos).nearest : -1;
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const btn = (id, icon, name, sub, extra) => '<button class="travel-btn' + (extra || '') + '" data-travel="' + id + '"><span class="t-name"><span class="t-icon">' + icon + '</span> ' + esc(name) + '</span>' + sub + '</button>';
+    let html = '<h3>Home</h3><div class="travel-grid">' + btn('home', '\u{1F3E1}', 'Alappuzha Backwaters', '<span class="t-sub">Village, promenade &amp; lighthouse</span>', Game.level === 'home' ? ' here' : '') + '</div>';
+    html += '<h3>District bus stands</h3><div class="travel-grid">';
+    KT.DISTRICTS.forEach((d, i) => {
+      const sub = '<span class="t-ml">' + esc(d.ml) + '</span><span class="t-sub">' + (i === here ? 'You are here' : visited.indexOf(d.id) >= 0 ? 'Visited ✓' : 'Not visited yet') + '</span>';
+      html += btn('hub:' + i, '\u{1F68C}', d.name, sub, i === here ? ' here' : '');
+    });
+    html += '</div>';
+    // sights that stand on their own roads, by district
+    const dests = Hw.sightList().filter((sg) => sg.dest);
+    KT.DISTRICTS.forEach((d) => {
+      const mine = dests.filter((sg) => sg.district === d);
+      if (!mine.length) return;
+      html += '<h3>Sights in ' + esc(d.name) + '</h3><div class="travel-grid">';
+      mine.forEach((sg) => { html += btn('sight:' + sg.id, sg.icon, sg.name, '<span class="t-sub">' + esc(sg.road.nh) + '</span>'); });
+      html += '</div>';
+    });
+    list.innerHTML = html;
+    list.querySelectorAll('[data-travel]').forEach((b) => { b.onclick = () => Game.fastTravel(b.dataset.travel); });
+  }
+  Game.fastTravel = async function (target) {
+    if (Game.switching) return;
+    const Hw = KT.Highway;
+    if (target === 'home') {
+      await Game.goHome({ title: 'Fast travel • Alappuzha Backwaters', quiet: true });
+      KT.UI.toast('\u{1F9ED} Back at the Alappuzha backwaters.', 'info');
+    } else if (target.startsWith('hub:')) {
+      const i = +target.slice(4);
+      await Game.goHighway({ hub: i, quiet: true });
+      KT.UI.banner(KT.DISTRICTS[i].name, KT.DISTRICTS[i].ml + '  •  Fast travel', 'title');
+    } else if (target.startsWith('sight:')) {
+      const sg = Hw.sightList().find((x) => x.id === target.slice(6));
+      if (!sg) return;
+      // arrive on foot beside the road, facing the sight
+      const R = sg.road, end = sg.def.place.stop === 'end';
+      const s = end ? R.len - 18 : sg.s - 18, q = R.at(s, end ? -8 : Math.sign(sg.lat || 1) * 8);
+      await Game.goHighway({ spot: { x: q.x, z: q.z, heading: Math.atan2(sg.x - q.x, sg.z - q.z) }, quiet: true });
+      KT.UI.toast(sg.icon + ' ' + sg.name + ' • your bus waits at the ' + KT.DISTRICTS[Game.lastHub].name + ' bus stand. Press Y to travel again.', 'info');
+    }
+  };
+
   Game.goHome = async function (opts) {
     opts = opts || {};
     if (Game.switching) return;
@@ -1187,6 +1242,9 @@
     $('btn-district-close').onclick = () => Game.setState('playing');
     $('btn-garage').onclick = () => { if (Game.state === 'playing') Game.openGarage(); };
     $('btn-garage-close').onclick = () => Game.setState('playing');
+    $('btn-travel').onclick = () => { if (Game.state === 'playing') Game.openTravel(); };
+    $('btn-travel-close').onclick = () => Game.setState('playing');
+    $('btn-map-travel').onclick = () => Game.openTravel();
     KT.Groups.bindUI();
     KT.Fishing.bindUI();
     $('btn-continue').onclick = () => Game.start(true);

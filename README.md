@@ -193,6 +193,14 @@ On Supabase, chat, member positions and voice signalling use Realtime
 broadcast channels. With the Node server, chat is checked every few seconds
 and voice is not available.
 
+## Fast travel
+
+Press Y, or the compass button at the top right, or Fast travel on the big
+map, to jump to the Alappuzha backwaters (home), to any of the 14 district
+bus stands, or straight to a sight such as the Napier Museum or Ponmudi
+Hills. At a bus stand you arrive in your KSRTC bus. At a sight you arrive on
+foot, and the bus waits at the nearest bus stand.
+
 ## Thiruvananthapuram's sights
 
 Thiruvananthapuram's sights stand at their real places, each reached by its

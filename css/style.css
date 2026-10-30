@@ -306,6 +306,17 @@ body[data-state="profile"] #hud, body[data-state="players"] #hud, body[data-stat
 #mouse-hint { position: fixed; left: 50%; top: 42%; transform: translateX(-50%); z-index: 30; padding: 0.6rem 1.1rem; border-radius: 999px; background: rgba(10, 30, 22, 0.78); color: #fff; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
 /* garage */
 #garage-list { display: grid; gap: 0.6rem; margin-top: 0.6rem; }
+.travel-modal { width: min(760px, 94vw); }
+.head-buttons { margin-top: 0; }
+#travel-list h3:first-child { margin-top: 0.4rem; }
+.travel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 0.5rem; }
+.travel-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; padding: 0.6rem 0.75rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.travel-btn:hover, .travel-btn:focus-visible { background: rgba(47, 191, 113, 0.22); border-color: rgba(47, 191, 113, 0.6); outline: none; }
+.travel-btn .t-name { font-weight: 700; }
+.travel-btn .t-sub { font-size: 0.8rem; color: var(--muted); }
+.travel-btn .t-ml { font-size: 0.85rem; color: var(--gold); }
+.travel-btn.here { border-color: var(--gold); }
+.travel-btn .t-icon { font-family: system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif; }
 .garage-card { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 0.8rem; padding: 0.7rem 0.9rem; border-radius: 14px; background: rgba(255,255,255,0.06); }
 .garage-card.owned { background: rgba(47, 191, 113, 0.16); }
 .garage-card .g-icon { font-size: 2.6rem; text-align: center; font-family: system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif; }
