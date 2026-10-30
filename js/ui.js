@@ -579,6 +579,10 @@
     g.restore();
   }
   const HW_SCALE = 0.45; // pixels per metre
+  // Kerala's eastern border, north to south (latitude, longitude)
+  const KERALA_EAST = [[12.78, 74.86], [12.7, 75.12], [12.3, 75.42], [12.0, 75.85], [11.75, 76.08], [11.6, 76.35], [11.45, 76.4],
+    [11.2, 76.6], [10.95, 76.82], [10.72, 76.86], [10.55, 76.82], [10.35, 77.05], [10.2, 77.25], [9.95, 77.22], [9.6, 77.2],
+    [9.35, 77.32], [9.05, 77.25], [8.75, 77.18], [8.5, 77.2], [8.28, 77.17]];
   UI.drawMinimapHighway = function (p, heading, zone) {
     const c = $('minimap');
     const g = c.getContext('2d');
@@ -621,29 +625,51 @@
     const g = c.getContext('2d');
     const W = c.width, H = c.height;
     const Hw = KT.Highway;
-    // fit the whole route (north at the top)
+    // fit the whole route (north at the top) on the map of Kerala
     const sEnd = Hw.length();
-    let minX = 1e9, maxX = -1e9;
-    for (let s = 0; s <= sEnd; s += 100) { const x = Hw.roadX(s); minX = Math.min(minX, x); maxX = Math.max(maxX, x); }
-    const sc = (H - 60) / sEnd;
-    const ox = W / 2 - ((minX + maxX) / 2) * sc;
-    const base = (x, z) => [ox + x * sc, H - 30 + z * sc];
+    let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;
+    for (let s = 0; s <= sEnd; s += 100) {
+      const f = Hw.frame(s);
+      minX = Math.min(minX, f.x); maxX = Math.max(maxX, f.x); minZ = Math.min(minZ, f.z); maxZ = Math.max(maxZ, f.z);
+    }
+    const sc = Math.min((W - 120) / (maxX - minX), (H - 60) / (maxZ - minZ));
+    const ox = W / 2 - ((minX + maxX) / 2) * sc, oz = H / 2 - ((minZ + maxZ) / 2) * sc;
+    const base = (x, z) => [ox + x * sc, oz + z * sc];
     clampView(W, H);
     const toMap = viewed(base, W, H);
     UI.worldToBase = base;
     g.setTransform(1, 0, 0, 1, 0, 0);
-    applyView(g, W, H);
-    const grad = g.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, '#3f7fa0'); grad.addColorStop(0.22, '#e8d9a8'); grad.addColorStop(0.3, '#6d9a52'); grad.addColorStop(0.75, '#4f7d3d'); grad.addColorStop(1, '#3d5f35');
-    g.fillStyle = grad;
-    g.fillRect(-W, -H, W * 3, H * 3);
-    g.setTransform(1, 0, 0, 1, 0, 0);
+    // neighbouring states, the Arabian Sea and Kerala itself
+    g.fillStyle = '#8a9a6a';
+    g.fillRect(0, 0, W, H);
+    const geo = (ll) => { const q = Hw.geo(ll[1], ll[0]); return toMap(q.x, q.z); };
+    const poly = (pts, fill, stroke) => {
+      g.beginPath();
+      pts.forEach((m, i) => (i ? g.lineTo(m[0], m[1]) : g.moveTo(m[0], m[1])));
+      g.closePath();
+      g.fillStyle = fill; g.fill();
+      if (stroke) { g.strokeStyle = stroke; g.lineWidth = 2; g.stroke(); }
+    };
+    const coast = Hw.COAST.map(geo);
+    const far = (W + H) * 20, cN = coast[coast.length - 1];
+    poly([[coast[0][0], far]].concat(coast, [[cN[0], -far], [-far, -far], [-far, far]]), '#3f7fa0');
+    const land = coast.concat(KERALA_EAST.map(geo));
+    const lg = g.createLinearGradient(toMap(minX, 0)[0], 0, toMap(maxX, 0)[0], 0);
+    lg.addColorStop(0, '#79a85a'); lg.addColorStop(0.55, '#5a8a45'); lg.addColorStop(1, '#3f6a35');
+    poly(land, lg, '#f4efe2');
+    // the sandy shore
+    g.beginPath(); coast.forEach((m, i) => (i ? g.lineTo(m[0], m[1]) : g.moveTo(m[0], m[1])));
+    g.strokeStyle = '#e8d9a8'; g.lineWidth = 3; g.stroke();
     g.fillStyle = 'rgba(255,255,255,0.85)';
     g.font = 'italic bold 16px Georgia, serif';
-    g.textAlign = 'left';
-    g.fillText('Arabian Sea', 14, H / 2);
-    g.textAlign = 'right';
-    g.fillText('Western Ghats', W - 14, H / 2);
+    g.textAlign = 'center';
+    const sea = geo([10.2, 75.3]), gh = geo([10.9, 77.3]), tn = geo([9.0, 77.6]), ka = geo([12.4, 75.9]);
+    g.fillText('Arabian Sea', sea[0], sea[1]);
+    g.font = 'italic 13px Georgia, serif';
+    g.fillStyle = 'rgba(255,255,255,0.7)';
+    g.fillText('Western Ghats', gh[0], gh[1]);
+    g.fillText('Tamil Nadu', tn[0], tn[1]);
+    g.fillText('Karnataka', ka[0], ka[1]);
     drawRoadPath(g, 0, sEnd, toMap, 4 + 2 * Math.min(view.zoom, 3), '#2d2d2d');
     drawRoadPath(g, 0, sEnd, toMap, 1.5, '#ffd34d');
     const visited = (KT.Game.data && KT.Game.data.districts) || [];

@@ -1,6 +1,6 @@
 // The Kerala Highway: a long road from Thiruvananthapuram (south) to
-// Kasaragod (north) linking all 14 district centres, 3 km apart in game
-// (60 km at the 1:20 map scale). Terrain, road and roadside scenery are
+// Kasaragod (north) linking all 14 district centres, laid out on the real
+// map of Kerala at the 1:20 map scale. Terrain, road and roadside scenery are
 // generated in tiles around the player; district hubs are built when the
 // player approaches.
 (function () {
@@ -8,7 +8,6 @@
   const T = THREE, G = KT.G, part = KT.part, Models = KT.Models;
   const Hw = KT.Highway = {
     id: 'highway', code: 1, built: false, animTime: 0,
-    SPACING: 3000, START: 400,
     CROSSING: -17, // zebra crossing and signals, relative to each district centre
     colliders: [], grid: new Map(), cell: 32, interactables: [], hubs: [], npcs: [],
     tiles: new Map(), segs: new Map(), lastS: -1e9
@@ -18,27 +17,225 @@
   const FOOT0 = 8.0, FOOT1 = 13.6; // town footpaths (lateral range)
 
   // ---------------------------------------------------------- road path
-  const roadX = (s) => 380 * Math.sin(s / 2600) + 140 * Math.sin(s / 780 + 1.3);
-  const roadY = (s) => 4 + 5 * Math.sin(s / 1700) + 2.5 * Math.sin(s / 530 + 2);
-  Hw.roadX = roadX; Hw.roadY = roadY;
-  Hw.hubS = (i) => Hw.START + i * Hw.SPACING;
+  // The road follows the real map of Kerala. Each district centre sits at
+  // its real latitude and longitude (1 km = 50 game metres, the 1:20 map
+  // scale; +x is east, -z is north), and the road curves between them: down
+  // the coast from Thiruvananthapuram, inland to Pathanamthitta, back to the
+  // backwaters, up into the Idukki hills, down to Kochi and so on to
+  // Kasaragod. The path is a smooth curve sampled every 2 m.
+  const KM = 50;
+  const LONLAT = {
+    tvm: [76.9366, 8.5241], klm: [76.6141, 8.8932], pta: [76.787, 9.2648], alp: [76.3388, 9.4981],
+    ktm: [76.5222, 9.5916], idk: [76.94, 9.85], ekm: [76.2999, 9.9816], tsr: [76.2144, 10.5276],
+    pkd: [76.6548, 10.7867], mlp: [76.0711, 11.051], kkd: [75.7804, 11.2588], wyd: [76.08, 11.61],
+    knr: [75.3704, 11.8745], ksd: [74.9869, 12.4996]
+  };
+  Hw.geo = (lon, lat) => ({ x: (lon - 76) * 109.3 * KM, z: -(lat - 8.5) * 111 * KM });
+  Hw.toLonLat = (x, z) => ({ lon: 76 + x / (109.3 * KM), lat: 8.5 - z / (111 * KM) });
+  // the Arabian Sea coastline (longitude at each latitude)
+  const COAST = [[8.2, 77.15], [8.38, 76.99], [8.5, 76.9], [8.75, 76.7], [8.88, 76.57], [9.1, 76.47], [9.3, 76.42],
+    [9.49, 76.32], [9.7, 76.28], [9.97, 76.23], [10.2, 76.16], [10.5, 76.03], [10.77, 75.92], [11.0, 75.85],
+    [11.25, 75.77], [11.5, 75.6], [11.7, 75.5], [11.87, 75.35], [12.1, 75.17], [12.3, 75.08], [12.5, 74.98], [12.8, 74.85]];
+  Hw.COAST = COAST;
+  Hw.coastX = function (z) {
+    const lat = 8.5 - z / (111 * KM);
+    let i = 0;
+    while (i < COAST.length - 2 && COAST[i + 1][0] < lat) i++;
+    const a = COAST[i], b = COAST[i + 1], t = KT.clamp((lat - a[0]) / (b[0] - a[0]), 0, 1);
+    return (a[1] + (b[1] - a[1]) * t - 76) * 109.3 * KM;
+  };
+  // how far into the Western Ghats a point is (0 on the plains, 1 in the hills)
+  Hw.ghats = (x, z) => KT.smoothstep(1300, 3100, x - Hw.coastX(z));
+
+  const STEP = 2;
+  const PX = [], PZ = [], PY = [];
+  const HUB_S = [];
+  (function buildPath() {
+    const pts = KT.DISTRICTS.map((d) => { const ll = LONLAT[d.id] || [76, 8.5 + d.index]; return Hw.geo(ll[0], ll[1]); });
+    const n = pts.length;
+    const unit = (x, z) => { const l = Math.hypot(x, z) || 1; return { x: x / l, z: z / l }; };
+    // through each town the road runs straight, between the directions it
+    // comes in and goes out on; the bends lie between towns
+    const tan = pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+      const ui = i > 0 ? unit(p.x - a.x, p.z - a.z) : null, uo = i < n - 1 ? unit(b.x - p.x, b.z - p.z) : null;
+      if (!ui || !uo) return ui || uo;
+      // lean towards the shorter leg, which has less room to turn
+      const li = 1 / Math.hypot(p.x - a.x, p.z - a.z), lo = 1 / Math.hypot(b.x - p.x, b.z - p.z);
+      return unit(ui.x * li + uo.x * lo, ui.z * li + uo.z * lo);
+    });
+    // Hermite piece from A (direction tA) to B (tB), tension f * chord
+    const herm = (A, tA, B, tB, m, u, o) => {
+      const u2 = u * u, u3 = u2 * u;
+      const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+      o.x = h00 * A.x + h10 * m * tA.x + h01 * B.x + h11 * m * tB.x;
+      o.z = h00 * A.z + h10 * m * tA.z + h01 * B.z + h11 * m * tB.z;
+      return o;
+    };
+    const TENSION = [0.6, 0.8, 1, 1.25, 1.6, 2], ENOUGH = 450;
+    // tightest bend radius of the piece between town i and i + 1, at its best tension
+    const _a = {}, _b = {}, _c2 = {};
+    function bestPiece(i, ti, tj) {
+      const A = { x: pts[i].x + ti.x * 250, z: pts[i].z + ti.z * 250 }, B = { x: pts[i + 1].x - tj.x * 250, z: pts[i + 1].z - tj.z * 250 };
+      const L = Math.hypot(B.x - A.x, B.z - A.z);
+      let best = { R: -1, f: 1 };
+      TENSION.forEach((f) => {
+        let minR = 1e9, minE = 1e9;
+        for (let k = 1; k < 60; k++) {
+          const u = k / 60, du = 1 / 120;
+          herm(A, ti, B, tj, L * f, u - du, _a); herm(A, ti, B, tj, L * f, u, _b); herm(A, ti, B, tj, L * f, u + du, _c2);
+          const ax = _b.x - _a.x, az = _b.z - _a.z, bx = _c2.x - _b.x, bz = _c2.z - _b.z;
+          const cross = Math.abs(ax * bz - az * bx), la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+          const R = (la * lb * Math.hypot(ax + bx, az + bz)) / Math.max(1e-9, 2 * cross);
+          if (R < minR) minR = R;
+          minE = Math.min(minE, _b.x - Hw.coastX(_b.z));
+        }
+        // wide enough is enough: then the shortest (lowest tension) wins;
+        // keep out of the sea
+        const score = Math.min(minR, ENOUGH) + Math.min(0, minE - 120) * 3;
+        if (score > best.R + 1) best = { R: score, f, minE };
+      });
+      return best;
+    }
+    const rot = (t, a) => ({ x: t.x * Math.cos(a) - t.z * Math.sin(a), z: t.x * Math.sin(a) + t.z * Math.cos(a) });
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < n; i++) {
+        const base = tan[i];
+        let bestT = base, bestR = -1;
+        for (let k = 0; k <= 40; k++) {
+          const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.07; // nearest the first guess first
+          const t = rot(base, a);
+          const R = Math.min(i > 0 ? bestPiece(i - 1, tan[i - 1], t).R : 1e9, i < n - 1 ? bestPiece(i, t, tan[i + 1]).R : 1e9);
+          if (R > bestR + 1) { bestR = R; bestT = t; }
+        }
+        tan[i] = bestT;
+      }
+    }
+    const nodes = [];
+    pts.forEach((p, i) => {
+      const t = tan[i], back = i === 0 ? 400 : 250, fwd = i === n - 1 ? 600 : 250;
+      nodes.push({ x: p.x - t.x * back, z: p.z - t.z * back, t, town: true });
+      nodes.push({ x: p.x, z: p.z, t, hub: i, town: true });
+      const bp = i < n - 1 ? bestPiece(i, t, tan[i + 1]) : { f: 1, minE: 0 };
+      nodes.push({ x: p.x + t.x * fwd, z: p.z + t.z * fwd, t, f: bp.f, inland: bp.minE > 700 });
+    });
+    // dense samples of each Hermite piece, with a gentle S-bend in the long ones
+    const dense = [];
+    for (let k = 0; k < nodes.length - 1; k++) {
+      const A = nodes[k], B = nodes[k + 1], L = Math.hypot(B.x - A.x, B.z - A.z);
+      const tA = A.t, tB = B.t, cx = (B.x - A.x) / L, cz = (B.z - A.z) / L;
+      const dev = 1 - Math.min(tA.x * cx + tA.z * cz, tB.x * cx + tB.z * cz);
+      const m = L * (A.f || 1);
+      const nx = -cz, nz = cx;
+      const amp = A.inland && L > 1500 && dev < 0.3 ? L * 0.05 * ((k / 3) % 2 ? 1 : -1) : 0;
+      const N = Math.ceil(L / 0.5);
+      for (let j = k === 0 ? 0 : 1; j <= N; j++) {
+        const u = j / N, u2 = u * u, u3 = u2 * u;
+        const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+        const w = amp * Math.pow(Math.sin(Math.PI * u), 2) * Math.sin(2 * Math.PI * u + k);
+        dense.push({
+          x: h00 * A.x + h10 * m * tA.x + h01 * B.x + h11 * m * tB.x + nx * w,
+          z: h00 * A.z + h10 * m * tA.z + h01 * B.z + h11 * m * tB.z + nz * w,
+          hub: j === N && B.hub !== undefined ? B.hub : -1
+        });
+      }
+    }
+    // resample at an even 2 m along the curve
+    let acc = 0, next = 0;
+    PX.push(dense[0].x); PZ.push(dense[0].z); next = STEP;
+    for (let i = 1; i < dense.length; i++) {
+      const a = dense[i - 1], b = dense[i], d = Math.hypot(b.x - a.x, b.z - a.z);
+      while (acc + d >= next) {
+        const t = (next - acc) / d;
+        PX.push(a.x + (b.x - a.x) * t); PZ.push(a.z + (b.z - a.z) * t);
+        next += STEP;
+      }
+      acc += d;
+      if (b.hub >= 0) HUB_S[b.hub] = acc;
+    }
+    // road height: rolling plains, climbing into the ghats
+    for (let i = 0; i < PX.length; i++) {
+      const s = i * STEP;
+      PY.push(4 + 5 * Math.sin(s / 1700) + 2.5 * Math.sin(s / 530 + 2) + 30 * Hw.ghats(PX[i], PZ[i]));
+    }
+    // smooth the climb so the road never gets steep
+    for (let pass = 0; pass < 2; pass++) {
+      const src = PY.slice(), R = 60;
+      for (let i = 0; i < PY.length; i++) {
+        let sum = 0, c = 0;
+        for (let j = Math.max(0, i - R); j <= Math.min(PY.length - 1, i + R); j += 4) { sum += src[j]; c++; }
+        PY[i] = sum / c;
+      }
+    }
+  })();
+  const LAST = PX.length - 1, PATH_LEN = LAST * STEP;
+  const roadY = (s) => {
+    const f = KT.clamp(s / STEP, 0, LAST), i = Math.min(LAST - 1, Math.floor(f)), t = f - i;
+    return PY[i] + (PY[i + 1] - PY[i]) * t;
+  };
+  Hw.roadY = roadY;
+  Hw.hubS = (i) => HUB_S[KT.clamp(i, 0, HUB_S.length - 1)];
   Hw.length = () => Hw.hubS(KT.DISTRICTS.length - 1) + 600;
+  // the district centre nearest to a distance along the road
+  Hw.hubIndexAt = function (s) {
+    let best = 0, bd = 1e12;
+    for (let i = 0; i < HUB_S.length; i++) { const d = Math.abs(HUB_S[i] - s); if (d < bd) { bd = d; best = i; } }
+    return best;
+  };
   Hw.frame = function (s, out) {
     out = out || {};
-    const dx = (roadX(s + 0.5) - roadX(s - 0.5));
-    const l = Math.hypot(dx, 1);
-    out.x = roadX(s); out.z = -s; out.y = roadY(s);
-    out.fx = dx / l; out.fz = -1 / l;   // forward (towards the north)
-    out.rx = -out.fz; out.rz = out.fx;  // right-hand side (east)
+    const f = s / STEP;
+    let i = Math.floor(f);
+    i = KT.clamp(i, 0, LAST - 1);
+    const t = f - i; // beyond the ends this runs on along the end direction
+    const dx = PX[i + 1] - PX[i], dz = PZ[i + 1] - PZ[i], l = Math.hypot(dx, dz) || 1;
+    // blend the direction with the neighbouring piece for smooth headings
+    const j = t < 0.5 ? Math.max(0, i - 1) : Math.min(LAST - 1, i + 1);
+    const ex = PX[j + 1] - PX[j], ez = PZ[j + 1] - PZ[j], el = Math.hypot(ex, ez) || 1;
+    const b = (t >= 0 && t <= 1) ? Math.abs(t - 0.5) : 0;
+    let fx = (dx / l) * (1 - b) + (ex / el) * b, fz = (dz / l) * (1 - b) + (ez / el) * b;
+    const fl = Math.hypot(fx, fz) || 1;
+    out.x = PX[i] + dx * t; out.z = PZ[i] + dz * t; out.y = roadY(s);
+    out.fx = fx / fl; out.fz = fz / fl;  // forward (towards Kasaragod)
+    out.rx = -out.fz; out.rz = out.fx;    // right-hand side
     out.heading = Math.atan2(out.fx, out.fz);
     return out;
   };
+  // Nearest point on the road. Coarse samples near each 100 m cell are
+  // worked out once, then the closest one is refined.
+  const CSTEP = 10, CCELL = 100, cand = new Map();
+  function candidates(cx, cz) {
+    const key = cx * 100003 + cz;
+    let c = cand.get(key);
+    if (c) return c;
+    const x = (cx + 0.5) * CCELL, z = (cz + 0.5) * CCELL;
+    let dmin = 1e12;
+    const ds = [];
+    for (let i = 0; i <= LAST; i += CSTEP) { const d = Math.hypot(PX[i] - x, PZ[i] - z); ds.push(d); if (d < dmin) dmin = d; }
+    const lim = dmin + CCELL * 1.5 + CSTEP * STEP;
+    c = [];
+    ds.forEach((d, k) => { if (d <= lim) c.push(k * CSTEP); });
+    if (cand.size > 60000) cand.clear();
+    cand.set(key, c);
+    return c;
+  }
   const _fr = {};
   Hw.project = function (x, z) {
-    let s = -z;
-    for (let i = 0; i < 3; i++) {
+    const c = candidates(Math.floor(x / CCELL), Math.floor(z / CCELL));
+    let bi = 0, bd = 1e18;
+    for (let k = 0; k < c.length; k++) {
+      const i = c[k], dx = PX[i] - x, dz = PZ[i] - z, d = dx * dx + dz * dz;
+      if (d < bd) { bd = d; bi = i; }
+    }
+    for (let i = Math.max(0, bi - CSTEP); i <= Math.min(LAST, bi + CSTEP); i++) {
+      const dx = PX[i] - x, dz = PZ[i] - z, d = dx * dx + dz * dz;
+      if (d < bd) { bd = d; bi = i; }
+    }
+    let s = bi * STEP;
+    for (let it = 0; it < 3; it++) {
       Hw.frame(s, _fr);
-      s += (x - _fr.x) * _fr.fx + (z - _fr.z) * _fr.fz;
+      const ds = (x - _fr.x) * _fr.fx + (z - _fr.z) * _fr.fz;
+      s += (bi > 0 && bi < LAST) ? KT.clamp(ds, -STEP * 1.5, STEP * 1.5) : ds;
     }
     Hw.frame(s, _fr);
     return { s, lat: (x - _fr.x) * _fr.rx + (z - _fr.z) * _fr.rz };
@@ -49,50 +246,66 @@
     return out.set(f.x + f.rx * lat, 0, f.z + f.rz * lat);
   };
 
-  // rivers cross the road half-way between district centres
+  // rivers cross the road half-way between district centres, at right angles
   const RIVERS = [];
-  for (let i = 0; i < 13; i++) RIVERS.push({ s: Hw.START + i * Hw.SPACING + 1500 + ((i * 37) % 300) - 150 });
-  RIVERS.forEach((r) => { r.y = roadY(r.s) - 5; r.cz = -r.s; });
+  for (let i = 0; i < 13; i++) {
+    const a = HUB_S[i], b = HUB_S[i + 1];
+    RIVERS.push({ s: Math.round((a + b) / 2 + ((i * 37) % 120) - 60) });
+  }
+  RIVERS.forEach((r) => {
+    const f = Hw.frame(r.s);
+    Object.assign(r, { y: roadY(r.s) - 5, cx: f.x, cz: f.z, fx: f.fx, fz: f.fz, rx: f.rx, rz: f.rz });
+  });
   // the real rivers the highway crosses between each pair of districts
   ['Ithikkara', 'Kallada', 'Achankovil', 'Meenachil', 'Manimala', 'Periyar', 'Chalakudy', 'Bharathapuzha', 'Thoothapuzha', 'Chaliyar', 'Kuttiyadi', 'Valapattanam', 'Chandragiri']
     .forEach((n, i) => { if (RIVERS[i]) RIVERS[i].name = n + (n.endsWith('puzha') ? '' : ' River'); });
-  const riverZ = (r, x) => r.cz + 30 * Math.sin(x / 90 + r.s);
+  Hw.RIVERS = RIVERS;
+  const RIVER_HALF = 700; // the river runs this far either side of the bridge
+  // a river's own axes: u across the road, v along it; the river winds in v
+  const riverV = (r, u) => 30 * Math.sin(u / 90 + r.s);
+  function riverLocal(r, x, z) {
+    const dx = x - r.cx, dz = z - r.cz;
+    const u = dx * r.rx + dz * r.rz, v = dx * r.fx + dz * r.fz;
+    return { u, dv: v - riverV(r, u) };
+  }
+  const riverWorld = (r, u, dv) => { const v = riverV(r, u) + dv; return { x: r.cx + r.rx * u + r.fx * v, z: r.cz + r.rz * u + r.fz * v }; };
 
   // ------------------------------------------------------------- terrain
   Hw.height = function (x, z) {
     const p = Hw.project(x, z);
     const s = p.s, lat = p.lat;
     let h = 4 + KT.fbm(x * 0.004 + 11, z * 0.004, 4) * 10 + roadY(s) * 0.4;
-    // Western Ghats rising in the east, coastal plain to the west
-    h += KT.smoothstep(120, 700, lat) * (25 + 30 * Math.max(0, KT.fbm(x * 0.003, z * 0.003, 3)));
-    h -= KT.smoothstep(-150, -600, lat) * 3;
+    // Western Ghats rising inland, low coastal plain towards the sea
+    const gh = Hw.ghats(x, z);
+    h += gh * (25 + 30 * Math.max(0, KT.fbm(x * 0.003, z * 0.003, 3)));
+    h -= (1 - KT.smoothstep(0, 900, x - Hw.coastX(z))) * 3;
     // road embankment
-    const w = 1 - KT.smoothstep(8, 30, Math.abs(lat));
+    const w = 1 - KT.smoothstep(8, 30 + 30 * gh, Math.abs(lat));
     h = KT.lerp(h, roadY(s) - 0.2, w);
     // flat ground around each district centre
-    const hi = Math.round((s - Hw.START) / Hw.SPACING);
-    if (hi >= 0 && hi < KT.DISTRICTS.length) {
-      const hs = Hw.hubS(hi);
-      if (Math.abs(s - hs) < 330) {
-        const d = Math.hypot(s - hs, lat);
-        h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
-      }
+    const hi = Hw.hubIndexAt(s);
+    const hs = Hw.hubS(hi);
+    if (Math.abs(s - hs) < 330) {
+      const d = Math.hypot(s - hs, lat);
+      h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
     }
     // river valleys
     for (let i = 0; i < RIVERS.length; i++) {
       const r = RIVERS[i];
-      if (Math.abs(r.s - s) > 120) continue;
-      const dz = Math.abs(z - riverZ(r, x));
-      const carve = 1 - KT.smoothstep(16, 50, dz);
+      if (Math.abs(x - r.cx) > RIVER_HALF + 60 || Math.abs(z - r.cz) > RIVER_HALF + 60) continue;
+      const q = riverLocal(r, x, z);
+      if (Math.abs(q.u) > RIVER_HALF + 20) continue;
+      const carve = 1 - KT.smoothstep(16, 50, Math.abs(q.dv));
       if (carve > 0) h = KT.lerp(h, r.y - 2.5, carve);
     }
     return h;
   };
   Hw.waterLevelAt = function (x, z) {
-    const s = -z;
     for (let i = 0; i < RIVERS.length; i++) {
       const r = RIVERS[i];
-      if (Math.abs(r.s - s) < 120 && Math.abs(z - riverZ(r, x)) < 40) return r.y;
+      if (Math.abs(x - r.cx) > RIVER_HALF + 60 || Math.abs(z - r.cz) > RIVER_HALF + 60) continue;
+      const q = riverLocal(r, x, z);
+      if (Math.abs(q.u) < RIVER_HALF && Math.abs(q.dv) < 40) return r.y;
     }
     return -1e9;
   };
@@ -103,7 +316,7 @@
     let y = Hw.height(x, z);
     if (Math.abs(p.lat) < ROAD_HALF + 0.6) y = Math.max(y, roadY(p.s) + 0.06);
     else if (Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
-      const hi = Math.round((p.s - Hw.START) / Hw.SPACING), hub = Hw.hubs[hi];
+      const hi = Hw.hubIndexAt(p.s), hub = Hw.hubs[hi];
       if (hub && hub.footpaths && hub.footpaths.some((g) => g[0] <= p.s - hub.s && p.s - hub.s <= g[1] && Math.sign(p.lat) === g[2])) y = Math.max(y, roadY(p.s) + 0.14);
     }
     return { y, onPlatform: false };
@@ -349,7 +562,7 @@
       const n = 2 + Math.floor(rng() * 3);
       const start = s0 + 15 + rng() * (SEG_LEN - 30 - n * 4.8);
       const end = start + n * 4.8;
-      const hi = Math.round((start - Hw.START) / Hw.SPACING);
+      const hi = Hw.hubIndexAt(start);
       if (hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(start - Hw.hubS(hi)) < 330) continue;
       if (RIVERS.some((r) => r.s > start - 90 && r.s < end + 90)) continue;
       if (Math.floor((start - 14) / 500) !== Math.floor((end + 14) / 500)) continue; // keep clear of direction signs
@@ -374,7 +587,8 @@
     const n2 = KT.noise(x * 0.004 + 9, z * 0.004);
     _c.setRGB(0.55 + n * 0.08, 0.78 + n * 0.08, 0.42 + n * 0.05);
     if (n2 > 0.25 && Math.abs(lat) > 40 && Math.abs(lat) < 260 && h < roadY(sLoc) + 3) _c.setRGB(0.66, 0.95, 0.42); // paddy
-    if (lat > 200) _c.lerp(new T.Color(0.42, 0.62, 0.36), KT.smoothstep(200, 500, lat)); // darker ghats
+    const gh = Hw.ghats(x, z);
+    if (gh > 0) _c.lerp(new T.Color(0.42, 0.62, 0.36), gh * KT.smoothstep(20, 120, Math.abs(lat))); // darker ghats
     const a = Math.abs(lat);
     if (a > ROAD_HALF - 0.5 && a < 10) _c.lerp(new T.Color(0.75, 0.48, 0.32), 1 - KT.smoothstep(7.5, 10, a)); // laterite shoulder
     const wl = Hw.waterLevelAt(x, z);
@@ -415,7 +629,7 @@
     const free = (x, z, pad) => {
       const p = Hw.project(x, z);
       if (Math.abs(p.lat) < ROAD_HALF + pad || Math.abs(p.lat) > MAX_LAT + 120) return null;
-      const hi = Math.round((p.s - Hw.START) / Hw.SPACING);
+      const hi = Hw.hubIndexAt(p.s);
       if (hi >= 0 && hi < KT.DISTRICTS.length && Math.hypot(p.s - Hw.hubS(hi), p.lat) < 260) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (Math.abs(p.lat) < 20 && nearShop(p.s, p.lat)) return null;
@@ -428,7 +642,7 @@
       const near = Math.abs(p.lat) < 60;
       if (!near && rng() < 0.45) continue;
       const r = rng();
-      if (p.lat > 160 && rng() < 0.55) add('forest', x, z, rng() * 6.28, 0.8 + rng() * 0.5, { type: 'circle', r: 0.6 });
+      if (Math.abs(p.lat) > 40 && rng() < 0.65 * Hw.ghats(x, z)) add('forest', x, z, rng() * 6.28, 0.8 + rng() * 0.5, { type: 'circle', r: 0.6 });
       else if (r < 0.5) add('palm', x, z, rng() * 6.28, 0.85 + rng() * 0.4, { type: 'circle', r: 0.4 });
       else if (r < 0.62) add(rng() < 0.75 ? 'areca' : 'jack', x, z, rng() * 6.28, 0.85 + rng() * 0.3, { type: 'circle', r: 0.5 });
       else if (r < 0.8) add('banana', x, z, rng() * 6.28, 0.9 + rng() * 0.3, { type: 'circle', r: 0.35 });
@@ -440,7 +654,7 @@
     for (let i = 0; i < 2; i++) {
       if (rng() < 0.45) continue;
       const side = rng() < 0.5 ? -1 : 1;
-      const sLoc = -(z0 + rng() * TILE);
+      const sLoc = Hw.project(x0 + rng() * TILE, z0 + rng() * TILE).s;
       const lat = side * (24 + rng() * 22);
       const q = Hw.at(sLoc, lat);
       if (q.x < x0 || q.x > x0 + TILE || q.z < z0 || q.z > z0 + TILE) continue;
@@ -494,7 +708,7 @@
     // painted kerbs along the open road (towns have footpaths instead) and
     // reflectors down the centre line
     const kerbW = [], kerbB = [], eyes = [];
-    const inTown = (s) => { const hi = Math.round((s - Hw.START) / Hw.SPACING); return hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(s - Hw.hubS(hi)) < 205; };
+    const inTown = (s) => { const hi = Hw.hubIndexAt(s); return hi >= 0 && hi < KT.DISTRICTS.length && Math.abs(s - Hw.hubS(hi)) < 205; };
     const kerbGeo = G.box(0.22, 0.34, 0.96), eyeGeo = G.box(0.14, 0.04, 0.2);
     for (let s = Math.ceil(s0); s < s1; s += 1) {
       if (onBridge(s)) continue;
@@ -573,6 +787,7 @@
         part(g, G.box(0.25, 0.9, 4.1), mats.concrete, q.x, y + 0.45, q.z, 0, f.heading, 0);
         part(g, G.box(0.3, 0.12, 4.1), mats.kerb, q.x, y + 0.95, q.z, 0, f.heading, 0);
       });
+      if (Math.abs(d) <= span / 2 + 2) part(g, G.box(ROAD_HALF * 2 + 0.6, 0.8, 4.1), mats.concrete, f.x, y - 0.46, f.z, 0, f.heading, 0);
       if (Math.abs(d % 20) < 0.01 && Math.abs(d) < span / 2 - 5) {
         [-1, 1].forEach((side) => {
           const q = Hw.at(s, side * 3.5);
@@ -580,19 +795,18 @@
         });
       }
     }
-    const deck = Hw.frame(r.s);
-    part(g, G.box(ROAD_HALF * 2 + 0.6, 0.8, span), mats.concrete, deck.x, roadY(r.s) - 0.4, deck.z, 0, deck.heading, 0);
     const baked = KT.bake(g);
     // the river itself
     const water = new T.Mesh(new T.PlaneGeometry(1400, 70, 70, 1), mats.water);
     water.rotation.x = -Math.PI / 2;
     const P = water.geometry.attributes.position;
     for (let i = 0; i < P.count; i++) {
-      const x = P.getX(i) + deck.x;
-      const zOff = P.getY(i);
-      P.setXYZ(i, x - deck.x, -(riverZ(r, x) - r.cz) + zOff, 0); // keep the winding: faces up
+      const q = riverWorld(r, P.getX(i), P.getY(i));
+      P.setXYZ(i, q.x - r.cx, -(q.z - r.cz), 0); // turned flat below (plane y = -z); (u, v) keeps the winding, so it faces up
     }
-    water.position.set(deck.x, r.y, r.cz);
+    water.geometry.computeVertexNormals();
+    water.geometry.computeBoundingSphere();
+    water.position.set(r.cx, r.y, r.cz);
     baked.add(water);
     // river name boards at both ends of the bridge, and a country boat
     if (r.name) {
@@ -605,10 +819,11 @@
         baked.add(board);
       });
     }
-    const boatX = deck.x + 38 * (r.s % 2 ? 1 : -1);
+    const boatU = 38 * (r.s % 2 ? 1 : -1);
     const boat = Models.canoe();
-    boat.position.set(boatX, r.y + 0.05, riverZ(r, boatX) + 3);
-    boat.rotation.y = Math.atan2(1, (riverZ(r, boatX + 1) - riverZ(r, boatX)));
+    const b0 = riverWorld(r, boatU, 3), b1 = riverWorld(r, boatU + 1, 3);
+    boat.position.set(b0.x, r.y + 0.05, b0.z);
+    boat.rotation.y = Math.atan2(b1.x - b0.x, b1.z - b0.z);
     baked.add(boat);
     // bridge railings block walking off the deck
     if (!Hw.tileColliders.has('bridge' + r.s)) {
@@ -1291,7 +1506,7 @@
         gcCache.set(ck, none);
         const p = Hw.project(x, z);
         if (Math.abs(p.lat) < ROAD_HALF + 1.4) continue;
-        const hi = Math.round((p.s - Hw.START) / Hw.SPACING);
+        const hi = Hw.hubIndexAt(p.s);
         const hub = Hw.hubs[hi];
         if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
         const h = Hw.height(x, z);
