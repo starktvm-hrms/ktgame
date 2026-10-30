@@ -53,6 +53,9 @@
   const RIVERS = [];
   for (let i = 0; i < 13; i++) RIVERS.push({ s: Hw.START + i * Hw.SPACING + 1500 + ((i * 37) % 300) - 150 });
   RIVERS.forEach((r) => { r.y = roadY(r.s) - 5; r.cz = -r.s; });
+  // the real rivers the highway crosses between each pair of districts
+  ['Ithikkara', 'Kallada', 'Achankovil', 'Meenachil', 'Manimala', 'Periyar', 'Chalakudy', 'Bharathapuzha', 'Thoothapuzha', 'Chaliyar', 'Kuttiyadi', 'Valapattanam', 'Chandragiri']
+    .forEach((n, i) => { if (RIVERS[i]) RIVERS[i].name = n + (n.endsWith('puzha') ? '' : ' River'); });
   const riverZ = (r, x) => r.cz + 30 * Math.sin(x / 90 + r.s);
 
   // ------------------------------------------------------------- terrain
@@ -590,6 +593,22 @@
     }
     water.position.set(deck.x, r.y, r.cz);
     baked.add(water);
+    // river name boards at both ends of the bridge, and a country boat
+    if (r.name) {
+      [-1, 1].forEach((e) => {
+        const sb = Hw.at(r.s + e * (span / 2 + 20), -(ROAD_HALF + 2.2));
+        const board = Models.signboard([r.name, 'പുഴ • River']);
+        board.position.set(sb.x, Hw.groundY(sb.x, sb.z).y, sb.z);
+        board.rotation.y = Hw.frame(r.s).heading + Math.PI / 2 - e * 0.5; // angled towards the traffic coming up to it
+        board.scale.setScalar(1.3);
+        baked.add(board);
+      });
+    }
+    const boatX = deck.x + 38 * (r.s % 2 ? 1 : -1);
+    const boat = Models.canoe();
+    boat.position.set(boatX, r.y + 0.05, riverZ(r, boatX) + 3);
+    boat.rotation.y = Math.atan2(1, (riverZ(r, boatX + 1) - riverZ(r, boatX)));
+    baked.add(boat);
     // bridge railings block walking off the deck
     if (!Hw.tileColliders.has('bridge' + r.s)) {
       Hw.tileColliders.add('bridge' + r.s);

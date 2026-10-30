@@ -35,6 +35,11 @@ jobs:
           mkdir -p _site
           cp -r index.html css js lib assets _site/
           touch _site/.nojekyll
+          # stamp every script and stylesheet with this version so browsers
+          # load the new files right away instead of cached old ones
+          v=$(echo "$GITHUB_SHA" | cut -c1-8)
+          sed -i -E "s#(src|href)=\"((js|css|lib|assets)/[^\"?]+)\"#\1=\"\2?v=$v\"#g" _site/index.html
+          grep -c "?v=$v" _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
