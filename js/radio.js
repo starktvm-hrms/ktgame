@@ -13,20 +13,32 @@
   const $ = (id) => document.getElementById(id);
   let audio = null, hls = null, hlsLoading = null, failT = null, tries = 0;
 
+  async function getJSON(url) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      return res.ok ? await res.json() : null;
+    } finally { clearTimeout(t); }
+  }
   async function fetchStations() {
+    const q = '?hidebroken=true&order=clickcount&reverse=true&limit=300';
     for (const host of API) {
       try {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 8000);
-        const res = await fetch(host + '/json/stations/bylanguage/malayalam?hidebroken=true&order=clickcount&reverse=true&limit=300', { signal: ctrl.signal });
-        clearTimeout(t);
-        if (!res.ok) continue;
-        const list = await res.json();
+        // Malayalam-language stations, plus stations tagged Malayalam or in Kerala
+        const lists = await Promise.all([
+          getJSON(host + '/json/stations/bylanguage/malayalam' + q),
+          getJSON(host + '/json/stations/bytag/malayalam' + q).catch(() => null),
+          getJSON(host + '/json/stations/search' + q + '&state=Kerala&countrycode=IN').catch(() => null)
+        ]);
+        if (!lists[0]) continue;
+        const list = [].concat(...lists.filter(Boolean));
         const seen = new Set(), out = [];
         list.forEach((s) => {
-          const url = (s.url_resolved || s.url || '').trim();
+          // whichever address is https (an http stream will not play on an https page)
+          const url = [s.url_resolved, s.url].map((u) => (u || '').trim()).find((u) => u.startsWith('https://'));
           const name = (s.name || '').replace(/\s+/g, ' ').trim();
-          if (!url.startsWith('https://') || s.lastcheckok !== 1 || !name) return;
+          if (!url || !name) return;
           const key = name.toLowerCase();
           if (seen.has(key)) return;
           seen.add(key);
@@ -58,7 +70,30 @@
     attempt++;
     if (hls) { hls.destroy(); hls = null; }
     if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
+    curFail = null;
   }
+
+  // One player for every station, unlocked by the key press or click that
+  // switches the radio on: browsers only let sound start from a gesture,
+  // and the station list arrives a moment later.
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+  let curFail = null;
+  function player() {
+    if (audio) return audio;
+    audio = new Audio();
+    audio.addEventListener('playing', () => { if (audio.src !== SILENT && R.on) { tries = 0; clearTimeout(failT); show('live'); } });
+    audio.addEventListener('error', () => { if (audio.getAttribute('src') && audio.src !== SILENT && curFail) curFail('error ' + (audio.error && audio.error.code)); });
+    audio.addEventListener('waiting', () => { if (R.on) show('tuning'); });
+    // a live stream that drops is reconnected
+    audio.addEventListener('ended', () => { if (R.on && audio.src !== SILENT) play(); });
+    return audio;
+  }
+  R.unlock = function () {
+    const a = player();
+    if (a.src && a.src !== SILENT && !a.paused) return;
+    a.src = SILENT;
+    a.play().catch(() => { /* fine: this only unlocks the player */ });
+  };
 
   // each tuning attempt has its own number, so a late error from a station
   // already left behind cannot skip the one now playing
@@ -68,15 +103,8 @@
     if (!st) return;
     stopStream();
     const my = ++attempt;
-    const fail = (why) => { if (my === attempt && R.on) failed(why); };
-    // a fresh player for every station (one left behind by hls.js may not
-    // play a plain stream again)
-    const a = audio = new Audio();
-    a.addEventListener('playing', () => { if (my === attempt) { tries = 0; clearTimeout(failT); show('live'); } });
-    a.addEventListener('error', () => { if (a.getAttribute('src')) fail('error ' + (a.error && a.error.code)); });
-    a.addEventListener('waiting', () => { if (my === attempt) show('tuning'); });
-    // a live stream that drops is reconnected
-    a.addEventListener('ended', () => { if (my === attempt && R.on) play(); });
+    const fail = curFail = (why) => { if (my === attempt && R.on) failed(why); };
+    const a = player();
     a.volume = R.volume;
     show('tuning');
     // a station that does not start within a few seconds is skipped
@@ -102,7 +130,7 @@
     clearTimeout(failT);
     R.log.push((R.stations[R.index] || {}).name + ': ' + why);
     if (++tries > Math.min(6, R.stations.length)) {
-      KT.UI.toast('\u{1F4FB} The radio stations aren\u2019t answering right now. Try again later.', 'warn');
+      KT.UI.toast('\u{1F4FB} The radio stations aren\u2019t answering right now. Try again later. (Last: ' + R.log[R.log.length - 1] + ')', 'warn');
       R.off();
       return;
     }
@@ -126,6 +154,7 @@
 
   R.powerOn = async function () {
     if (R.on) return;
+    R.unlock();
     R.on = true;
     duck(true);
     show('tuning');
@@ -153,6 +182,7 @@
     show();
   };
   R.step = function (d) {
+    R.unlock();
     if (!R.on) { R.powerOn(); return; }
     if (!R.stations.length) return;
     R.index = (R.index + d + R.stations.length) % R.stations.length;
@@ -171,6 +201,9 @@
   };
 
   R.init = function () {
+    // unlock the player inside the key press itself (the game reads keys a
+    // frame later, which some browsers no longer count as a gesture)
+    document.addEventListener('keydown', (e) => { if (e.code === 'KeyU' && !e.repeat && KT.Input.enabled) R.unlock(); }, true);
     R.volume = KT.Game.settings.radioVolume !== undefined ? KT.Game.settings.radioVolume : 0.8;
     $('radio-prev').onclick = () => R.step(-1);
     $('radio-next').onclick = () => R.step(1);
