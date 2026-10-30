@@ -193,6 +193,14 @@ On Supabase, chat, member positions and voice signalling use Realtime
 broadcast channels. With the Node server, chat is checked every few seconds
 and voice is not available.
 
+## Open world
+
+The highway map is open: leave the road and walk or drive anywhere across
+the land, over the hills and down to the beaches. The only limits are the
+edges of the map: the state border to the east (with a strip beyond it),
+a little way out to sea in the west, and Kerala's north and south ends.
+Deep water still has to be crossed by bridge or boat.
+
 ## Fast travel
 
 Press Y, or the compass button at the top right, or Fast travel on the big

@@ -13,7 +13,7 @@
     tiles: new Map(), segs: new Map(), lastS: -1e9
   };
   const TILE = 160, RES = 32, SEG_LEN = 200;
-  const ROAD_HALF = 5.5, MAX_LAT = 340;
+  const ROAD_HALF = 5.5;
   const FOOT0 = 8.0, FOOT1 = 13.6; // town footpaths (lateral range)
 
   // ---------------------------------------------------------- road path
@@ -69,6 +69,48 @@
     const a = CPTS[lo], b = CPTS[hi], t = (z - a.z) / ((b.z - a.z) || 1);
     return a.x + (b.x - a.x) * t;
   };
+  // The edge of the map: Kerala's border with Tamil Nadu and Karnataka to
+  // the east (with a strip beyond it), a little way out to sea in the west,
+  // and the state's north and south ends. Everything inside is open.
+  Hw.KERALA_EAST = [[12.78, 74.86], [12.7, 75.12], [12.3, 75.42], [12.0, 75.85], [11.75, 76.08], [11.6, 76.35], [11.45, 76.4],
+    [11.2, 76.6], [10.95, 76.82], [10.72, 76.86], [10.55, 76.82], [10.35, 77.05], [10.2, 77.25], [9.95, 77.22], [9.6, 77.2],
+    [9.35, 77.32], [9.05, 77.25], [8.75, 77.18], [8.5, 77.2], [8.28, 77.17]];
+  const EAST = Hw.KERALA_EAST.map((p) => Hw.geo(p[1], p[0])).sort((a, b) => a.z - b.z);
+  const EAST_MARGIN = 300, SEA_MARGIN = 250;
+  const MAP_N = Hw.geo(74.86, 12.78).z, MAP_S = Hw.geo(77.17, 8.25).z;
+  Hw.eastX = function (z) {
+    if (z <= EAST[0].z) return EAST[0].x;
+    for (let i = 1; i < EAST.length; i++) {
+      if (z <= EAST[i].z) { const a = EAST[i - 1], b = EAST[i], t = (z - a.z) / ((b.z - a.z) || 1); return a.x + (b.x - a.x) * t; }
+    }
+    return EAST[EAST.length - 1].x;
+  };
+  // wherever a road runs past those lines, the map reaches a little beyond it
+  const REACH = new Map(), RB = 200;
+  Hw.reachRoads = function (roads) {
+    roads.forEach((R) => {
+      for (let s = 0; s <= R.len; s += 20) {
+        const f = R.frame(s), k = Math.floor(f.z / RB);
+        for (let kk = k - 1; kk <= k + 1; kk++) {
+          const r = REACH.get(kk) || { w: 1e9, e: -1e9 };
+          r.w = Math.min(r.w, f.x - 250); r.e = Math.max(r.e, f.x + 250);
+          REACH.set(kk, r);
+        }
+      }
+    });
+  };
+  const westLimit = (z) => { const r = REACH.get(Math.floor(z / RB)); return Math.min(Hw.coastX(z) - SEA_MARGIN, r ? r.w : 1e9); };
+  const eastLimit = (z) => { const r = REACH.get(Math.floor(z / RB)); return Math.max(Hw.eastX(z) + EAST_MARGIN, r ? r.e : -1e9); };
+  Hw.inMap = (x, z, pad) => z > MAP_N - (pad || 0) && z < MAP_S + (pad || 0) && x > westLimit(z) - (pad || 0) && x < eastLimit(z) + (pad || 0);
+  // keep a point inside the map; true if it had to be moved
+  Hw.clampToMap = function (pos) {
+    const z = KT.clamp(pos.z, MAP_N, MAP_S);
+    const x = KT.clamp(pos.x, westLimit(z), eastLimit(z));
+    const moved = x !== pos.x || z !== pos.z;
+    pos.x = x; pos.z = z;
+    return moved;
+  };
+
   // the sea: its level, and how land meets it
   const SEA_Y = -6;
   Hw.SEA_Y = SEA_Y;
@@ -467,6 +509,7 @@
     Hw.roads.push(R);
   });
   Hw.branches = Hw.roads.slice(1);
+  Hw.reachRoads(Hw.roads);
   Hw.nearJunction = (road, s, r) => road.junctions.some((j) => Math.abs(j.s - s) < r);
   // the nearest road of all (with distance d from it)
   Hw.nearestRoad = function (x, z, margin) {
@@ -638,16 +681,8 @@
     const list = Hw.nearbyColliders(pos.x, pos.z, r + 1);
     if (extra) extra.forEach((c) => list.push(c));
     const hit = KT.World.resolveList(pos, r, list);
-    // stay within the corridor around the roads
-    const p = Hw.nearestRoad(pos.x, pos.z, MAX_LAT + 50);
-    const R = p.road;
-    const s0 = R.main ? 50 : 0, s1 = R.main ? Hw.length() : R.len;
-    if (Math.abs(p.lat) > MAX_LAT || p.s < s0 || p.s > s1) {
-      const q = R.at(KT.clamp(p.s, s0, s1), KT.clamp(p.lat, -MAX_LAT, MAX_LAT));
-      pos.x = q.x; pos.z = q.z;
-      return true;
-    }
-    return hit;
+    // an open world: the only limit is the edge of the map
+    return Hw.clampToMap(pos) || hit;
   };
   Hw.isBlocked = (x, z, r) => Hw.resolve(new T.Vector3(x, 0, z), r);
   // back onto the nearest lane, facing the way the vehicle was heading
@@ -933,8 +968,8 @@
       if (collider && !Hw.tileColliders.has(tx + ',' + tz)) Hw.addCollider(Object.assign({ x, z }, collider));
     };
     const free = (x, z, pad) => {
-      const p = Hw.nearestRoad(x, z, MAX_LAT + 150);
-      if (p.d < ROAD_HALF + pad || p.d > MAX_LAT + 120) return null;
+      const p = Hw.nearestRoad(x, z, 900);
+      if (p.d < ROAD_HALF + pad || !Hw.inMap(x, z)) return null;
       if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 260)) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (p.d < 20 && nearShop(p.road, p.s, p.lat)) return null;
@@ -1909,8 +1944,7 @@
         const key = tx + ',' + tz;
         let ok = tileOk.get(key);
         if (ok === undefined) {
-          const p = Hw.nearestRoad(cx, cz, 900);
-          ok = !(p.d > 820 || (p.road.main && (p.s < -400 || p.s > Hw.length() + 600)));
+          ok = Hw.inMap(cx, cz, TILE);
           tileOk.set(key, ok);
         }
         if (!ok) continue;

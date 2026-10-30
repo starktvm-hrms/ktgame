@@ -1089,6 +1089,8 @@
         R.towns.forEach((w) => { if (!t || Math.abs(w.s - onRoad.s) < Math.abs(t.s - onRoad.s)) t = w; });
         zone = R.nh + ' \u2022 ' + (t && Math.abs(t.s - onRoad.s) < 300 ? t.name : 'towards ' + R.name);
       }
+      // out in the open, away from every road
+      if (st.dist >= 200 && Math.min(onRoad.d, Math.abs(st.lat)) > 250) zone = 'Countryside \u2022 near ' + near.name;
       KT.UI.drawMinimapHighway(P.pos, inBus ? P.bus.heading : P.heading, zone);
     }
   }

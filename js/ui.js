@@ -581,9 +581,6 @@
   }
   const HW_SCALE = 0.45; // pixels per metre
   // Kerala's eastern border, north to south (latitude, longitude)
-  const KERALA_EAST = [[12.78, 74.86], [12.7, 75.12], [12.3, 75.42], [12.0, 75.85], [11.75, 76.08], [11.6, 76.35], [11.45, 76.4],
-    [11.2, 76.6], [10.95, 76.82], [10.72, 76.86], [10.55, 76.82], [10.35, 77.05], [10.2, 77.25], [9.95, 77.22], [9.6, 77.2],
-    [9.35, 77.32], [9.05, 77.25], [8.75, 77.18], [8.5, 77.2], [8.28, 77.17]];
   UI.drawMinimapHighway = function (p, heading, zone) {
     const c = $('minimap');
     const g = c.getContext('2d');
@@ -657,7 +654,7 @@
     const coast = Hw.coastPts.filter((p, i) => i % 4 === 0).map((p) => toMap(p.x, p.z)).reverse(); // south to north
     const far = (W + H) * 20, cN = coast[coast.length - 1];
     poly([[coast[0][0], far]].concat(coast, [[cN[0], -far], [-far, -far], [-far, far]]), '#3f7fa0');
-    const land = coast.concat(KERALA_EAST.map(geo));
+    const land = coast.concat(KT.Highway.KERALA_EAST.map(geo));
     const lg = g.createLinearGradient(toMap(minX, 0)[0], 0, toMap(maxX, 0)[0], 0);
     lg.addColorStop(0, '#79a85a'); lg.addColorStop(0.55, '#5a8a45'); lg.addColorStop(1, '#3f6a35');
     poly(land, lg, '#f4efe2');

@@ -192,7 +192,7 @@
     if (o.userData.steer) o.userData.steer.rotation.z = -veh.steer * 4;
   };
 
-  V.MAX_GRADE = 0.45; // about 24 degrees
+  V.MAX_GRADE = 0.8; // about 39 degrees: walls and drops, not hillsides
 
   // Put a stuck vehicle back on the road (or its last good spot).
   V.recover = function (veh) {
