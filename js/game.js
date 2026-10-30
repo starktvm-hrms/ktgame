@@ -1022,7 +1022,10 @@
       hwUiT = 0;
       KT.UI.drawRoute(st.s, st);
       const near = KT.DISTRICTS[st.nearest];
-      const zone = st.dist < 200 ? near.name + ' \u2022 ' + near.ml : 'NH 66 \u2022 near ' + near.name;
+      const way = KT.Highway.nearestWaypoint(st.s);
+      const zone = st.dist < 200 ? near.name + ' \u2022 ' + near.ml
+        : way && Math.abs(way.s - st.s) < 300 ? way.road + ' \u2022 ' + way.name
+          : (way ? way.road : 'NH 66') + ' \u2022 near ' + near.name;
       KT.UI.drawMinimapHighway(P.pos, inBus ? P.bus.heading : P.heading, zone);
     }
   }

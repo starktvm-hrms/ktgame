@@ -50,17 +50,47 @@
   const STEP = 2;
   const PX = [], PZ = [], PY = [];
   const HUB_S = [];
+  // Towns the road passes through between the district centres, following
+  // the national highways (NH 66, 744, 183A, 183, 85, 544, 966, 766) and the
+  // hill roads: [name, latitude, longitude, highway]
+  const VIA = [
+    [['Attingal', 8.696, 76.815, 'NH 66'], ['Paripally', 8.81, 76.75, 'NH 66']],
+    [['Sasthamcotta', 9.04, 76.63, 'SH'], ['Adoor', 9.155, 76.735, 'MC Road']],
+    [['Kozhencherry', 9.335, 76.71, 'SH 7'], ['Chengannur', 9.318, 76.611, 'NH 183']],
+    [['Thanneermukkom', 9.68, 76.39, 'Vembanad Road']],
+    [['Pala', 9.71, 76.68, 'SH 8'], ['Moolamattom', 9.8, 76.85, 'SH 33']],
+    [['Adimali', 10.01, 76.95, 'NH 85'], ['Kothamangalam', 10.06, 76.63, 'NH 85'], ['Kolenchery', 9.98, 76.47, 'NH 85']],
+    [['Aluva', 10.108, 76.351, 'NH 544'], ['Chalakudy', 10.3, 76.33, 'NH 544']],
+    [['Vadakkencherry', 10.59, 76.48, 'NH 544'], ['Alathur', 10.65, 76.56, 'NH 544']],
+    [['Mannarkkad', 10.99, 76.46, 'NH 966'], ['Perinthalmanna', 10.976, 76.226, 'NH 966']],
+    [['Kondotty', 11.145, 75.96, 'NH 966']],
+    [['Thamarassery', 11.415, 75.94, 'NH 766'], ['Lakkidi', 11.52, 76.02, 'NH 766']],
+    [['Mananthavady', 11.8, 76.0, 'SH 30'], ['Nedumpoil', 11.86, 75.78, 'SH 30'], ['Kuthuparamba', 11.83, 75.57, 'SH 30']],
+    [['Taliparamba', 12.04, 75.36, 'NH 66'], ['Payyanur', 12.1, 75.2, 'NH 66'], ['Nileshwar', 12.26, 75.13, 'NH 66']]
+  ];
+  Hw.WAYPOINTS = [];
+  Hw.nearestWaypoint = function (s) {
+    let best = null;
+    Hw.WAYPOINTS.forEach((w) => { if (!best || Math.abs(w.s - s) < Math.abs(best.s - s)) best = w; });
+    return best;
+  };
   (function buildPath() {
-    const pts = KT.DISTRICTS.map((d) => { const ll = LONLAT[d.id] || [76, 8.5 + d.index]; return Hw.geo(ll[0], ll[1]); });
-    const n = pts.length;
+    // control points: district centres (with a straight stretch through the
+    // town) and the towns in between
+    const C = [];
+    KT.DISTRICTS.forEach((d, i) => {
+      const ll = LONLAT[d.id] || [76, 8.5 + i];
+      C.push(Object.assign(Hw.geo(ll[0], ll[1]), { hub: i, back: i === 0 ? 400 : 250, fwd: i === KT.DISTRICTS.length - 1 ? 600 : 250 }));
+      (VIA[i] || []).forEach((v) => C.push(Object.assign(Hw.geo(v[2], v[1]), { way: Hw.WAYPOINTS.push({ name: v[0], lat: v[1], lon: v[2], road: v[3] }) - 1, back: 0, fwd: 0 })));
+    });
+    const n = C.length;
     const unit = (x, z) => { const l = Math.hypot(x, z) || 1; return { x: x / l, z: z / l }; };
-    // through each town the road runs straight, between the directions it
-    // comes in and goes out on; the bends lie between towns
-    const tan = pts.map((p, i) => {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    // first guess of the direction at each point: between the directions it
+    // comes in and goes out on, leaning towards the shorter leg
+    const tan = C.map((p, i) => {
+      const a = C[Math.max(0, i - 1)], b = C[Math.min(n - 1, i + 1)];
       const ui = i > 0 ? unit(p.x - a.x, p.z - a.z) : null, uo = i < n - 1 ? unit(b.x - p.x, b.z - p.z) : null;
       if (!ui || !uo) return ui || uo;
-      // lean towards the shorter leg, which has less room to turn
       const li = 1 / Math.hypot(p.x - a.x, p.z - a.z), lo = 1 / Math.hypot(b.x - p.x, b.z - p.z);
       return unit(ui.x * li + uo.x * lo, ui.z * li + uo.z * lo);
     });
@@ -72,13 +102,14 @@
       o.z = h00 * A.z + h10 * m * tA.z + h01 * B.z + h11 * m * tB.z;
       return o;
     };
-    const TENSION = [0.6, 0.8, 1, 1.25, 1.6, 2], ENOUGH = 450;
-    // tightest bend radius of the piece between town i and i + 1, at its best tension
+    const TENSION = [0.6, 0.8, 1, 1.25, 1.6, 2], ENOUGH = 400;
+    // tightest bend radius of the piece from point i to i + 1, at its best tension
     const _a = {}, _b = {}, _c2 = {};
     function bestPiece(i, ti, tj) {
-      const A = { x: pts[i].x + ti.x * 250, z: pts[i].z + ti.z * 250 }, B = { x: pts[i + 1].x - tj.x * 250, z: pts[i + 1].z - tj.z * 250 };
+      const P = C[i], Q = C[i + 1];
+      const A = { x: P.x + ti.x * P.fwd, z: P.z + ti.z * P.fwd }, B = { x: Q.x - tj.x * Q.back, z: Q.z - tj.z * Q.back };
       const L = Math.hypot(B.x - A.x, B.z - A.z);
-      let best = { R: -1, f: 1 };
+      let best = { R: -1e9, f: 1 };
       TENSION.forEach((f) => {
         let minR = 1e9, minE = 1e9;
         for (let k = 1; k < 60; k++) {
@@ -101,7 +132,7 @@
     for (let pass = 0; pass < 3; pass++) {
       for (let i = 0; i < n; i++) {
         const base = tan[i];
-        let bestT = base, bestR = -1;
+        let bestT = base, bestR = -1e9;
         for (let k = 0; k <= 40; k++) {
           const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.07; // nearest the first guess first
           const t = rot(base, a);
@@ -112,31 +143,27 @@
       }
     }
     const nodes = [];
-    pts.forEach((p, i) => {
-      const t = tan[i], back = i === 0 ? 400 : 250, fwd = i === n - 1 ? 600 : 250;
-      nodes.push({ x: p.x - t.x * back, z: p.z - t.z * back, t, town: true });
-      nodes.push({ x: p.x, z: p.z, t, hub: i, town: true });
+    C.forEach((p, i) => {
+      const t = tan[i];
       const bp = i < n - 1 ? bestPiece(i, t, tan[i + 1]) : { f: 1, minE: 0 };
-      nodes.push({ x: p.x + t.x * fwd, z: p.z + t.z * fwd, t, f: bp.f, inland: bp.minE > 700 });
+      if (p.back) nodes.push({ x: p.x - t.x * p.back, z: p.z - t.z * p.back, t, town: true });
+      nodes.push({ x: p.x, z: p.z, t, hub: p.hub, way: p.way, town: p.hub !== undefined, f: p.fwd ? 1 : bp.f });
+      if (p.fwd) nodes.push({ x: p.x + t.x * p.fwd, z: p.z + t.z * p.fwd, t, f: bp.f });
     });
-    // dense samples of each Hermite piece, with a gentle S-bend in the long ones
+    // dense samples of each Hermite piece
     const dense = [];
     for (let k = 0; k < nodes.length - 1; k++) {
       const A = nodes[k], B = nodes[k + 1], L = Math.hypot(B.x - A.x, B.z - A.z);
-      const tA = A.t, tB = B.t, cx = (B.x - A.x) / L, cz = (B.z - A.z) / L;
-      const dev = 1 - Math.min(tA.x * cx + tA.z * cz, tB.x * cx + tB.z * cz);
-      const m = L * (A.f || 1);
-      const nx = -cz, nz = cx;
-      const amp = A.inland && L > 1500 && dev < 0.3 ? L * 0.05 * ((k / 3) % 2 ? 1 : -1) : 0;
+      const tA = A.t, tB = B.t, m = L * (A.f || 1);
       const N = Math.ceil(L / 0.5);
       for (let j = k === 0 ? 0 : 1; j <= N; j++) {
         const u = j / N, u2 = u * u, u3 = u2 * u;
         const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
-        const w = amp * Math.pow(Math.sin(Math.PI * u), 2) * Math.sin(2 * Math.PI * u + k);
         dense.push({
-          x: h00 * A.x + h10 * m * tA.x + h01 * B.x + h11 * m * tB.x + nx * w,
-          z: h00 * A.z + h10 * m * tA.z + h01 * B.z + h11 * m * tB.z + nz * w,
-          hub: j === N && B.hub !== undefined ? B.hub : -1
+          x: h00 * A.x + h10 * m * tA.x + h01 * B.x + h11 * m * tB.x,
+          z: h00 * A.z + h10 * m * tA.z + h01 * B.z + h11 * m * tB.z,
+          hub: j === N && B.hub !== undefined ? B.hub : -1,
+          way: j === N && B.way !== undefined ? B.way : -1
         });
       }
     }
@@ -152,6 +179,7 @@
       }
       acc += d;
       if (b.hub >= 0) HUB_S[b.hub] = acc;
+      if (b.way >= 0) Hw.WAYPOINTS[b.way].s = acc;
     }
     // road height: rolling plains, climbing into the ghats
     for (let i = 0; i < PX.length; i++) {
@@ -563,8 +591,10 @@
     const rng = KT.makeRng(k * 7919 + 13);
     const out = [];
     const s0 = k * SEG_LEN;
-    for (let c = 0; c < 2; c++) {
-      if (rng() > 0.42) continue;
+    // the towns along the way have more shops
+    const town = Hw.WAYPOINTS.some((w) => Math.abs(w.s - (s0 + SEG_LEN / 2)) < 260);
+    for (let c = 0; c < (town ? 5 : 2); c++) {
+      if (rng() > (town ? 0.85 : 0.42)) continue;
       const side = rng() < 0.5 ? -1 : 1;
       const n = 2 + Math.floor(rng() * 3);
       const start = s0 + 15 + rng() * (SEG_LEN - 30 - n * 4.8);
@@ -749,6 +779,19 @@
       sign.rotation.y = Hw.frame(s).heading + Math.PI;
       group.add(sign);
     }
+    // name boards where the road enters each town on the way
+    Hw.WAYPOINTS.forEach((w) => {
+      [-1, 1].forEach((e) => {
+        const sb = w.s + e * 150;
+        if (sb < s0 || sb >= s1 || onBridge(sb)) return;
+        const q = Hw.at(sb, e < 0 ? -(ROAD_HALF + 2.6) : ROAD_HALF + 2.6);
+        const board = Models.signboard([w.name, w.road]);
+        board.position.set(q.x, Hw.groundY(q.x, q.z).y, q.z);
+        board.rotation.y = Hw.frame(sb).heading + (e < 0 ? Math.PI / 2 + 0.5 : -Math.PI / 2 + 0.5);
+        board.scale.setScalar(1.3);
+        group.add(board);
+      });
+    });
     // roadside shops
     shopClusters(k).forEach((o, i) => {
       const f = Hw.frame(o.s);

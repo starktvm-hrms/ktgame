@@ -69,11 +69,13 @@ a photo album with downloadable postcards and an exploration certificate.
 
 The KSRTC bus stand in the village takes you to the highway, a road from
 Thiruvananthapuram in the south to Kasaragod in the north. The road follows
-the real map of Kerala: every district centre sits at its real position
-(1:20 scale, so 1 km is 50 m in the game), and the road winds between them,
-along the coast, inland to Pathanamthitta, up into the hills of Idukki,
-Palakkad and Wayanad, and back down to the coast. The big map (M) shows
-the road on the outline of Kerala with the Arabian Sea to the west. Each centre has welcome gates, a bus stand, an information board,
+the real road map of Kerala: every district centre sits at its real
+position (1:20 scale, so 1 km is 50 m in the game), and the road follows the
+national highways and hill roads between them (NH 66, 744, 183A, 183, 85,
+544, 966 and 766) through towns such as Attingal, Adoor, Chengannur,
+Adimali, Aluva, Chalakudy, Mannarkkad, Thamarassery and Taliparamba, each
+with name boards and roadside shops. The big map (M) shows the road on the
+outline of Kerala with the whole national highway network. Each centre has welcome gates, a bus stand, an information board,
 local people to talk to, shops and a landmark, such as a temple gopuram, a
 lighthouse, Chinese fishing nets, the Idukki arch dam, a hill shrine or
 Bekal fort. Milestones count the kilometres, green signs point to the next
