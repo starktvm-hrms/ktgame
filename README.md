@@ -35,9 +35,9 @@ Progress is then saved in the browser only.
 
 | Action | Keyboard / mouse | Touch |
 | --- | --- | --- |
-| Move | W A S D / arrows | Left joystick |
+| Walk | W A S D / arrows | Left joystick |
 | Look / zoom | Move the mouse (the cursor is captured; Esc frees it) / wheel | Drag right side |
-| Run · Jump | Shift · Space (sprint + jump = front flip) | Run · Jump buttons |
+| Run · Jump | Shift + W · Space (run + jump = front flip) | Push the joystick all the way / Run button · Jump button |
 | Talk, canoe, climb, board / leave the bus | E | E button |
 | Drive the KSRTC bus | W/S throttle & brake, A/D steer, Space handbrake, H horn, V driver's view, R back on the road | Joystick |
 | Profile · Players nearby · My vehicles | J · O · G | Portrait · online counter · 🚲 |

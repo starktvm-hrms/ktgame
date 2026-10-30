@@ -283,7 +283,7 @@
     setTimeout(Game.checkUnlocks, 2500);
     if (!saved) {
       KT.UI.banner('Kerala', 'God’s Own Country', 'title');
-      setTimeout(() => KT.UI.toast('Use W A S D to walk, drag the mouse to look around. Talk to the guide!', 'info'), 1800);
+      setTimeout(() => KT.UI.toast('Use W A S D to walk and Shift + W to run. Move the mouse to look around. Talk to the guide!', 'info'), 1800);
     } else KT.UI.toast('Welcome back, ' + Game.data.name + '!', 'info');
     Game.save();
   };

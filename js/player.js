@@ -18,7 +18,8 @@
     radius: 0.42,
     distance: 0
   };
-  const WALK = 3.4, RUN = 7.2;
+  // a calm walking pace on W/A/S/D; Shift (or the joystick pushed all the way) runs
+  const WALK = 1.6, RUN = 7.2;
 
   P.init = function (scene, cfg, start) {
     P.scene = scene;
@@ -134,7 +135,8 @@
     else if (P.gesture) state = P.gesture;
     anim.air = P.grounded ? 0 : P.airTime;
     anim.jumpStyle = P.jumpStyle;
-    KT.Models.animateCharacter(P.obj, state, dt, state === 'walk' ? P.speed / WALK : P.speed / RUN);
+    // slower legs at a slow walk, so the feet don't slide
+    KT.Models.animateCharacter(P.obj, state, dt, state === 'walk' ? Math.max(0.5, P.speed / 2.6) : P.speed / RUN);
     // front flip: spin the body around the waist while airborne
     const hips = P.obj.userData.rig.hips;
     if (!P.grounded && P.jumpStyle === 'flip' && P.airTime > 0.06) {
