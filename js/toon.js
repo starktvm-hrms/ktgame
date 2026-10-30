@@ -19,7 +19,7 @@
     // the light falls in two soft bands, and shadow edges are crisp
     S.lights_pars_begin = [
       'float ktToon( float x ) { return smoothstep( 0.0, 0.1, x ) * ( 0.7 + 0.3 * smoothstep( 0.3, 0.8, x ) ); }',
-      'float ktShadow( float s ) { return smoothstep( 0.32, 0.62, s ); }',
+      'float ktShadow( float s ) { return smoothstep( 0.22, 0.72, s ); }',
       S.lights_pars_begin
     ].join('\n');
     ['lights_physical_pars_fragment', 'lights_lambert_pars_fragment'].forEach((k) => rep(k,
@@ -36,6 +36,62 @@
     S.lights_fragment_end = S.lights_fragment_end + '\nreflectedLight.indirectDiffuse *= vec3( 1.04, 1.08, 1.22 );\n';
     Toon.enabled = true;
     Toon.exposure = 0.85; // a calmer, darker picture than the classic look
+  };
+
+  // Hand-painted textures: a Kuwahara filter (the classic "oil paint" image
+  // filter) turns photo detail into soft patches of colour, wrapping round
+  // the edges so tiling textures stay seamless; then the contrast is eased
+  // and the colour lifted a little. Returns a canvas.
+  Toon.paint = function (src, radius) {
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    const r = radius || Math.max(2, Math.round(Math.min(w, h) / 160));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.drawImage(src, 0, 0, w, h);
+    const img = g.getImageData(0, 0, w, h), d = img.data;
+    // summed-area tables over a wrapped, padded copy
+    const W = w + 2 * r + 1, H = h + 2 * r + 1, n = W * H;
+    const sr = new Float64Array(n), sg = new Float64Array(n), sb = new Float64Array(n), sl = new Float64Array(n), sl2 = new Float64Array(n);
+    for (let y = 1; y < H; y++) {
+      const yy = ((y - 1 - r) % h + h) % h;
+      let ar = 0, ag = 0, ab = 0, al = 0, al2 = 0;
+      for (let x = 1; x < W; x++) {
+        const xx = ((x - 1 - r) % w + w) % w, k = (yy * w + xx) * 4;
+        const R = d[k], Gc = d[k + 1], B = d[k + 2], L = 0.3 * R + 0.59 * Gc + 0.11 * B;
+        ar += R; ag += Gc; ab += B; al += L; al2 += L * L;
+        const i = y * W + x, u = i - W;
+        sr[i] = sr[u] + ar; sg[i] = sg[u] + ag; sb[i] = sb[u] + ab; sl[i] = sl[u] + al; sl2[i] = sl2[u] + al2;
+      }
+    }
+    const box = (t, x0, y0, x1, y1) => t[y1 * W + x1] - t[y0 * W + x1] - t[y1 * W + x0] + t[y0 * W + x0];
+    const cnt = (r + 1) * (r + 1);
+    let mR = 0, mG = 0, mB = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const px = x + r, py = y + r; // position in the padded table (+1 offset in the sums)
+        let best = 1e18, br = 0, bg = 0, bb = 0;
+        for (let q = 0; q < 4; q++) {
+          const x0 = q & 1 ? px : px - r, y0 = q & 2 ? py : py - r;
+          const x1 = x0 + r + 1, y1 = y0 + r + 1;
+          const L = box(sl, x0, y0, x1, y1) / cnt, v = box(sl2, x0, y0, x1, y1) / cnt - L * L;
+          if (v < best) { best = v; br = box(sr, x0, y0, x1, y1) / cnt; bg = box(sg, x0, y0, x1, y1) / cnt; bb = box(sb, x0, y0, x1, y1) / cnt; }
+        }
+        const k = (y * w + x) * 4;
+        d[k] = br; d[k + 1] = bg; d[k + 2] = bb;
+        mR += br; mG += bg; mB += bb;
+      }
+    }
+    // ease the contrast towards the average colour, then lift the colour
+    const N = w * h;
+    mR /= N; mG /= N; mB /= N;
+    for (let k = 0; k < d.length; k += 4) {
+      let R = mR + (d[k] - mR) * 0.8, Gc = mG + (d[k + 1] - mG) * 0.8, B = mB + (d[k + 2] - mB) * 0.8;
+      const L = 0.3 * R + 0.59 * Gc + 0.11 * B;
+      d[k] = L + (R - L) * 1.12; d[k + 1] = L + (Gc - L) * 1.12; d[k + 2] = L + (B - L) * 1.12;
+    }
+    g.putImageData(img, 0, 0);
+    return c;
   };
 
   // A painted finish: flatter surfaces, less mirror shine (materials are

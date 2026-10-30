@@ -82,11 +82,20 @@ window.KT = window.KT || {};
   const texCache = {};
   const loader = new T.TextureLoader();
   KT.maxAnisotropy = 4;
+  // opaque photo textures that get painted in the cel-shaded style
+  const PAINTED = ['grass', 'laterite', 'mud', 'palm_bark', 'plaster', 'roof_tiles', 'sand', 'stone_path', 'tea_rows', 'thatch', 'wood'];
   KT.tex = function (name, repeatU, repeatV, linear) {
     const key = name + ':' + (repeatU || 1) + ':' + (repeatV || 1) + (linear ? ':lin' : '');
     if (texCache[key]) return texCache[key];
     const src = (KT.TEXTURE_DATA && KT.TEXTURE_DATA[name]) || ('assets/textures/' + name + '.jpg');
-    const t = loader.load(src);
+    let t;
+    if (KT.Toon && KT.Toon.enabled && !linear && PAINTED.indexOf(name) >= 0) {
+      // the cel-shaded look paints the photo textures by hand, as it were
+      t = new T.Texture();
+      const img = new Image();
+      img.onload = () => { t.image = KT.Toon.paint(img); t.needsUpdate = true; };
+      img.src = src;
+    } else t = loader.load(src);
     t.wrapS = t.wrapT = T.RepeatWrapping;
     t.repeat.set(repeatU || 1, repeatV || repeatU || 1);
     t.anisotropy = KT.maxAnisotropy;

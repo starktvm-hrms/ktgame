@@ -276,7 +276,10 @@
     const rig = face.userData.rig;
     const dark = C(0x1a120c), white = C(0xffffff);
     const browMat = C(cfg.beard ? 0xd8d4cc : (cfg.hairColor || 0x2a1a12));
-    const nose = tint(skinHex, 0xe06a5a, 0.18);
+    // the cel-shaded (Ghibli) look: bigger, glossier eyes, a small soft
+    // nose and a rosy blush
+    const toon = KT.Toon && KT.Toon.enabled;
+    const nose = tint(skinHex, 0xe06a5a, toon ? 0.1 : 0.18);
     // eyes: small glossy ovals (blink via joint scale)
     [-1, 1].forEach((s) => {
       const x = s * 0.04, y = 0.012;
@@ -285,8 +288,14 @@
       eye.rotation.y = s * 0.3;
       face.add(eye);
       rig['eye' + (s > 0 ? 'L' : 'R')] = eye;
-      ell(eye, dark, 0, 0, 0, 0.0105, female ? 0.015 : 0.0135, 0.007, 0, 0, 0, 12);
-      ell(eye, white, s * 0.003, 0.005, 0.005, 0.003, 0.003, 0.002, 0, 0, 0, 6);
+      if (toon) {
+        ell(eye, dark, 0, -0.001, 0, 0.0125, female ? 0.02 : 0.0175, 0.0075, 0, 0, 0, 14);
+        ell(eye, white, s * 0.0038, 0.0068, 0.006, 0.0042, 0.0042, 0.002, 0, 0, 0, 8);
+        ell(eye, white, -s * 0.003, -0.0065, 0.006, 0.0019, 0.0019, 0.001, 0, 0, 0, 6);
+      } else {
+        ell(eye, dark, 0, 0, 0, 0.0105, female ? 0.015 : 0.0135, 0.007, 0, 0, 0, 12);
+        ell(eye, white, s * 0.003, 0.005, 0.005, 0.003, 0.003, 0.002, 0, 0, 0, 6);
+      }
       if (female) part(eye, G.cone(0.003, 0.012, 5), dark, s * 0.011, 0.008, 0.002, 0, 0, -s * 0.9);
       // brows: thick soft strokes
       const bx = s * 0.045, by = female ? 0.046 : 0.044;
@@ -308,10 +317,12 @@
       }
       // cheeks
       const cx = s * 0.058, cy = -0.032;
-      ell(face, tint(skinHex, 0xff7a7a, female ? 0.22 : 0.12), cx, cy, fz(cx, cy) - 0.006, 0.022, 0.014, 0.008, 0, s * 0.5, 0, 10);
+      if (toon) ell(face, tint(skinHex, 0xff8a8a, female ? 0.34 : 0.22), cx, cy - 0.004, fz(cx, cy - 0.004) - 0.005, 0.024, 0.013, 0.008, 0, s * 0.5, 0, 10);
+      else ell(face, tint(skinHex, 0xff7a7a, female ? 0.22 : 0.12), cx, cy, fz(cx, cy) - 0.006, 0.022, 0.014, 0.008, 0, s * 0.5, 0, 10);
     });
     // nose: soft bridge and a round bulb
-    ell(face, nose, 0, -0.03, fz(0, -0.03) + 0.004, female ? 0.017 : 0.02, female ? 0.016 : 0.019, 0.016, 0, 0, 0, 14);
+    const nk = toon ? 0.62 : 1;
+    ell(face, nose, 0, -0.03, fz(0, -0.03) + 0.004 * nk, (female ? 0.017 : 0.02) * nk, (female ? 0.016 : 0.019) * nk, 0.016 * nk, 0, 0, 0, 14);
     // mouth
     const my = -0.066;
     if (female) {

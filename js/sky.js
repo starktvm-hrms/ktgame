@@ -328,6 +328,12 @@
       _a.setRGB(0.55, 0.6, 0.66).multiplyScalar(lum);
       u.uTop.value.copy(P.top).lerp(_a, Math.min(0.85, grey));
       u.uHorizon.value.copy(P.hor).lerp(_b.setRGB(0.7, 0.73, 0.76).multiplyScalar(lum), Math.min(0.8, grey));
+      if (KT.Toon.enabled) {
+        // a painted sky: a richer blue overhead, a soft warm haze low down
+        const t = u.uTop.value, g = (t.r + t.g + t.b) / 3;
+        t.setRGB(Math.max(0, KT.lerp(g, t.r, 1.3)) * 0.9, Math.max(0, KT.lerp(g, t.g, 1.3)) * 0.92, Math.max(0, KT.lerp(g, t.b, 1.3)) * 0.98);
+        u.uHorizon.value.lerp(_b.setRGB(1, 0.95, 0.86).multiplyScalar(lum), 0.18 * (1 - S.night));
+      }
       u.uBottom.value.copy(u.uHorizon.value).multiplyScalar(0.9);
       if (flash > 0) { u.uTop.value.lerp(_a.setRGB(0.85, 0.88, 1), flash * 0.7); u.uHorizon.value.lerp(_a, flash * 0.7); }
       // the sky shader draws the sun disc: hide it at night / behind clouds

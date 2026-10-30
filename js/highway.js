@@ -761,7 +761,7 @@
       gb.fillRect(16, 0, 14, H); gb.fillRect(W - 30, 0, 14, H); gb.fillRect(W / 2 - 8, 0, 16, H * 0.58);
       g.fillStyle = 'rgba(74,76,79,0.35)';
       for (let i = 0; i < 40; i++) g.fillRect([16, W - 30, W / 2 - 8][i % 3] + rng() * 12, rng() * H, 2 + rng() * 5, 2 + rng() * 8);
-      const t = new T.CanvasTexture(c), tb = new T.CanvasTexture(b);
+      const t = new T.CanvasTexture(KT.Toon.enabled ? KT.Toon.paint(c) : c), tb = new T.CanvasTexture(b);
       [t, tb].forEach((x) => { x.wrapS = x.wrapT = T.RepeatWrapping; x.anisotropy = KT.maxAnisotropy; });
       t.encoding = T.sRGBEncoding;
       t.userData = { bump: tb };
@@ -799,7 +799,7 @@
     const img = g.getImageData(0, 0, 256, 256);
     for (let i = 0; i < img.data.length; i += 4) { const n = (rng() - 0.5) * 18; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
     g.putImageData(img, 0, 0);
-    const t = new T.CanvasTexture(c);
+    const t = new T.CanvasTexture(KT.Toon.enabled ? KT.Toon.paint(c) : c);
     t.wrapS = t.wrapT = T.RepeatWrapping; t.encoding = T.sRGBEncoding; t.anisotropy = KT.maxAnisotropy;
     return new T.MeshStandardMaterial({ map: t, roughness: 0.85, side: T.DoubleSide });
   }

@@ -409,3 +409,23 @@ body.touch #chat-dock { left: 50%; transform: translateX(-50%); bottom: auto; to
 body:not([data-state=playing]):not([data-state=fishing]):not([data-state=dialog]) #chat-dock { display: none; }
 .weather-chip { cursor: pointer; font-size: 0.9rem; color: var(--text); font-family: inherit; }
 @media (max-width: 700px) { .weather-chip span:last-child { display: none; } }
+
+/* ------------------------------------------- cel-shaded (storybook) theme */
+body.toon {
+  --panel: rgba(52, 42, 32, 0.74);
+  --panel-border: rgba(255, 230, 190, 0.3);
+  --accent: #7cc06b;
+  --accent-dark: #3f6b35;
+  --gold: #f3cd72;
+  --text: #fcf5e6;
+  --muted: rgba(252, 245, 230, 0.72);
+  --radius: 18px;
+}
+body.toon .panel, body.toon .chip-stat { border-width: 1.5px; box-shadow: 0 4px 0 rgba(30, 20, 12, 0.22), 0 10px 24px rgba(0, 0, 0, 0.18); }
+body.toon .modal { background: rgba(50, 41, 31, 0.96); border: 1.5px solid rgba(255, 230, 190, 0.32); border-radius: 22px; box-shadow: 0 6px 0 rgba(30, 20, 12, 0.3), 0 24px 60px rgba(0, 0, 0, 0.45); }
+body.toon .btn { border-radius: 14px; }
+body.toon .btn.primary { background: linear-gradient(180deg, #8fcf72, #4f9447); border-color: #a5dc88; box-shadow: 0 3px 0 #355f2f; }
+body.toon .btn.primary:active { box-shadow: 0 1px 0 #355f2f; transform: translateY(2px); }
+body.toon #loading { background: radial-gradient(ellipse at 50% 30%, #7fb36a 0%, #3d6b43 55%, #22382a 100%); }
+body.toon .travel-btn, body.toon .garage-card { background: rgba(255, 240, 210, 0.07); border-color: rgba(255, 230, 190, 0.16); }
+body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: rgba(124, 192, 107, 0.25); border-color: rgba(165, 220, 136, 0.7); }

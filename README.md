@@ -198,7 +198,10 @@ and voice is not available.
 The game is cel-shaded in a soft, hand-painted style: light falls in two
 gentle bands, shadows are crisp, and the shade is light and cool. On Medium
 and High quality, light ink lines trace the outlines and the
-colours are graded warmer. Choose **Classic** under Settings → Graphics style
+colours are graded warmer. Ground, roof, wood and road textures are
+repainted into soft patches of colour as they load, characters have big
+glossy eyes and a touch of blush, the sky is a deeper, warmer blue, and the
+menus take a storybook look (warm brown panels and cream text). Choose **Classic** under Settings → Graphics style
 for the earlier look (it applies the next time the game loads).
 
 ## Open world

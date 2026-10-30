@@ -32,7 +32,7 @@
     const s = load(SETTINGS_KEY);
     if (s) Object.assign(Game.settings, s);
     // the cel-shaded look is built into every shader, so it is set up first
-    if (Game.settings.style !== 'classic') KT.Toon.patchShaders();
+    if (Game.settings.style !== 'classic') { KT.Toon.patchShaders(); document.body.classList.add('toon'); }
     const canvas = $('game');
     let renderer;
     try {

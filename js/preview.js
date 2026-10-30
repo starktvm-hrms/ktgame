@@ -17,6 +17,8 @@
     d.position.set(2, 4, 3);
     d.castShadow = true;
     d.shadow.mapSize.set(1024, 1024);
+    d.shadow.bias = -0.0006; d.shadow.normalBias = 0.02; // no self-shadow speckle on the figure
+    const sc = d.shadow.camera; sc.left = sc.bottom = -1.5; sc.right = sc.top = 1.5; sc.near = 1; sc.far = 12;
     s.add(d);
     const rim = new T.DirectionalLight(0x9fd0ff, 0.8);
     rim.position.set(-3, 2, -3);
