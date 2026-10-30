@@ -74,8 +74,14 @@ position (1:20 scale, so 1 km is 50 m in the game), and the road follows the
 national highways and hill roads between them (NH 66, 744, 183A, 183, 85,
 544, 966 and 766) through towns such as Attingal, Adoor, Chengannur,
 Adimali, Aluva, Chalakudy, Mannarkkad, Thamarassery and Taliparamba, each
-with name boards and roadside shops. The big map (M) shows the road on the
-outline of Kerala with the whole national highway network. Each centre has welcome gates, a bus stand, an information board,
+with name boards and roadside shops. Thirteen branch highways are drivable
+too and join the main road at junctions with direction signs: NH 744 to
+Punalur, NH 183 to Kumily, NH 183A and NH 185 through the Idukki hills,
+NH 85 to Munnar, NH 544 to Walayar, NH 766 to Sulthan Bathery, and the
+coastal NH 66 from Kollam to Alappuzha, Cherthala to Kochi, Kochi to
+Kozhikode and Kozhikode to Kannur, plus the roads south to Parassala and
+north to Manjeshwar. Roads that reach the state border end at a
+check-post. The big map (M) shows every road on the outline of Kerala. Each centre has welcome gates, a bus stand, an information board,
 local people to talk to, shops and a landmark, such as a temple gopuram, a
 lighthouse, Chinese fishing nets, the Idukki arch dam, a hill shrine or
 Bekal fort. Milestones count the kilometres, green signs point to the next

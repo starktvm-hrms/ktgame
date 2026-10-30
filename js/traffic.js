@@ -110,6 +110,21 @@
     };
   }
 
+  // a branch highway (it ends at junctions or at the state border)
+  function branchRoad(R) {
+    const f = {};
+    return {
+      R, length: R.len,
+      pose(d, lat, out) {
+        R.frame(KT.clamp(d, 0, R.len), f);
+        out.x = f.x + f.rx * lat; out.z = f.z + f.rz * lat;
+        out.heading = f.heading;
+        return out;
+      },
+      project(x, z) { const p = R.project(x, z); return { d: p.s, lat: p.s < 0 || p.s > R.len ? 1e9 : p.lat }; }
+    };
+  }
+
   // ------------------------------------------------------------ junctions
   // phase(t) -> per direction group state: 'green' | 'amber' | 'red'
   function cyclePhase(t, offset, green, amber, red) {
@@ -320,6 +335,7 @@
       }
       set.add(v, road, d, dir, LANE);
     }
+    initBranches();
     // signals at every district centre (stop lines either side of the zebra crossing)
     Hw.hubs.forEach((h) => {
       const state = () => Tr.hubState(h);
@@ -327,6 +343,62 @@
       set.stops.push({ road, d: h.s + Hw.CROSSING + 4.5, dir: -1, state });
     });
   };
+  // Traffic on the branch highway nearest the player: a few vehicles that
+  // move over to whichever branch the player comes close to.
+  const B_WINDOW = 650;
+  function initBranches() {
+    const Hw = KT.Highway;
+    const rng = KT.makeRng(777);
+    Tr.branchRoads = (Hw.branches || []).map(branchRoad);
+    Tr.activeBranch = null;
+    const set = Tr.hwb = new TrafficSet(Hw, Hw.scene, {
+      wrap(v) {
+        const road = Tr.activeBranch;
+        if (!road) return;
+        const ps = Tr.branchS;
+        if (v.road === road && Math.abs(v.d - ps) < B_WINDOW) {
+          // turn round at the end of the road
+          if (v.d < 8 || v.d > road.length - 8) {
+            v.d = KT.clamp(v.d, 8, road.length - 8);
+            v.dir = -v.dir; v.lat = v.laneLat = -v.dir * v.laneOff; v.heading = undefined; v.overtake = null;
+          }
+          return;
+        }
+        v.road = road;
+        v.dir = rng() < 0.5 ? 1 : -1;
+        let d = 0;
+        for (let k = 0; k < 8; k++) {
+          d = KT.clamp(ps + (rng() * 2 - 1) * (B_WINDOW - 40), 20, road.length - 20);
+          if (Math.abs(d - ps) > 60 && set.roomAt(road, d, v.dir, v.len, v)) break;
+        }
+        v.d = d;
+        v.lat = v.laneLat = -v.dir * v.laneOff;
+        v.overtake = null; v.v = v.cruise * 0.8; v.heading = undefined;
+      },
+      parked: () => parkedVehicles('highway'),
+      people: () => []
+    });
+    const weights = [['car', 10], ['auto', 5], ['scooter', 6], ['lorry', 2], ['bus', 1.2]];
+    const first = Tr.branchRoads[0];
+    for (let i = 0; i < 12 && first; i++) {
+      const v = makeVehicle(pickKind(rng, weights), rng);
+      set.add(v, first, 20 + i * 15, i % 2 ? 1 : -1, LANE);
+      v.obj.visible = false;
+    }
+  }
+  function updateBranches(dt, focus, camPos) {
+    if (!Tr.hwb) return;
+    // the branch nearest the player, if one is within reach
+    let best = null, bd = 1400;
+    Tr.branchRoads.forEach((r) => {
+      if (!r.R.near(focus.x, focus.z, 1400)) return;
+      const p = r.R.project(focus.x, focus.z);
+      if (p.d < bd) { bd = p.d; best = r; Tr.branchS = KT.clamp(p.s, 0, r.length); }
+    });
+    if (!best) { Tr.hwb.vehicles.forEach((v) => { v.obj.visible = false; }); Tr.activeBranch = null; return; }
+    if (best !== Tr.activeBranch) { Tr.activeBranch = best; Tr.hwb.vehicles.forEach((v) => { v.road = null; Tr.hwb.opts.wrap(v); }); }
+    Tr.hwb.update(dt, KT.Highway.animTime, camPos);
+  }
   // the same cycle drives the signal lamps built with each district centre
   Tr.hubState = (h) => cyclePhase(KT.Highway.animTime, h.index * 7, 15, 3, 9);
 
@@ -356,6 +428,7 @@
     const focus = P.mode === 'bus' && P.bus ? P.bus.obj.position : P.pos;
     Tr.playerS = KT.Highway.project(focus.x, focus.z).s;
     Tr.hw.update(dt, KT.Highway.animTime, camPos);
+    updateBranches(dt, focus, camPos);
     KT.Highway.hubs.forEach((h) => {
       if (!h.signals || !h.group.visible) return;
       const st = Tr.hubState(h);
@@ -427,5 +500,5 @@
   Tr.updateHome = function (dt, camPos) {
     if (Tr.home) Tr.home.update(dt, KT.World.animTime, camPos);
   };
-  Tr.highwayColliders = (pos, range) => (Tr.hw ? Tr.hw.colliders(pos, range) : []);
+  Tr.highwayColliders = (pos, range) => (Tr.hw ? Tr.hw.colliders(pos, range).concat(Tr.activeBranch ? Tr.hwb.colliders(pos, range) : []) : []);
 })();

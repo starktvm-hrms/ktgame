@@ -119,6 +119,7 @@ window.KT = window.KT || {};
       g.fillText(ln.text || ln, w / 2, h * ((i + 0.5) / n) + (ln.dy || 0));
     });
     const t = new T.CanvasTexture(c);
+    t.userData.text = true; // made for one sign: freed with it
     t.encoding = T.sRGBEncoding;
     t.anisotropy = KT.maxAnisotropy;
     return t;

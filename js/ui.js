@@ -558,12 +558,13 @@
   };
 
   // --------------------------------------------- highway minimap & map
-  function drawRoadPath(g, s0, s1, toMap, width, color) {
+  function drawRoadPath(g, s0, s1, toMap, width, color, road) {
     g.strokeStyle = color; g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
     const step = Math.max(10, (s1 - s0) / 400);
-    for (let s = s0; s <= s1; s += step) {
-      const f = KT.Highway.frame(s);
+    const frame = road ? road.frame : KT.Highway.frame;
+    for (let s = s0; s <= s1 + step * 0.5; s += step) {
+      const f = frame(Math.min(s, s1));
       const m = toMap(f.x, f.z);
       if (s === s0) g.moveTo(m[0], m[1]); else g.lineTo(m[0], m[1]);
     }
@@ -579,18 +580,6 @@
     g.restore();
   }
   const HW_SCALE = 0.45; // pixels per metre
-  // Kerala's national highways (latitude, longitude), drawn on the big map
-  const NH = [
-    ['66', [[8.33, 77.13], [8.4, 77.08], [8.49, 76.95], [8.57, 76.87], [8.696, 76.815], [8.81, 76.75], [8.89, 76.6], [9.06, 76.53], [9.17, 76.5], [9.285, 76.46], [9.49, 76.33], [9.68, 76.34], [9.87, 76.3], [10.02, 76.31], [10.15, 76.23], [10.23, 76.2], [10.58, 76.02], [10.77, 75.93], [10.84, 76.03], [10.99, 75.99], [11.18, 75.86], [11.26, 75.79], [11.44, 75.7], [11.6, 75.59], [11.75, 75.49], [11.87, 75.37], [12.04, 75.36], [12.1, 75.2], [12.26, 75.13], [12.5, 74.99], [12.75, 74.88]]],
-    ['544', [[10.02, 76.31], [10.108, 76.351], [10.19, 76.39], [10.3, 76.33], [10.53, 76.27], [10.59, 76.48], [10.65, 76.56], [10.787, 76.655], [10.84, 76.84]]],
-    ['966', [[11.18, 75.86], [11.145, 75.96], [11.05, 76.07], [10.976, 76.226], [10.99, 76.46], [10.787, 76.655]]],
-    ['766', [[11.26, 75.79], [11.3, 75.88], [11.415, 75.94], [11.52, 76.02], [11.61, 76.08], [11.66, 76.26], [11.67, 76.42]]],
-    ['85', [[9.97, 76.27], [9.95, 76.34], [9.98, 76.47], [9.98, 76.58], [10.06, 76.63], [10.01, 76.95], [10.09, 77.06], [10.0, 77.25]]],
-    ['183', [[8.89, 76.6], [8.96, 76.67], [9.1, 76.63], [9.318, 76.611], [9.385, 76.575], [9.445, 76.54], [9.59, 76.52], [9.57, 76.75], [9.53, 76.88], [9.58, 76.97], [9.57, 77.09], [9.61, 77.17]]],
-    ['183A', [[9.1, 76.63], [9.155, 76.735], [9.265, 76.787], [9.33, 76.84], [9.42, 76.96], [9.5, 77.03], [9.57, 77.09]]],
-    ['185', [[10.01, 76.95], [9.85, 76.94], [9.75, 77.12], [9.61, 77.17]]],
-    ['744', [[8.89, 76.6], [8.96, 76.67], [9.0, 76.77], [9.02, 76.93], [8.97, 77.15]]]
-  ];
   // Kerala's eastern border, north to south (latitude, longitude)
   const KERALA_EAST = [[12.78, 74.86], [12.7, 75.12], [12.3, 75.42], [12.0, 75.85], [11.75, 76.08], [11.6, 76.35], [11.45, 76.4],
     [11.2, 76.6], [10.95, 76.82], [10.72, 76.86], [10.55, 76.82], [10.35, 77.05], [10.2, 77.25], [9.95, 77.22], [9.6, 77.2],
@@ -606,7 +595,10 @@
     const toMap = (x, z) => [W / 2 + (x - p.x) * scale, H / 2 + (z - p.z) * scale];
     const s = Hw.project(p.x, p.z).s;
     const span = W / scale;
+    const near = (Hw.branches || []).filter((R) => R.near(p.x, p.z, span));
+    near.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 9, '#2d2d2d', R));
     drawRoadPath(g, s - span, s + span, toMap, 9, '#2d2d2d');
+    near.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.5, '#f4efe2', R));
     drawRoadPath(g, s - span, s + span, toMap, 1.5, '#f4efe2');
     g.font = 'bold 12px system-ui, sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -682,19 +674,16 @@
     g.fillText('Western Ghats', gh[0], gh[1]);
     g.fillText('Tamil Nadu', tn[0], tn[1]);
     g.fillText('Karnataka', ka[0], ka[1]);
-    // the national highway network, then the route the game follows on top
-    g.lineCap = 'round'; g.lineJoin = 'round';
-    NH.forEach(([num, pts]) => {
-      g.beginPath();
-      pts.forEach((ll, i) => { const m = geo(ll); if (i) g.lineTo(m[0], m[1]); else g.moveTo(m[0], m[1]); });
-      g.strokeStyle = 'rgba(70,45,20,0.55)'; g.lineWidth = 3.5; g.stroke();
-      g.strokeStyle = '#d9a75a'; g.lineWidth = 1.6; g.stroke();
-    });
+    // the branch highways, then the main highway on top
+    const branches = Hw.branches || [];
+    branches.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 3 + 1.5 * Math.min(view.zoom, 3), '#2d2d2d', R));
+    branches.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.3, '#e8b85a', R));
     drawRoadPath(g, 0, sEnd, toMap, 4 + 2 * Math.min(view.zoom, 3), '#2d2d2d');
     drawRoadPath(g, 0, sEnd, toMap, 1.5, '#ffd34d');
     // highway numbers
-    NH.forEach(([num, pts]) => {
-      const mid = geo(pts[Math.floor(pts.length / 2)]);
+    const shields = branches.map((R) => { const f = R.frame(R.len * 0.5); return [R.nh.replace('NH ', ''), Hw.toLonLat(f.x, f.z)]; });
+    [['66', Hw.toLonLat(Hw.frame(Hw.hubS(0) + 1500).x, Hw.frame(Hw.hubS(0) + 1500).z)]].concat(shields).forEach(([num, ll]) => {
+      const mid = geo([ll.lat, ll.lon]);
       g.font = 'bold 10px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       const w = g.measureText(num).width + 6;
       g.fillStyle = '#f2d03b'; g.fillRect(mid[0] - w / 2, mid[1] - 7, w, 14);
@@ -702,8 +691,8 @@
       g.fillStyle = '#2b2205'; g.fillText(num, mid[0], mid[1] + 0.5);
     });
     // towns along the way
-    (Hw.WAYPOINTS || []).forEach((w) => {
-      const f = Hw.frame(w.s), m = toMap(f.x, f.z);
+    [].concat(...Hw.roads.map((R) => R.towns.map((w) => [R, w]))).forEach(([R, w]) => {
+      const f = R.frame(w.s), m = toMap(f.x, f.z);
       g.fillStyle = '#1d1d1d'; g.beginPath(); g.arc(m[0], m[1], 3, 0, Math.PI * 2); g.fill();
       if (view.zoom >= 1.5) {
         g.font = '11px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';

@@ -1023,9 +1023,17 @@
       KT.UI.drawRoute(st.s, st);
       const near = KT.DISTRICTS[st.nearest];
       const way = KT.Highway.nearestWaypoint(st.s);
-      const zone = st.dist < 200 ? near.name + ' \u2022 ' + near.ml
+      const onRoad = KT.Highway.nearestRoad(P.pos.x, P.pos.z, 400);
+      let zone = st.dist < 200 ? near.name + ' \u2022 ' + near.ml
         : way && Math.abs(way.s - st.s) < 300 ? way.road + ' \u2022 ' + way.name
           : (way ? way.road : 'NH 66') + ' \u2022 near ' + near.name;
+      if (!onRoad.road.main && onRoad.d < Math.abs(st.lat)) {
+        // on a branch highway: its number and the nearest town on it
+        const R = onRoad.road;
+        let t = null;
+        R.towns.forEach((w) => { if (!t || Math.abs(w.s - onRoad.s) < Math.abs(t.s - onRoad.s)) t = w; });
+        zone = R.nh + ' \u2022 ' + (t && Math.abs(t.s - onRoad.s) < 300 ? t.name : 'towards ' + R.name);
+      }
       KT.UI.drawMinimapHighway(P.pos, inBus ? P.bus.heading : P.heading, zone);
     }
   }
