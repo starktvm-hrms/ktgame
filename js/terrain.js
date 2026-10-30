@@ -402,19 +402,61 @@
     return sky;
   };
 
+  // Fluffy, hand-painted cumulus clouds: white sunlit tops and soft
+  // blue-grey undersides, a few shapes drawn once and shared.
+  function cloudTexture(seed) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 256;
+    const g = c.getContext('2d');
+    const rng = KT.makeRng(seed);
+    const puffs = [];
+    const n = 9 + Math.floor(rng() * 5);
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      const x = 70 + t * 372 + (rng() - 0.5) * 30;
+      const r = 34 + Math.sin(t * Math.PI) * (52 + rng() * 30) + rng() * 10;
+      puffs.push({ x, y: 196 - r * (0.75 + rng() * 0.2), r });
+    }
+    // soft shadowed base, then the lit puffs, then highlights
+    g.filter = 'blur(6px)';
+    g.fillStyle = 'rgba(176, 190, 214, 0.95)';
+    puffs.forEach((p) => { g.beginPath(); g.arc(p.x, p.y + p.r * 0.18, p.r, 0, Math.PI * 2); g.fill(); });
+    g.fillRect(60, 170, 392, 34);
+    g.filter = 'blur(3px)';
+    puffs.forEach((p) => {
+      const gr = g.createRadialGradient(p.x - p.r * 0.25, p.y - p.r * 0.35, p.r * 0.1, p.x, p.y, p.r);
+      gr.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      gr.addColorStop(0.65, 'rgba(250, 251, 255, 0.98)');
+      gr.addColorStop(1, 'rgba(214, 224, 240, 0.0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(p.x, p.y - p.r * 0.06, p.r * 0.92, 0, Math.PI * 2); g.fill();
+    });
+    g.filter = 'none';
+    // flatten the bottom like a fair-weather cumulus
+    const fade = g.createLinearGradient(0, 196, 0, 230);
+    fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = fade; g.fillRect(0, 196, 512, 60);
+    g.globalCompositeOperation = 'source-over';
+    const tex = new T.CanvasTexture(c);
+    tex.encoding = T.sRGBEncoding;
+    return tex;
+  }
   Geo.buildClouds = function () {
     const group = new T.Group();
-    const tex = KT.tex('cloud');
+    const texs = [11, 23, 37, 41, 59].map(cloudTexture);
     const rng = KT.makeRng(99);
-    for (let i = 0; i < 34; i++) {
-      const mat = new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, opacity: 0.85 + rng() * 0.15 });
+    for (let i = 0; i < 52; i++) {
+      const mat = new T.SpriteMaterial({ map: texs[i % texs.length], transparent: true, depthWrite: false, fog: false, opacity: 0.9 + rng() * 0.1 });
       const s = new T.Sprite(mat);
-      const a = rng() * Math.PI * 2, r = 250 + rng() * 1300;
-      s.position.set(Math.cos(a) * r, 160 + rng() * 140, Math.sin(a) * r);
-      const sc = 140 + rng() * 220;
-      s.scale.set(sc, sc * 0.45, 1);
+      // a ring of clouds all round, high overhead and banked on the horizon
+      const a = rng() * Math.PI * 2, r = 380 + rng() * 2000;
+      s.position.set(Math.cos(a) * r, 200 + rng() * 220 + r * 0.04, Math.sin(a) * r);
+      const sc = 220 + rng() * 300 + r * 0.12;
+      s.scale.set(sc, sc * 0.5, 1);
       group.add(s);
     }
+    group.userData.drift = true;
     return group;
   };
 })();

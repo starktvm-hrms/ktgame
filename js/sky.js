@@ -352,7 +352,9 @@
         fog.near = KT.lerp(r.key === 'home' ? 160 : 220, 25, Math.max(S.rain * 0.6, S.fog));
       }
       // clouds: thicker, greyer, darker at night
-      const cc = 0.25 + 0.75 * Math.min(1, S.cloud * 1.15);
+      // fair-weather clouds always show; more cover makes them denser
+      const cc = 0.75 + 0.25 * Math.min(1, S.cloud * 1.15);
+      r.clouds.rotation.y += 0.0001; // a slow drift across the sky
       const shade = (1 - 0.45 * S.rain) * P.cl;
       r.clouds.children.forEach((c, i) => {
         c.material.opacity = r.cloudBase[i] * cc;
