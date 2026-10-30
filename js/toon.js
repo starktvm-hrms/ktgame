@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   const T = THREE;
-  const Toon = KT.Toon = { enabled: false, outlines: false };
+  const Toon = KT.Toon = { enabled: false, outlines: false, exposure: 1 };
 
   // --------------------------------------------------------- lighting
   Toon.patchShaders = function () {
@@ -35,6 +35,7 @@
     // the shade is light and cool, lit by the blue sky
     S.lights_fragment_end = S.lights_fragment_end + '\nreflectedLight.indirectDiffuse *= vec3( 1.04, 1.08, 1.22 );\n';
     Toon.enabled = true;
+    Toon.exposure = 0.85; // a calmer, darker picture than the classic look
   };
 
   // A painted finish: flatter surfaces, less mirror shine (materials are

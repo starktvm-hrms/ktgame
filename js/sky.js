@@ -376,8 +376,8 @@
         r.water.uSunColor.value.copy(P.light).multiplyScalar(S.cloud > 0.85 ? 0.1 : 1);
         r.water.uSunDir.value.copy(lightDir);
       }
-      G.renderer.toneMappingExposure = P.exp;
-    } else G.renderer.toneMappingExposure = 1.05;
+      G.renderer.toneMappingExposure = P.exp * KT.Toon.exposure;
+    } else G.renderer.toneMappingExposure = 1.05 * KT.Toon.exposure;
     // street and house lamps glow brighter at night
     KT.M.lampGlow.emissiveIntensity = 1.4 + 2.2 * S.night;
     if (KT.Highway && KT.Highway.built) KT.mat('catEye').emissiveIntensity = 0.3 + 2.2 * S.night;
