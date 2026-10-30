@@ -490,14 +490,35 @@ window.KT = window.KT || {};
       if (!g.attributes.normal) g.computeVertexNormals();
       const P = g.attributes.position, N = g.attributes.normal;
       const c = (Array.isArray(m.material) ? m.material[0] : m.material).color || new T.Color(1, 1, 1);
+      // a skirt (mundu, saree) is cloth: lower down it moves with the legs
+      // inside it, so they never poke through
+      const sk = m.userData.skirt;
+      let hipY = 0;
+      if (sk) {
+        hipY = _v.setFromMatrixPosition(sk.hipL.matrixWorld).applyMatrix4(inv).y;
+        ['hipL', 'hipR', 'kneeL', 'kneeR'].forEach((b) => { sk[b + 'I'] = jointIndex.get(sk[b]); });
+      }
       for (let i = 0; i < P.count; i++) {
         _v.fromBufferAttribute(P, i).applyMatrix4(mm);
+        if (sk) {
+          const k4 = (vo + i) * 4;
+          const depth = Math.max(0, hipY - _v.y);
+          const legW = 0.92 * Math.pow(Math.min(1, depth / 0.5), 0.8);
+          const kneeW = legW * 0.45 * KT.smoothstep(0.42, 0.8, depth);
+          const sL = KT.smoothstep(-0.09, 0.09, _v.x); // +x is the left leg
+          const L = sL >= 0.5;
+          const p = L ? sL : 1 - sL;
+          sIdx[k4] = bi; sW[k4] = 1 - legW;
+          sIdx[k4 + 1] = L ? sk.hipLI : sk.hipRI; sW[k4 + 1] = legW * p - kneeW * p;
+          sIdx[k4 + 2] = L ? sk.kneeLI : sk.kneeRI; sW[k4 + 2] = kneeW * p;
+          sIdx[k4 + 3] = L ? sk.hipRI : sk.hipLI; sW[k4 + 3] = legW * (1 - p);
+        }
         _n.fromBufferAttribute(N, i).applyMatrix3(nm).normalize();
         const k = vo + i;
         pos[k * 3] = _v.x; pos[k * 3 + 1] = _v.y; pos[k * 3 + 2] = _v.z;
         nor[k * 3] = _n.x; nor[k * 3 + 1] = _n.y; nor[k * 3 + 2] = _n.z;
         col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
-        sIdx[k * 4] = bi; sW[k * 4] = 1;
+        if (!sk) { sIdx[k * 4] = bi; sW[k * 4] = 1; }
       }
       if (g.index) { for (let i = 0; i < g.index.count; i++) idx[io + i] = g.index.getX(i) + vo; io += g.index.count; }
       else { for (let i = 0; i < P.count; i++) idx[io + i] = i + vo; io += P.count; }

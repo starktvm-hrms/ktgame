@@ -457,11 +457,13 @@
       hips.add(hip);
       // bare legs only where they can be seen
       const covered = bt === 'pants' || bt === 'jeans' || bt === 'overalls' || bt === 'leggings';
-      if (!covered) limb(hip, 0.43, 0.068, 0.055, skin);
+      if (!covered && !skirt) limb(hip, 0.43, 0.068, 0.055, skin);
       const knee = rig['knee' + side] = new T.Group();
       knee.position.y = -0.42;
       hip.add(knee);
-      if (!covered) limb(knee, 0.37, 0.053, 0.04, skin);
+      if (!covered && !skirt) limb(knee, 0.37, 0.053, 0.04, skin);
+      // under a mundu or saree only the ankles ever show
+      if (skirt) { const g = new T.Group(); g.position.y = -0.2; knee.add(g); limb(g, 0.17, 0.046, 0.04, skin); }
       if (bt === 'shorts') {
         tube(hip, botM, 0.02, -0.36, 0.088, 0.082);
         band(hip, shade(of.bottom, 0.8), -0.345, 0.081, 0.013);
@@ -485,6 +487,7 @@
 
     // ------------------------------------------ garments from the waist
     if (skirt) {
+      const n0 = hips.children.length;
       const len = bt === 'saree' ? 0.91 : 0.86;
       const flare = bt === 'saree' ? 0.2 : 0.17;
       const pts = [[0.001, -len + 0.03], [flare - 0.005, -len + 0.03], [flare, -len + 0.06], [flare * 0.94, -len * 0.55], [0.15, -0.2], [0.14, 0.0], [0.132, 0.09], [0.001, 0.09]];
@@ -498,6 +501,10 @@
         for (let i = 0; i < 5; i++) part(hips, roundBox(0.024, len - 0.17, 0.016, 0.006), shade(of.bottom, 0.93), -0.045 + i * 0.022, -len / 2 - 0.01, 0.155 + (i % 2) * 0.005, -0.12);
         part(hips, roundBox(0.12, 0.05, 0.018, 0.006), C(of.border), 0, -len + 0.13, 0.205, -0.12);
       }
+      // the cloth follows the legs (see KT.skinify)
+      const sk = { hipL: rig.hipL, hipR: rig.hipR, kneeL: rig.kneeL, kneeR: rig.kneeR };
+      hips.children.slice(n0).forEach((m) => { if (m.isMesh) m.userData.skirt = sk; });
+      rig.skirt = true;
     }
 
     // ---------------------------------------------------------- torso
@@ -916,6 +923,8 @@
     a.phase += dt * rate * (speedFactor || 1);
     const pose = (POSES[state] || POSES.idle)(a.phase, a);
     const k = 1 - Math.exp(-dt * (state === 'jump' || state === 'land' ? 16 : 12));
+    // shorter steps in a mundu or saree
+    if (rig.skirt && (state === 'walk' || state === 'run')) ['hipL', 'hipR', 'kneeL', 'kneeR', 'ankleL', 'ankleR'].forEach((j) => { if (pose[j]) pose[j] = [pose[j][0] * 0.75, pose[j][1], pose[j][2]]; });
     JOINTS.forEach((j) => {
       const bone = rig[j];
       if (!bone) return;
