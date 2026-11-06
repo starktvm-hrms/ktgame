@@ -612,6 +612,10 @@
       }
     });
   }
+  // turning places where a road ends at a sight or a hamlet: { x, z, r, y }
+  const PLAZAS = [];
+  const addPlaza = (R) => { const f = R.frame(R.len - 6); PLAZAS.push({ x: f.x, z: f.z, r: R.hamlet ? 7 : 13, y: R.y(R.len) }); };
+  Hw.roads.forEach((R) => { if (R.dest) addPlaza(R); });
   // from each village a dead-end road runs on to a hamlet
   Hw.country.slice().forEach((V, vi) => {
     const rng = KT.makeRng(7300 + vi * 53);
@@ -644,11 +648,27 @@
         V.junctions.push({ s: sJ, side: L.side, other: R });
         Hw.roads.push(R);
         Hw.country.push(R);
+        addPlaza(R);
         break;
       }
     });
   });
   Hw.reachRoads(Hw.roads);
+
+  // every branch or village road within m metres, with its distance from
+  // the road itself (dd: past an end, from that end)
+  Hw.branchesNear = function (x, z, m) {
+    const out = [];
+    for (let i = 1; i < Hw.roads.length; i++) {
+      const R = Hw.roads[i];
+      if (!R.near(x, z, m)) continue;
+      const p = R.project(x, z);
+      if (p.d >= m) continue;
+      p.dd = Math.hypot(p.d, Math.max(0, -p.s, p.s - R.len));
+      if (p.dd < m) out.push(p);
+    }
+    return out;
+  };
 
   // rivers cross the road half-way between district centres, at right angles
   // (clear of the junctions)
@@ -709,11 +729,18 @@
     // road embankments
     const w = 1 - KT.smoothstep(8, 30 + 30 * gh, Math.abs(lat));
     h = KT.lerp(h, roadY(s) - 0.2, w);
-    const b = Hw.nearBranch(x, z, 90);
-    if (b) {
-      // (a country road's banks are narrower; a lane reaches no further than its ends)
-      const c = b.road.country, beyond = c && (b.s < 0 || b.s > b.road.len);
-      if (!beyond) h = KT.lerp(h, b.road.y(b.s) - 0.2, 1 - KT.smoothstep(c ? b.road.half + 3 : 8, c ? 18 + 26 * gh : 30 + 30 * gh, b.d));
+    // the other roads' banks, blended where several meet (a country road's
+    // banks are narrower, and fade out past its ends)
+    const near = Hw.branchesNear(x, z, 90);
+    if (near.length) {
+      let keep = 1, sw = 0, sy = 0;
+      near.forEach((b) => {
+        const c = b.road.country;
+        const w = 1 - KT.smoothstep(c ? b.road.half + 3 : 8, c ? 18 + 26 * gh : 30 + 30 * gh, b.dd);
+        if (w <= 0) return;
+        keep *= 1 - w; sw += w; sy += w * (b.road.y(KT.clamp(b.s, 0, b.road.len)) - 0.2);
+      });
+      if (sw > 0) h = KT.lerp(h, sy / sw, 1 - keep);
     }
     // level ground for the sights
     for (let i = 0; i < PADS.length; i++) {
@@ -767,13 +794,22 @@
   Hw.groundY = function (x, z, curY) {
     const p = Hw.project(x, z);
     let y = Hw.height(x, z);
-    if (Math.abs(p.lat) < ROAD_HALF + 0.6) y = Math.max(y, roadY(p.s) + 0.06);
-    else if (Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
+    // (road edges ease down to the verge over a metre or so)
+    const ea = Math.abs(p.lat) - ROAD_HALF - 0.6;
+    if (ea < 1.2) y = Math.max(y, roadY(p.s) + 0.06 - 0.3 * Math.max(0, ea) / 1.2);
+    if (ea >= 0 && Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
       const hi = Hw.hubIndexAt(p.s), hub = Hw.hubs[hi];
       if (hub && hub.footpaths && hub.footpaths.some((g) => g[0] <= p.s - hub.s && p.s - hub.s <= g[1] && Math.sign(p.lat) === g[2])) y = Math.max(y, roadY(p.s) + 0.14);
     }
-    const b = Hw.nearBranch(x, z, ROAD_HALF + 0.6);
-    if (b && b.s > -1 && b.s < b.road.len + 1 && b.d < (b.road.half || ROAD_HALF) + 0.6) y = Math.max(y, b.road.y(b.s) + 0.06);
+    Hw.branchesNear(x, z, ROAD_HALF + 1.8).forEach((b) => {
+      const edge = (b.road.half || ROAD_HALF) + 0.6;
+      if (b.dd < edge + 1.2) y = Math.max(y, b.road.y(KT.clamp(b.s, 0, b.road.len)) + 0.06 - 0.3 * Math.max(0, b.dd - edge) / 1.2);
+    });
+    // the paved turning places at road ends
+    for (let i = 0; i < PLAZAS.length; i++) {
+      const P = PLAZAS[i], d = Math.hypot(x - P.x, z - P.z) - P.r;
+      if (d < 1.2) y = Math.max(y, P.y + 0.07 - 0.3 * Math.max(0, d) / 1.2);
+    }
     return { y, onPlatform: false };
   };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
@@ -1578,6 +1614,18 @@
     Hw.country.push(L);
   });
 
+  // once the sights have levelled their ground (KT.Dest), each lane rises
+  // or falls to meet it
+  function relevelLanes() {
+    Hw.country.forEach((L) => {
+      if (!L.lane) return;
+      for (let pass = 0; pass < 2; pass++) {
+        const e = L.frame(L.len), y1 = Math.max(Hw.height(e.x, e.z) + 0.05, Hw.waterLevelAt(e.x, e.z) + 0.3), y0 = L.PY[0];
+        for (let i = 0; i <= L.LAST; i++) L.PY[i] = KT.lerp(y0, y1, KT.smoothstep(0, 1, i / L.LAST));
+      }
+    });
+  }
+
   function sightBoard(hub, sg) {
     const side = Math.sign(sg.lat);
     const lat = sg.lat - side * (sg.r + 4);
@@ -2009,6 +2057,7 @@
     makePools(scene);
     scene.add(buildSea());
     if (KT.Dest) KT.Dest.prepare();
+    relevelLanes();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     Hw.built = true;
   };
