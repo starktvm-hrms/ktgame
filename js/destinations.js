@@ -413,6 +413,107 @@
     part(g, G.cyl(1.4, 1.4, 0.15, 12), plank, x, 6.4, z);
   }
 
+  // Visitors: families, couples and school children walk in at the gate,
+  // stop at a few enclosures to watch (waving, pointing), and walk out
+  // again. Each follows the paths: the main path (x = 0) and the two cross
+  // paths (z = +-20).
+  const VIEW = {
+    zebra: [-39, 22.4, 0], stork: [-15, 22.4, 0], elephant: [30, 22.4, 0],
+    lion: [-41, 17.6, Math.PI], leopard: [-17, 17.6, Math.PI], orangutan: [18, 17.6, Math.PI], macaque: [42, 17.6, Math.PI],
+    tiger: [-30, -22.4, Math.PI], bear: [18, -22.4, Math.PI], deer: [42, -22.4, Math.PI]
+  };
+  const VISIT_LOOKS = [['male', 'casual'], ['female', 'saree'], ['male', 'tee'], ['female', 'churidar'], ['male', 'mundu'], ['female', 'casual'], ['male', 'hiking'], ['female', 'hiking']];
+  function zooVisitors(it, parent) {
+    const rng = KT.makeRng(1857);
+    const line = (p) => (p[1] > 0 ? 20 : -20);
+    // from one stop to the next along the paths (with a little sideways offset)
+    function legsBetween(a, b, off) {
+      const out = [];
+      const la = a.gate ? null : line(a), lb = b.gate ? null : line(b);
+      out.push([a[0], la === null ? a[1] : la + off]);
+      if (la !== null && la !== lb) out.push([off, la + off]);
+      if (la === null || la !== lb) {
+        if (lb !== null) out.push([off, lb + off]);
+      }
+      out.push([b[0], lb === null ? b[1] : lb + off]);
+      return out;
+    }
+    const groups = [
+      { people: 3, kids: 1, stops: ['elephant', 'zebra', 'stork', 'lion', 'tiger'] },
+      { people: 2, kids: 0, stops: ['tiger', 'bear', 'deer'] },
+      { people: 4, kids: 2, stops: ['orangutan', 'macaque', 'elephant'] },
+      { people: 1, kids: 0, stops: ['leopard', 'lion', 'zebra'] },
+      { people: 2, kids: 1, stops: ['deer', 'bear', 'orangutan'] },
+      { people: 5, kids: 4, stops: ['lion', 'leopard', 'tiger', 'stork'] }, // a school group
+      { people: 2, kids: 0, stops: ['stork', 'elephant', 'macaque'] },
+      { people: 1, kids: 0, stops: ['bear', 'tiger'] }
+    ];
+    const gate = Object.assign([0, ZOO - 3], { gate: true });
+    let n = 0;
+    groups.forEach((G0, gi) => {
+      // the group's walk: gate -> each stop -> gate, then round again
+      const pts = [], speed = 1.0 + rng() * 0.25, stops = [gate].concat(G0.stops.map((k) => VIEW[k]), [gate]);
+      const plan = [];
+      for (let i = 0; i < stops.length - 1; i++) {
+        legsBetween(stops[i], stops[i + 1], (rng() - 0.5) * 1.6).forEach((p, j) => { if (!pts.length || Math.hypot(p[0] - pts[pts.length - 1][0], p[1] - pts[pts.length - 1][1]) > 0.05) pts.push(p); });
+        plan.push({ at: pts.length - 1, face: stops[i + 1].gate ? null : stops[i + 1][2], wait: stops[i + 1].gate ? 6 + rng() * 10 : 9 + rng() * 9 });
+      }
+      // timeline: walk each leg, wait at the stops
+      const tl = [];
+      let T0 = 0;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) / speed;
+        tl.push({ a: pts[i], b: pts[i + 1], t0: T0, t1: T0 + d });
+        T0 += d;
+        const st = plan.find((p) => p.at === i + 1);
+        if (st) { tl.push({ a: pts[i + 1], b: pts[i + 1], t0: T0, t1: T0 + st.wait, face: st.face, stop: true }); T0 += st.wait; }
+      }
+      const start = rng() * T0;
+      for (let k = 0; k < G0.people; k++) {
+        const kid = k >= G0.people - G0.kids && k > 0 || (G0.kids >= 4 && k > 0);
+        const look = VISIT_LOOKS[(n * 3 + gi) % VISIT_LOOKS.length], female = look[0] === 'female';
+        const ch = Models.character({
+          gender: look[0], outfit: kid ? (G0.kids >= 4 ? 'tee' : 'casual') : look[1], lite: true,
+          hair: female ? ['default', 'braid', 'bun', 'loose', 'curly'][n % 5] : ['default', 'short', 'wavy', 'curly'][n % 4],
+          skin: [0xd9a27c, 0xc08660, 0xa8704c, 0x8d5a3b][n % 4], beard: !female && !kid && n % 3 === 0,
+          colors: kid && G0.kids >= 4 ? { top: 0xf4f4f0, bottom: 0x1f3a6b } : undefined,
+          acc: { backpack: kid || rng() < 0.3, hat: rng() < 0.3, sunglasses: !kid && rng() < 0.4, camera: !kid && rng() < 0.35 },
+          scale: kid ? 0.66 + rng() * 0.08 : 0.92 + rng() * 0.1, seed: 300 + n
+        });
+        parent.add(ch);
+        n++;
+        // each member walks a step or two behind or beside the others
+        const side = ((k % 3) - 1) * 0.8, behind = Math.floor(k / 3) * 1.2 + (k % 2) * 0.4;
+        const lag = behind / speed, gesture = ['idle', 'wave', 'idle', 'namaskaram'][(k + gi) % 4];
+        let last = null;
+        it.anim.push((t) => {
+          const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+          last = t;
+          const u = (t + start - lag + T0 * 4) % T0;
+          let L = tl[tl.length - 1];
+          for (let i = 0; i < tl.length; i++) if (u < tl[i].t1) { L = tl[i]; break; }
+          const k2 = L.t1 > L.t0 ? (u - L.t0) / (L.t1 - L.t0) : 0;
+          const x = L.a[0] + (L.b[0] - L.a[0]) * k2, z = L.a[1] + (L.b[1] - L.a[1]) * k2;
+          const dx = L.b[0] - L.a[0], dz = L.b[1] - L.a[1], len = Math.hypot(dx, dz) || 1;
+          // step sideways from the line of walk
+          ch.position.set(x + (dz / len) * side, 0, z - (dx / len) * side);
+          if (L.stop) {
+            // spread along the railing, facing the animals
+            if (L.face !== null && L.face !== undefined) {
+              ch.position.set(L.a[0] + (k - (G0.people - 1) / 2) * 1.1, 0, L.a[1] + (L.face ? -1 : 1) * (1.4 + (k % 2) * 0.6));
+              ch.rotation.y = KT.angleLerp(ch.rotation.y, L.face, Math.min(1, dt * 4));
+            }
+            const late = u - L.t0;
+            KT.Models.animateCharacter(ch, late > 2 && late < 4.5 && !kid ? gesture : late > 3 && kid ? 'wave' : 'idle', dt, 1);
+          } else {
+            ch.rotation.y = KT.angleLerp(ch.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 6));
+            KT.Models.animateCharacter(ch, 'walk', dt, speed / 1.1);
+          }
+        });
+      }
+    });
+  }
+
   function zoo(it) {
     const root = new T.Group(), g = new T.Group(), fauna = new T.Group();
     root.add(fauna);
@@ -598,7 +699,8 @@
     // monkeys on the lawns and walls, peacocks wandering
     [[-6, 18], [6.5, 30], [-55, -2], [54.5, 6]].forEach(([x, z], i) => stand(Models.monkey(), x, z, i * 2));
     [[-5, -30], [5, 36], [-40, 22]].forEach(([x, z], i) => stand(Models.peacock(), x, z, i * 1.7));
-    // only animate the animals when someone is near enough to see them
+    zooVisitors(it, fauna);
+    // only animate the animals (and visitors) when someone is near enough to see them
     it.fauna = fauna;
     // walls and enclosures stop the player; the gate's opening does not
     const C = [];

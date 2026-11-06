@@ -273,7 +273,9 @@ coast stretches with it:
   mud wallow and shelter; orangutans (one carrying a baby) on a climbing
   frame; lion-tailed macaques among bamboo; adjutant storks and egrets in a
   wetland; and spotted deer behind a wire mesh. Monkeys and peacocks roam
-  the lawns, and the animals walk their enclosures.
+  the lawns, and the animals walk their enclosures. Visitors (families,
+  couples and a school group) walk in at the gate, stop at the railings to
+  watch and wave, and walk on.
 - **Ponmudi Road** climbs past Koyikkal Palace at Nedumangad and the Kallar
   Meenmutty falls to the misty top of Ponmudi Hills. A side road runs to
   Aruvikkara Dam.
