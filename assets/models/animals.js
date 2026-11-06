@@ -181,7 +181,15 @@
     part(tail, G.cyl(0.025, 0.035, opts.tailLen || 0.6, 5), opts.mat, 0, -(opts.tailLen || 0.6) / 2, 0);
     tail.rotation.x = 0.3;
     g.userData = { legs, head, tail, body };
+    // resting: legs folded under, the body down on the ground
+    g.userData.lie = function () {
+      legs[0].rotation.x = legs[1].rotation.x = -1.45;
+      legs[2].rotation.x = legs[3].rotation.x = 1.35;
+      g.userData.resting = true;
+      return opts.legLen * 0.85;
+    };
     g.userData.animate = function (t, moving, speed) {
+      if (g.userData.resting) { tail.rotation.z = Math.sin(t * 1.3) * 0.25; head.rotation.y = Math.sin(t * 0.4) * 0.35; return; }
       const f = (speed || 6);
       const sw = moving ? Math.sin(t * f) * 0.45 : 0;
       legs[0].rotation.x = sw; legs[3].rotation.x = sw;
@@ -228,7 +236,7 @@
     return q.g;
   };
 
-  Models.deer = function () {
+  Models.deer = function (doe) {
     const fur = KT.mat('deerFur', { color: 0xb5662c });
     const q = quadruped({ bodyR: 0.28, bodyLen: 0.8, legLen: 0.75, legR: 0.045, neckRise: 0.45, mat: fur, hoofMat: M().black, tailLen: 0.2 });
     const rng = KT.makeRng(5);
@@ -242,6 +250,7 @@
     [-1, 1].forEach((s) => {
       part(q.head, G.cone(0.06, 0.2, 5), fur, s * 0.12, 0.15, -0.02, 0, 0, -s * 1.0);
       part(q.head, G.sph(0.028, 6, 5), M().eyeDark, s * 0.09, 0.05, 0.16);
+      if (doe) return;
       const a1 = part(q.head, G.cyl(0.015, 0.02, 0.55, 4), KT.mat('antler', { color: 0xd9c8a0 }), s * 0.08, 0.35, -0.05, -0.3, 0, -s * 0.3);
       a1.userData.x = 1;
       part(q.head, G.cyl(0.012, 0.015, 0.25, 4), KT.mat('antler', { color: 0xd9c8a0 }), s * 0.12, 0.4, 0.08, 0.5, 0, -s * 0.2);
@@ -407,4 +416,224 @@
     };
     return g;
   };
+  // ------------------------------------------------- zoo animals
+  // A striped coat: wavy dark bands across a base colour (on the body
+  // capsule and the legs the bands ring round, like a tiger's or a zebra's).
+  const coats = {};
+  function stripedMat(key, base, stripe, n, width, seed) {
+    if (coats[key]) return coats[key];
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 128, 256);
+    g.fillStyle = stripe;
+    const rng = KT.makeRng(seed || 3);
+    for (let i = 0; i < n; i++) {
+      const y0 = (i + 0.5) * 256 / n + (rng() - 0.5) * 6, w = width * (0.6 + rng() * 0.7), ph = rng() * 6;
+      g.beginPath();
+      for (let x = 0; x <= 128; x += 4) g.lineTo(x, y0 + Math.sin(x / 128 * Math.PI * 4 + ph) * 5 - w / 2);
+      for (let x = 128; x >= 0; x -= 4) g.lineTo(x, y0 + Math.sin(x / 128 * Math.PI * 4 + ph + 0.6) * 5 + w / 2);
+      g.fill();
+    }
+    const tex = new T.CanvasTexture(c);
+    tex.encoding = T.sRGBEncoding;
+    return (coats[key] = new T.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
+  }
+
+  // Bengal tiger: orange coat with black stripes, white belly and face
+  Models.tiger = function () {
+    const coat = stripedMat('tigerCoat', '#d9822b', '#1c130c', 14, 7, 11);
+    const white = KT.mat('tigerWhite', { color: 0xf3ead8 });
+    const q = quadruped({ bodyR: 0.36, bodyLen: 1.3, legLen: 0.62, legR: 0.09, neckRise: 0.18, mat: coat, hoofMat: white, tailLen: 0.95 });
+    part(q.body, G.sph(0.3, 10, 8), white, 0, q.by - 0.18, 0.05, 0, 0, 0, 0.9, 0.5, 2.2); // belly
+    part(q.body, G.sph(0.34, 10, 8), coat, 0, q.by + 0.04, 0.62, 0, 0, 0, 1.05, 1, 0.9);  // shoulders
+    part(q.head, G.sph(0.27, 14, 10), coat, 0, 0, 0.12, 0, 0, 0, 1.1, 0.95, 1);
+    part(q.head, G.sph(0.17, 10, 8), white, 0, -0.08, 0.3, 0, 0, 0, 1.1, 0.75, 0.8);     // muzzle
+    part(q.head, G.sph(0.045, 6, 5), KT.mat('tigerNose', { color: 0x9a5a50 }), 0, -0.02, 0.43);
+    [-1, 1].forEach((s) => {
+      part(q.head, G.sph(0.09, 8, 6), coat, s * 0.19, 0.2, 0.02, 0, 0, 0, 1, 1, 0.5);   // ears
+      part(q.head, G.sph(0.06, 6, 5), white, s * 0.19, 0.2, 0.05, 0, 0, 0, 1, 1, 0.3);
+      part(q.head, G.sph(0.035, 6, 5), KT.mat('tigerEye', { color: 0xc9b23a, roughness: 0.3 }), s * 0.11, 0.07, 0.34);
+      part(q.head, G.sph(0.018, 5, 4), M().eyeDark, s * 0.11, 0.07, 0.365);
+      part(q.head, G.sph(0.12, 8, 6), white, s * 0.2, -0.06, 0.12, 0, 0, 0, 0.6, 0.9, 0.8); // cheek ruff
+    });
+    q.g.userData.tail.children[0].material = stripedMat('tigerTail', '#d9822b', '#1c130c', 6, 14, 5);
+    q.g.userData.tail.rotation.x = 0.9;
+    bakeStatic(q.body);
+    q.g.userData.radius = 1.0;
+    q.g.userData.kind = 'tiger';
+    return q.g;
+  };
+
+  // Plains zebra: white with bold black stripes, an upright mane
+  Models.zebra = function () {
+    const coat = stripedMat('zebraCoat', '#f4f1ea', '#141414', 18, 7, 21);
+    const black = KT.mat('zebraBlack', { color: 0x161616 });
+    const q = quadruped({ bodyR: 0.36, bodyLen: 1.15, legLen: 0.85, legR: 0.07, neckRise: 0.62, mat: coat, hoofMat: black, tailLen: 0.6 });
+    const neck = part(q.body, G.cyl(0.13, 0.22, 0.8, 10), coat, 0, q.by + 0.36, 0.72, 0.75);
+    void neck;
+    part(q.body, G.box(0.06, 0.16, 0.78), black, 0, q.by + 0.56, 0.62, 0.75);              // mane
+    part(q.head, G.box(0.2, 0.24, 0.5), coat, 0, -0.05, 0.12, 0.35);
+    part(q.head, G.box(0.17, 0.17, 0.16), black, 0, -0.2, 0.36, 0.35);                     // muzzle
+    [-1, 1].forEach((s) => {
+      part(q.head, G.cone(0.06, 0.2, 5), coat, s * 0.09, 0.2, -0.04, -0.2, 0, -s * 0.25);   // ears
+      part(q.head, G.sph(0.03, 6, 5), M().eyeDark, s * 0.1, 0.04, 0.12);
+    });
+    part(q.g.userData.tail, G.sph(0.06, 6, 5), black, 0, -0.6, 0, 0, 0, 0, 1, 2, 1);        // tail tuft
+    bakeStatic(q.body);
+    q.g.userData.radius = 1.0;
+    q.g.userData.kind = 'zebra';
+    return q.g;
+  };
+
+  // Black bear: shaggy black coat, a pale muzzle and a cream V on the chest
+  Models.bear = function () {
+    const fur = KT.mat('bearFur', { color: 0x161412, roughness: 1 });
+    const pale = KT.mat('bearMuzzle', { color: 0xb59a7a });
+    const q = quadruped({ bodyR: 0.5, bodyLen: 0.9, legLen: 0.45, legR: 0.14, neckRise: 0.05, mat: fur, hoofMat: fur, tailLen: 0.12 });
+    part(q.body, G.sph(0.52, 12, 10), fur, 0, q.by + 0.12, 0.42, 0, 0, 0, 1.05, 1, 0.9); // hump and shoulders
+    [-1, 1].forEach((s) => part(q.body, G.box(0.05, 0.3, 0.04), KT.mat('bearV', { color: 0xe8dcc0 }), s * 0.12, q.by + 0.02, 0.86, 0.3, 0, -s * 0.5));
+    part(q.head, G.sph(0.3, 12, 10), fur, 0, 0, 0.12);
+    part(q.head, G.sph(0.15, 10, 8), pale, 0, -0.06, 0.38, 0, 0, 0, 0.9, 0.8, 1);
+    part(q.head, G.sph(0.05, 6, 5), M().black, 0, -0.02, 0.52);
+    [-1, 1].forEach((s) => {
+      part(q.head, G.sph(0.11, 8, 6), fur, s * 0.22, 0.24, 0.02);
+      part(q.head, G.sph(0.03, 6, 5), M().eyeDark, s * 0.12, 0.08, 0.36);
+    });
+    bakeStatic(q.body);
+    q.g.userData.radius = 1.0;
+    q.g.userData.kind = 'bear';
+    return q.g;
+  };
+  // a spotted coat (leopard rosettes)
+  function spottedMat(key, base, spot, seed) {
+    if (coats[key]) return coats[key];
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 128, 256);
+    const rng = KT.makeRng(seed || 7);
+    for (let i = 0; i < 70; i++) {
+      const x = rng() * 128, y = rng() * 256, r = 4 + rng() * 4;
+      g.strokeStyle = spot; g.lineWidth = 2.6;
+      g.beginPath(); g.arc(x, y, r, rng() * 2, rng() * 2 + 4.6); g.stroke();
+      if (rng() < 0.4) { g.fillStyle = spot; g.beginPath(); g.arc(x + r * 1.6, y + r, 1.8, 0, 7); g.fill(); }
+    }
+    const tex = new T.CanvasTexture(c);
+    tex.encoding = T.sRGBEncoding;
+    return (coats[key] = new T.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
+  }
+  // big cats share a build: lion (male with a mane), lioness, leopard
+  function bigCat(kind, coat, size) {
+    const k = size || 1;
+    const pale = KT.mat(kind + 'Pale', { color: kind === 'leopard' ? 0xf1e6cc : 0xe6d2a8 });
+    const q = quadruped({ bodyR: 0.36 * k, bodyLen: 1.25 * k, legLen: 0.62 * k, legR: 0.09 * k, neckRise: 0.2 * k, mat: coat, hoofMat: pale, tailLen: 0.95 * k });
+    part(q.body, G.sph(0.28 * k, 10, 8), pale, 0, q.by - 0.18 * k, 0.05, 0, 0, 0, 0.9, 0.5, 2.1);
+    part(q.body, G.sph(0.34 * k, 10, 8), coat, 0, q.by + 0.04 * k, 0.6 * k, 0, 0, 0, 1.05, 1, 0.9);
+    part(q.head, G.sph(0.26 * k, 14, 10), coat, 0, 0, 0.12 * k, 0, 0, 0, 1.05, 0.95, 1.05);
+    part(q.head, G.sph(0.16 * k, 10, 8), pale, 0, -0.08 * k, 0.3 * k, 0, 0, 0, 1.1, 0.75, 0.85);
+    part(q.head, G.sph(0.045 * k, 6, 5), KT.mat('catNose', { color: 0x3a2622 }), 0, -0.02 * k, 0.44 * k);
+    [-1, 1].forEach((s) => {
+      part(q.head, G.sph(0.08 * k, 8, 6), coat, s * 0.17 * k, 0.21 * k, 0.03, 0, 0, 0, 1, 1, 0.5);
+      part(q.head, G.sph(0.034 * k, 6, 5), KT.mat('catEye', { color: 0xb59a3a, roughness: 0.3 }), s * 0.1 * k, 0.07 * k, 0.33 * k);
+      part(q.head, G.sph(0.017 * k, 5, 4), M().eyeDark, s * 0.1 * k, 0.07 * k, 0.355 * k);
+    });
+    if (kind === 'lion') {
+      // the mane: a ruff of dark gold round the head and down the chest
+      const mane = KT.mat('lionMane', { color: 0x7a4e24, roughness: 1 }), mane2 = KT.mat('lionMane2', { color: 0xa8763c, roughness: 1 });
+      part(q.head, G.sph(0.44 * k, 14, 10), mane, 0, -0.02, -0.08 * k, 0, 0, 0, 1, 1.05, 0.85);
+      part(q.head, G.sph(0.36 * k, 12, 10), mane2, 0, 0.02, 0.0, 0, 0, 0, 1.05, 1.05, 0.8);
+      part(q.body, G.sph(0.32 * k, 10, 8), mane, 0, q.by + 0.02, 0.72 * k, 0, 0, 0, 1, 1.2, 0.9);
+    }
+    const tl = q.g.userData.tail;
+    if (kind === 'leopard') tl.children[0].material = coat;
+    else part(tl, G.sph(0.07 * k, 6, 5), KT.mat('lionTuft', { color: 0x3a2a1a }), 0, -0.95 * k, 0, 0, 0, 0, 1, 1.6, 1);
+    tl.rotation.x = 0.9;
+    bakeStatic(q.body);
+    q.g.userData.radius = 1.0 * k;
+    q.g.userData.kind = kind;
+    return q.g;
+  }
+  Models.lion = (female) => bigCat('lion', KT.mat(female ? 'lioness' : 'lionCoat', { color: female ? 0xc79a5e : 0xc28f55, roughness: 0.9 }), female ? 0.92 : 1.05);
+  Models.leopard = () => bigCat('leopard', spottedMat('leopardCoat', '#d6a24a', '#2a1c10', 31), 0.82);
+
+  // a primate walking on its knuckles: long arms in front, short legs behind
+  function primate(opts) {
+    const g = new T.Group();
+    const body = new T.Group();
+    g.add(body);
+    const k = opts.size, fur = opts.fur;
+    const hip = 0.42 * k, sh = 0.62 * k;
+    part(body, G.sph(0.3 * k, 12, 10), fur, 0, (hip + sh) / 2 + 0.05 * k, 0, -0.55, 0, 0, 0.95, 1.35, 0.9);
+    const head = new T.Group();
+    head.position.set(0, sh + 0.2 * k, 0.32 * k);
+    g.add(head);
+    part(head, G.sph(0.17 * k, 12, 10), opts.headFur || fur, 0, 0, 0);
+    part(head, G.sph(0.12 * k, 10, 8), opts.face, 0, -0.02 * k, 0.1 * k, 0, 0, 0, 1.1, 1, 0.7);
+    [-1, 1].forEach((s) => part(head, G.sph(0.02 * k, 6, 4), M().eyeDark, s * 0.05 * k, 0.03 * k, 0.17 * k));
+    if (opts.mane) part(head, G.torus(0.17 * k, 0.07 * k, 6, 14), opts.mane, 0, -0.01 * k, 0.04 * k, 0, 0, 0, 1.05, 1.15, 1);
+    if (opts.cheeks) [-1, 1].forEach((s) => part(head, G.sph(0.09 * k, 8, 6), opts.face, s * 0.15 * k, 0, 0.04 * k, 0, 0, 0, 0.6, 1.1, 0.5));
+    const legs = [];
+    [[-1, sh, 0.22, sh], [1, sh, 0.22, sh], [-1, hip, -0.2, hip], [1, hip, -0.2, hip]].forEach(([s, y, z, len]) => {
+      legs.push(leg(g, s * 0.2 * k, y, z * k, len, 0.065 * k, 0.05 * k, fur, opts.hands));
+    });
+    let tail = null;
+    if (opts.tail) {
+      tail = new T.Group();
+      tail.position.set(0, hip + 0.05 * k, -0.25 * k);
+      g.add(tail);
+      part(tail, G.cyl(0.02 * k, 0.025 * k, opts.tail, 5), fur, 0, -opts.tail / 2, 0);
+      part(tail, G.sph(0.05 * k, 6, 5), fur, 0, -opts.tail, 0, 0, 0, 0, 1, 1.8, 1);
+      tail.rotation.x = 2.3;
+    }
+    if (opts.baby) {
+      // a baby riding on its mother's back
+      part(body, G.sph(0.13 * k, 10, 8), fur, 0, sh + 0.12 * k, -0.08 * k, -0.4, 0, 0, 0.9, 1.2, 0.9);
+      part(body, G.sph(0.08 * k, 10, 8), fur, 0, sh + 0.28 * k, 0.04 * k);
+      part(body, G.sph(0.055 * k, 8, 6), opts.face, 0, sh + 0.27 * k, 0.1 * k);
+    }
+    bakeStatic(body);
+    g.userData = { legs, head, tail, kind: opts.kind, radius: 0.6 * k };
+    g.userData.animate = function (t, moving, speed) {
+      const sw = moving ? Math.sin(t * (speed || 4)) * 0.4 : 0;
+      legs[0].rotation.x = sw; legs[3].rotation.x = sw;
+      legs[1].rotation.x = -sw; legs[2].rotation.x = -sw;
+      head.rotation.y = Math.sin(t * 0.6 + k) * (moving ? 0.2 : 0.7);
+      head.rotation.x = Math.sin(t * 0.9) * 0.1;
+      if (tail) tail.rotation.z = Math.sin(t * 1.4) * 0.2;
+    };
+    return g;
+  }
+  Models.orangutan = (baby) => primate({ kind: 'orangutan', size: 1.5, fur: KT.mat('orangFur', { color: 0xb4501e, roughness: 1 }), face: KT.mat('orangFace', { color: 0x4a3328 }), hands: KT.mat('orangFace', { color: 0x4a3328 }), cheeks: true, baby });
+  Models.lionTailedMacaque = () => primate({ kind: 'macaque', size: 0.8, fur: KT.mat('ltmFur', { color: 0x1a1a1a, roughness: 1 }), headFur: KT.mat('ltmFur', { color: 0x1a1a1a, roughness: 1 }), face: KT.mat('ltmFace', { color: 0x2c2420 }), mane: KT.mat('ltmMane', { color: 0xc9c4ba, roughness: 1 }), tail: 0.6 });
+
+  // greater adjutant stork: tall grey and white with a bare pink head and neck,
+  // a huge pale bill and a hanging pouch
+  Models.adjutant = function () {
+    const g = new T.Group(), body = new T.Group();
+    g.add(body);
+    const white = KT.mat('adjWhite', { color: 0xe9e6de }), grey = KT.mat('adjGrey', { color: 0x4f5458, roughness: 0.8 });
+    const pink = KT.mat('adjPink', { color: 0xd99a86 }), bill = KT.mat('adjBill', { color: 0xd8c9a0, roughness: 0.5 }), legM = KT.mat('adjLeg', { color: 0xc9bfb4 });
+    const legH = 0.85;
+    [-1, 1].forEach((s) => part(body, G.cyl(0.025, 0.03, legH, 5), legM, s * 0.1, legH / 2, 0));
+    part(body, G.sph(0.32, 12, 10), white, 0, legH + 0.22, 0, -0.25, 0, 0, 0.85, 0.85, 1.35);
+    [-1, 1].forEach((s) => part(body, G.sph(0.3, 10, 8), grey, s * 0.12, legH + 0.32, -0.08, -0.35, 0, 0, 0.45, 0.6, 1.5)); // wings
+    part(body, G.cone(0.16, 0.35, 6), grey, 0, legH + 0.22, -0.48, -HPI + 0.4);
+    part(body, G.sph(0.11, 8, 6), pink, 0, legH + 0.32, 0.36, 0, 0, 0, 1, 1.5, 0.8); // pouch
+    part(body, G.cyl(0.05, 0.08, 0.35, 6), pink, 0, legH + 0.5, 0.28, 0.4);           // neck
+    const head = new T.Group();
+    head.position.set(0, legH + 0.7, 0.36);
+    g.add(head);
+    part(head, G.sph(0.09, 8, 6), pink, 0, 0, 0);
+    part(head, G.cone(0.065, 0.5, 6), bill, 0, -0.08, 0.24, HPI + 0.45);
+    [-1, 1].forEach((s) => part(head, G.sph(0.016, 5, 4), M().eyeDark, s * 0.07, 0.03, 0.04));
+    bakeStatic(body);
+    g.userData = { head, kind: 'stork', radius: 0.5, legs: [] };
+    g.userData.animate = function (t) {
+      head.rotation.x = Math.max(0, Math.sin(t * 0.5)) * 0.4;
+      head.rotation.y = Math.sin(t * 0.31) * 0.4;
+    };
+    return g;
+  };
+  const HPI = Math.PI / 2;
 })();

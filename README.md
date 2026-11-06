@@ -265,6 +265,15 @@ coast stretches with it:
   sculpture, and to the lake at Akkulam Tourist Village before rejoining the
   highway. The main highway begins at a junction on MG Road, and NH 66 leaves
   East Fort for Neyyattinkara.
+- **Thiruvananthapuram Zoo** is a walled compound behind its red-brick
+  gate (banded pillars, a pointed arch and a carved gable). Paths lead past
+  ten landscaped enclosures: tigers by a rocky den, pool and moat; lions at
+  a rock den; leopards in a forest with a branch platform; black bears with
+  a cave and pool; zebras on sandy ground; an elephant and her calf with a
+  mud wallow and shelter; orangutans (one carrying a baby) on a climbing
+  frame; lion-tailed macaques among bamboo; adjutant storks and egrets in a
+  wetland; and spotted deer behind a wire mesh. Monkeys and peacocks roam
+  the lawns, and the animals walk their enclosures.
 - **Ponmudi Road** climbs past Koyikkal Palace at Nedumangad and the Kallar
   Meenmutty falls to the misty top of Ponmudi Hills. A side road runs to
   Aruvikkara Dam.

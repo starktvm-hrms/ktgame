@@ -1543,7 +1543,7 @@
   const SIGHT_R = { church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
-  const DEST_R = { gopuramTemple: 30, palace: 20, fortGate: 16, clockTower: 10, secretariat: 34, museum: 18, zoo: 30, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
+  const DEST_R = { gopuramTemple: 30, palace: 20, fortGate: 16, clockTower: 10, secretariat: 34, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
   Hw.sightList = function () {
     if (sightCache) return sightCache;
     sightCache = [];
@@ -2255,6 +2255,7 @@
         const hi = Hw.hubIndexAt(p.s);
         const hub = Hw.hubs[hi];
         if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
+        if (PADS.some((P) => P.paved && Math.hypot(x - P.x, z - P.z) < P.r)) continue; // paved grounds
         const h = Hw.height(x, z);
         if (Hw.waterLevelAt(x, z) > h - 0.4) continue;
         const r = hash(gx, gz, 4);
@@ -2309,7 +2310,7 @@
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
     });
     KT.Townfolk.update(dt, player);
-    if (KT.Dest) KT.Dest.update(dt, Hw.animTime);
+    if (KT.Dest) KT.Dest.update(dt, Hw.animTime, player.pos);
     Hw.npcs.forEach((w) => {
       if (!w.obj.parent || !w.obj.parent.visible) return;
       const d = Math.hypot(w.obj.position.x - pp.x, w.obj.position.z - pp.z);
