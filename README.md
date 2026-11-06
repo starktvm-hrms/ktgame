@@ -271,6 +271,10 @@ coast stretches with it:
   benches runs along the river; there is a children's play tower with
   slides, the glass bridge with its yellow-draped canopy, a boat jetty, and
   lawns with crotons. People stroll the promenade and sit on the benches.
+  You can climb the stair onto the glass bridge and walk out to the
+  canopy, walk out along the jetty, and take a motor boat or a canoe out
+  on the river (E at the boat; R takes it back to its mooring; E near the
+  jetty or a bank to get out).
 - **Thiruvananthapuram Zoo** is a walled compound behind its red-brick
   gate (banded pillars, a pointed arch and a carved gable). Paths lead past
   ten landscaped enclosures: tigers by a rocky den, pool and moat; lions at
@@ -302,6 +306,11 @@ keeper. Then take the spiral stairs up to the gallery at the top for the
 view over the Arabian Sea.
 
 ## Live time and weather
+
+At night every road is lit: the poles along the highways, branch roads
+and village roads carry street lights that come on at dusk and throw pools
+of light on the road, and the lamp posts in the towns and parks glow over
+the paths.
 
 The sky follows the clock on your device: sunrise, golden hour, sunset, a
 starry night with the moon, the lighthouse beam sweeping in the dark,

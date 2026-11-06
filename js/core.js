@@ -182,6 +182,20 @@ window.KT = window.KT || {};
     M.glass = KT.mat('glass', { color: 0x8fb8c8, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.55 });
     M.windowDark = KT.mat('windowDark', { color: 0x2a1a10, roughness: 0.9 });
     M.lampGlow = KT.mat('lampGlow', { color: 0xffe2a0, emissive: 0xffc560, emissiveIntensity: 1.4 });
+    // street lights: dark by day, lit at night (see sky.js), and the soft
+    // pool of light each throws on the ground
+    M.streetLamp = KT.mat('streetLamp', { color: 0xd8d2c0, emissive: 0xffd590, emissiveIntensity: 0, roughness: 0.4 });
+    M.lightPool = KT.mat('lightPool', { color: 0x000000, emissive: 0x000000, transparent: true, opacity: 0, depthWrite: false });
+    M.lightPool.map = (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,214,140,1)'); gr.addColorStop(0.45, 'rgba(255,200,120,0.55)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+      const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return t;
+    })();
+    M.lightPool.blending = T.AdditiveBlending;
+    M.lightPool.polygonOffset = true; M.lightPool.polygonOffsetFactor = -2; M.lightPool.polygonOffsetUnits = -4;
 
     M.wood = KT.mat('wood', { map: tex('wood'), color: 0xffffff }, 0.5);
     M.woodDark = KT.mat('woodDark', { map: tex('wood'), color: 0x8a6a55 }, 0.5);

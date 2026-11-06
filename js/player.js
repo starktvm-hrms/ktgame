@@ -60,7 +60,8 @@
     }
     // wading slows you down
     const here = KT.L.groundY(P.pos.x, P.pos.z, P.pos.y);
-    const wading = here.y < 0.15 && !here.onPlatform;
+    // (on the highway the land can lie below sea level near the coast: ask the map)
+    const wading = !here.onPlatform && (KT.L.isWater ? KT.L.isWater(P.pos.x, P.pos.z) : here.y < 0.15);
     if (wading) target *= 0.5;
     P.speed += (target - P.speed) * (1 - Math.exp(-dt * (target > P.speed ? 8 : 10)));
     const step = P.speed * dt;
@@ -287,9 +288,9 @@
     for (let i = 0; i < tries.length && !spot; i++) {
       const v = o.localToWorld(new T.Vector3(tries[i][0], 0, tries[i][1]));
       const g = KT.L.groundY(v.x, v.z, o.position.y + 2);
-      if (!KT.L.isBlocked(v.x, v.z, 0.4) && !(KT.L.isWater && KT.L.isWater(v.x, v.z))) spot = new T.Vector3(v.x, g.y, v.z);
+      if (!KT.L.isBlocked(v.x, v.z, 0.4) && (g.onPlatform || !(KT.L.isWater && KT.L.isWater(v.x, v.z)))) spot = new T.Vector3(v.x, g.y, v.z);
     }
-    if (!spot) { KT.UI.toast('No room to get off here.'); return false; }
+    if (!spot) { KT.UI.toast(bus.spec.water ? 'Steer closer to the jetty or the bank to get out.' : 'No room to get off here.'); return false; }
     o.remove(P.obj);
     P.scene.add(P.obj);
     bus.occupied = false;

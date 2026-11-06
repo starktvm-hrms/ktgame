@@ -13,6 +13,14 @@
     part(g, G.cyl(0.09, 0.14, 8, 8), conc, 0, 4, 0);
     part(g, G.box(1.6, 0.1, 0.1), conc, 0, 7.4, 0);
     [-0.7, 0, 0.7].forEach((x) => part(g, G.cyl(0.04, 0.05, 0.18, 8), KT.mat('insulator', { color: 0x6a8a6a }), x, 7.55, 0));
+    // a street light reaching out over the road (+x), lit at night, with the
+    // pool of light it throws on the road
+    part(g, G.cyl(0.035, 0.035, 2.6, 6), M().darkGrey, 1.25, 6.55, 0, 0, 0, Math.PI / 2 - 0.12);
+    part(g, G.box(0.55, 0.12, 0.26), M().darkGrey, 2.55, 6.68, 0);
+    part(g, G.box(0.46, 0.05, 0.2), M().streetLamp, 2.55, 6.6, 0);
+    const pool = new T.Mesh(new T.CircleGeometry(5.5, 24), M().lightPool);
+    pool.rotation.x = -Math.PI / 2; pool.position.set(2.8, 0.35, 0);
+    g.add(pool);
     return KT.bake(g);
   };
 

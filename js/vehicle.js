@@ -58,7 +58,27 @@
       horn: 'carHorn', engine: 0.7, hideDriver: true
     }
   };
-  V.CODES = ['bus', 'bicycle', 'auto', 'scooter', 'car']; // network type codes
+  // boats: they go only on water and float on it (water: true)
+  V.TYPES.boat = {
+    name: 'motor boat', make: () => KT.Models.motorBoat(), water: true,
+    length: 5, width: 1.9, frontAxle: 1.6, rearAxle: -1.6, wheelR: 1,
+    seat: v3(0.35, 0.28, -1.15), eye: v3(0.35, 1.7, -0.9), pose: 'drive',
+    maxSpeed: 9, accel: 2.4, reverse: 2, brake: 3, cam: 1.5, camH: 2.4,
+    hits: [-1.8, 0, 1.8], r: 1.0, exits: [[2.3, 0], [-2.3, 0], [0, 3.8], [0, -3.8], [3.2, 1.5], [-3.2, 1.5], [3.2, -1.5], [-3.2, -1.5]],
+    horn: 'horn', engine: 0.5
+  };
+  V.TYPES.canoe = {
+    name: 'canoe', make: () => KT.Models.canoe(), water: true,
+    length: 4, width: 0.95, frontAxle: 1.3, rearAxle: -1.3, wheelR: 1,
+    seat: v3(0, 0.12, -0.4), eye: v3(0, 1.2, -0.2), pose: 'paddle',
+    maxSpeed: 4.5, accel: 1.6, reverse: 1.2, brake: 2, cam: 1.2, camH: 1.8,
+    hits: [-1.4, 0, 1.4], r: 0.6, exits: [[1.6, 0], [-1.6, 0], [0, 2.8], [0, -2.8], [2.6, 1], [-2.6, 1], [2.6, -1], [-2.6, -1]],
+    horn: 'bell', engine: 0
+  };
+  V.CODES = ['bus', 'bicycle', 'auto', 'scooter', 'car', 'boat', 'canoe']; // network type codes
+  // is (x, z) open water a boat can float on?
+  // (boats are only on the highway map's rivers and lakes)
+  V.floats = (x, z) => KT.Highway.isWater(x, z);
 
   // A drivable vehicle living in the current level. look: the paint (and
   // body style) of a vehicle found in the street, so it keeps its colours.
@@ -73,9 +93,10 @@
     } else if (look && type === 'scooter') obj = KT.Models.scooter(look.col, null);
     else obj = spec.make();
     scene.add(obj);
-    const veh = { obj, type, spec, scene, level: KT.L.id, heading: heading || 0, speed: 0, steer: 0, odo: 0, occupied: false, y: 0 };
+    const veh = { obj, type, spec, scene, level: spec.water ? 'highway' : KT.L.id, heading: heading || 0, speed: 0, steer: 0, odo: 0, occupied: false, y: 0 };
     obj.position.set(x, KT.L.groundY(x, z).y, z);
     obj.rotation.y = veh.heading;
+    if (spec.water) veh.home = { x, z, heading: veh.heading };
     V.settle(veh);
     V.active.push(veh);
     return veh;
@@ -109,6 +130,16 @@
   // two-wheelers lean into the turn instead.
   V.settle = function (veh, dt) {
     const S = veh.spec, o = veh.obj;
+    if (S.water) {
+      // afloat: on the water's surface, rocking a little
+      const t = KT.Highway.animTime || 0, k = dt ? 1 - Math.exp(-dt * 6) : 1;
+      const wy = KT.Highway.waterLevelAt(o.position.x, o.position.z);
+      o.position.y += ((wy > -1e8 ? wy : o.position.y) + 0.02 + Math.sin(t * 1.5 + veh.heading) * 0.04 - o.position.y) * k;
+      veh.pitch = Math.sin(t * 1.2) * 0.015 - veh.speed * 0.006;
+      veh.roll = Math.sin(t * 1.5) * 0.03 + veh.steer * veh.speed * 0.02;
+      o.rotation.set(-veh.pitch, veh.heading, veh.roll, 'YXZ');
+      return;
+    }
     const sh = Math.sin(veh.heading), ch = Math.cos(veh.heading);
     const gy = (x, z) => KT.L.groundY(x, z, o.position.y + 1.5).y;
     const fx = o.position.x + sh * S.frontAxle, fz = o.position.z + ch * S.frontAxle;
@@ -168,13 +199,14 @@
     });
     const b = KT.L.bounds;
     px = KT.clamp(px, b.minX, b.maxX); pz = KT.clamp(pz, b.minZ, b.maxZ);
-    const tooDeep = KT.L.isWater ? KT.L.isWater(px, pz) : KT.L.groundY(px, pz, o.position.y + 1.5).y < -0.3;
+    const tooDeep = S.water ? !(V.floats(px, pz) && V.floats(px + sh * (S.length / 2 + 0.4) * (veh.speed >= 0 ? 1 : -1), pz + ch * (S.length / 2 + 0.4) * (veh.speed >= 0 ? 1 : -1)))
+      : KT.L.isWater ? KT.L.isWater(px, pz) : KT.L.groundY(px, pz, o.position.y + 1.5).y < -0.3;
     // walls, kerbs of bridges and steep drops: the ground just beyond the
     // bumper may not be much higher or lower than where the vehicle stands
     const dir = veh.speed >= 0 ? 1 : -1;
     const reach = (dir > 0 ? S.frontAxle : -S.rearAxle) + 0.7;
     const ahead = KT.L.groundY(px + sh * reach * dir, pz + ch * reach * dir, o.position.y + 1.5).y;
-    const steep = Math.abs(step) > 1e-4 && Math.abs(ahead - o.position.y) / reach > V.MAX_GRADE;
+    const steep = !S.water && Math.abs(step) > 1e-4 && Math.abs(ahead - o.position.y) / reach > V.MAX_GRADE;
     if (tooDeep || steep) { veh.speed *= -0.25; hit = true; }
     else {
       veh.odo += Math.hypot(px - o.position.x, pz - o.position.z);
@@ -204,6 +236,15 @@
   // Put a stuck vehicle back on the road (or its last good spot).
   V.recover = function (veh) {
     const o = veh.obj;
+    // a boat goes back to its mooring
+    if (veh.spec.water) {
+      const m = veh.home || veh.safe;
+      if (!m) return false;
+      o.position.set(m.x, o.position.y, m.z);
+      veh.heading = m.heading; veh.speed = 0; veh.steer = 0; veh.stuckT = 0;
+      V.settle(veh);
+      return true;
+    }
     let spot = KT.L.recoverSpot ? KT.L.recoverSpot(o.position, veh.heading) : null;
     if (!spot && veh.safe) spot = veh.safe;
     if (!spot) return false;

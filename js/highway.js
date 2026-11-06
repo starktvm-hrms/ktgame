@@ -742,17 +742,17 @@
       });
       if (sw > 0) h = KT.lerp(h, sy / sw, 1 - keep);
     }
-    // level ground for the sights
-    for (let i = 0; i < PADS.length; i++) {
-      const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
-      if (d < P.r + 18) h = KT.lerp(h, P.y, 1 - KT.smoothstep(P.r, P.r + 18, d));
-    }
     // flat ground around each district centre
     const hi = Hw.hubIndexAt(s);
     const hs = Hw.hubS(hi);
     if (Math.abs(s - hs) < 330) {
       const d = Math.hypot(s - hs, lat);
       h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
+    }
+    // level ground for the sights (after the town's, which may reach them)
+    for (let i = 0; i < PADS.length; i++) {
+      const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
+      if (d < P.r + 18) h = KT.lerp(h, P.y, 1 - KT.smoothstep(P.r, P.r + 18, d));
     }
     // lakes (and their islands)
     for (let i = 0; i < LAKES.length; i++) {
@@ -805,13 +805,27 @@
       const edge = (b.road.half || ROAD_HALF) + 0.6;
       if (b.dd < edge + 1.2) y = Math.max(y, b.road.y(KT.clamp(b.s, 0, b.road.len)) + 0.06 - 0.3 * Math.max(0, b.dd - edge) / 1.2);
     });
+    // raised walkways (a glass bridge, a jetty): only when already up at
+    // about their height, so people can still walk underneath
+    let onPlatform = false;
+    if (curY !== undefined) {
+      for (let i = 0; i < PLATFORMS.length; i++) {
+        const P = PLATFORMS[i], dx = x - P.x, dz = z - P.z;
+        if (dx * dx + dz * dz > P.r * P.r) continue;
+        const py = P.y(dx * P.cos - dz * P.sin, dx * P.sin + dz * P.cos);
+        if (py !== null && curY > py - 1.1 && py > y) { y = py; onPlatform = true; }
+      }
+    }
     // the paved turning places at road ends
     for (let i = 0; i < PLAZAS.length; i++) {
       const P = PLAZAS[i], d = Math.hypot(x - P.x, z - P.z) - P.r;
       if (d < 1.2) y = Math.max(y, P.y + 0.07 - 0.3 * Math.max(0, d) / 1.2);
     }
-    return { y, onPlatform: false };
+    return { y, onPlatform };
   };
+  // { x, z, r, cos, sin, y(lx, lz) -> height or null } in the platform's own axes
+  const PLATFORMS = Hw.PLATFORMS = [];
+  Hw.addPlatform = function (x, z, rot, r, fn) { PLATFORMS.push({ x, z, r, cos: Math.cos(rot), sin: Math.sin(rot), y: fn }); };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
   Hw.deepWater = (x, z, gy) => gy < Hw.waterLevelAt(x, z) - 0.6;
 

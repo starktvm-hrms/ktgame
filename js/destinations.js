@@ -71,8 +71,11 @@
       (obj.userData.colliders || []).forEach((c) => {
         const cs = Math.cos(r), sn = Math.sin(r);
         const wx = x + c.x * cs + c.z * sn, wz = z - c.x * sn + c.z * cs;
-        if (c.type === 'circle') Hw.addCollider({ type: 'circle', x: wx, z: wz, r: c.r });
-        else Hw.addCollider({ type: 'box', x: wx, z: wz, hw: c.hw, hd: c.hd, rot: r });
+        const lim = {};
+        if (c.minY !== undefined) lim.minY = c.minY + obj.position.y;
+        if (c.maxY !== undefined) lim.maxY = c.maxY + obj.position.y;
+        if (c.type === 'circle') Hw.addCollider(Object.assign({ type: 'circle', x: wx, z: wz, r: c.r }, lim));
+        else Hw.addCollider(Object.assign({ type: 'box', x: wx, z: wz, hw: c.hw, hd: c.hd, rot: r + (c.rot || 0) }, lim));
       });
     }
     return obj;
@@ -655,7 +658,14 @@
       part(g, G.sph(0.18, 6, 5), i % 3 ? mat('gbRose', 0xb8305a, 0.7) : mat('gbWhiteF', 0xf6eef0, 0.7), Math.cos(a) * rr * (Math.abs(Math.cos(a)) > 0.7 ? 1 : 1.0), y + 3.45, cz + Math.sin(a) * rr);
     }
     const baked = KT.bake(g);
-    baked.userData.colliders = [{ type: 'box', x: 0, z: 5, hw: 1.0, hd: 4.5 }];
+    const up = { minY: y - 0.9 };
+    baked.userData.colliders = [
+      Object.assign({ type: 'box', x: -1.95, z: -len / 2, hw: 0.12, hd: len / 2 }, up), Object.assign({ type: 'box', x: 1.95, z: -len / 2, hw: 0.12, hd: len / 2 }, up),
+      Object.assign({ type: 'box', x: 0, z: -len - 0.1, hw: 1.9, hd: 0.12 }, up),
+      { type: 'box', x: -0.95, z: 4.8, hw: 0.08, hd: 4.4, minY: 0.6 }, { type: 'box', x: 0.95, z: 4.8, hw: 0.08, hd: 4.4, minY: 0.6 },
+      { type: 'box', x: 0, z: 3.6, hw: 0.9, hd: 3.2, maxY: 0.5 }  // under the stair
+    ];
+    for (let z = 4; z < len; z += 9) [-1, 1].forEach((sd) => baked.userData.colliders.push({ type: 'circle', x: sd * 1.4, z: -z, r: 0.3, maxY: y - 1.5 }));
     return baked;
   }
   // red interlocking pavers with little yellow flower motifs (the promenade)
@@ -782,14 +792,15 @@
     const tag = Models.signboard(['Akkulam Tourist Village', 'Boating • Children’s park • Glass bridge']);
     deco(tag, 7.5, ZF + 2.5, 0, 0.9);
     deco(brickArch(2.6, 2.4), 24, -46, 0);
-    deco(playTower(), -36, 22, 0.3);
-    deco(glassBridge(44, 7), 36, 18, 0);
+    const tower = deco(playTower(), -36, 22, 0.3);
+    const bridge = deco(glassBridge(44, 7), 36, 18, 0);
+    it.bridge = { x: 36, z: 18, len: 44, y: 7 };
     // the boat jetty, with pedal boats and motor boats moored
     const jetty = new T.Group();
     for (let k = 0; k < 6; k++) { const js = Models.jettySection(); js.position.z = -k * 3; jetty.add(js); }
     deco(jetty, 10, -60, 0).position.y = -0.3;
-    const wy = it.river.y - it.y;
-    [[6.5, -64, 0.2], [13.5, -66, -0.3], [6.5, -70, 0.4]].forEach(([x, z, r], i) => { const b = i === 1 && Models.motorBoat ? Models.motorBoat() : Models.canoe(); deco(b, x, z, r).position.y = wy + 0.02; });
+    // (the boats moored at the jetty are real: see akkulamBoats)
+    it.jetty = { x: 10, z: -60 };
     // rain trees along the promenade, and trees and crotons on the lawns
     for (let x = -74; x <= 74; x += 16) deco(Models.mangoTree(), x, -46.5, x * 0.1, 1.25);
     [[-46, -20], [-20, -30], [-46, 0], [48, -32], [20, -12], [-14, 26], [46, 36]].forEach(([x, z], i) => deco(i % 2 ? Models.mangoTree() : Models.banyanTree(), x, z, i, 0.85));
@@ -825,9 +836,35 @@
     const box = (x0, z0, x1, z1) => C.push({ type: 'box', x: (x0 + x1) / 2, z: (z0 + z1) / 2, hw: Math.max(0.3, Math.abs(x1 - x0) / 2), hd: Math.max(0.3, Math.abs(z1 - z0) / 2) });
     box(-X, ZF, -4, ZF); box(4, ZF, X, ZF); box(-X, ZF, -X, -50); box(X, ZF, X, -50);
     box(-80, -58.6, 8, -58.2); box(12, -58.6, 80, -58.2);   // the river rail, open at the jetty
-    (gate.userData.colliders || []).forEach((c) => C.push(c));
+    // the play tower's and the glass bridge's own colliders, moved into the park
+    [tower, bridge].forEach((o) => (o.userData.colliders || []).forEach((c) => {
+      const cr = Math.cos(o.rotation.y), sr = Math.sin(o.rotation.y);
+      C.push(Object.assign({}, c, { x: o.position.x + c.x * cr + c.z * sr, z: o.position.z - c.x * sr + c.z * cr, rot: (c.rot || 0) + o.rotation.y }));
+    }));
     root.userData.colliders = C;
     return root;
+  }
+  // the glass bridge and the jetty can be walked on; the boats at the jetty
+  // can be taken out on the river
+  function akkulamWalkways(it, root) {
+    const Hw = KT.Highway, r = root.rotation.y, c = Math.cos(r), sn = Math.sin(r), y0 = root.position.y;
+    const W = (mx, mz) => ({ x: root.position.x + mx * c + mz * sn, z: root.position.z - mx * sn + mz * c });
+    const B = it.bridge, bp = W(B.x, B.z);
+    // (the bridge's own axes match the park's; its stair climbs from z = 9 to the landing)
+    Hw.addPlatform(bp.x, bp.z, r, B.len + 12, (lx, lz) => {
+      if (Math.abs(lx) < 1.85 && lz <= 1.85 && lz >= -B.len) return y0 + B.y + 0.05;
+      if (Math.abs(lx) < 0.85 && lz > 1.85 && lz <= 9.4) return y0 + 0.3 + KT.clamp((9.2 - lz) / 0.5, 0, 18) * (B.y - 0.3) / 18 + 0.06;
+      return null;
+    });
+    const J = it.jetty, jp = W(J.x, J.z);
+    Hw.addPlatform(jp.x, jp.z, r, 20, (lx, lz) => (Math.abs(lx) < 2.0 && lz <= 1.3 && lz >= -16.4 ? y0 + 0.3 : null));
+    // the boats: two motor boats and two canoes, moored alongside the jetty
+    const V = KT.Vehicle;
+    [[J.x - 6.2, J.z - 6, 'boat'], [J.x - 3.0, J.z - 6, 'canoe'], [J.x + 3.0, J.z - 8, 'canoe'], [J.x + 6.2, J.z - 8, 'boat']].forEach(([mx, mz, type]) => {
+      const q = W(mx, mz), veh = V.create(Hw.scene, q.x, q.z, r + Math.PI, type);
+      Hw.interactables.push({ label: 'Take the ' + veh.spec.name + ' out on the river', radius: 3 + veh.spec.length / 2, pos: () => veh.obj.position,
+        enabled: () => !veh.occupied, action: () => { KT.Player.boardBus(veh); KT.UI.toast('W/S for speed, A/D to steer. Bring it back to the jetty and press E to get out.', 'info'); } });
+    });
   }
   function riverWater(it) {
     // one water surface along the river, with water hyacinth by the banks
@@ -1103,7 +1140,10 @@
       place(it, Models.beachSet(6), 16, 6, 0, { colliders: false });
       [-26, 30].forEach((x, i) => place(it, Models.coconutPalm(40 + i), x, -16, i));
     },
-    lakeVillage(it) { place(it, akkulam(it), 0, 0); },
+    lakeVillage(it) {
+      const root = place(it, akkulam(it), 0, 0);
+      akkulamWalkways(it, root);
+    },
     reservoir(it) {
       place(it, Models.earthDam(), 0, 8);
       const L = it.lake;
