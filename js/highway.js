@@ -1911,23 +1911,41 @@
     });
   }
   const tileOk = new Map(); // is a tile within reach of a road
+  // a circle round each road segment
+  function segBounds(R) {
+    if (R.segB) return R.segB;
+    const L = R.main ? Hw.length() : R.len, out = [];
+    for (let k = 0; k * SEG_LEN <= L; k++) {
+      let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for (let s = k * SEG_LEN; s <= Math.min(L, (k + 1) * SEG_LEN); s += 20) {
+        const f = R.frame(s);
+        x0 = Math.min(x0, f.x); x1 = Math.max(x1, f.x); z0 = Math.min(z0, f.z); z1 = Math.max(z1, f.z);
+      }
+      out.push({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, r: Math.hypot(x1 - x0, z1 - z0) / 2 + 30 });
+    }
+    return (R.segB = out);
+  }
   Hw.stream = function (pos, budget) {
     const pr = Hw.project(pos.x, pos.z);
     // road segments within 1.3 km, on every road that comes that close
     let changed = false;
     const keep = new Set();
+    // (chosen by distance on the ground, not along the road: a winding road
+    // can come back close by much further along it)
+    const need = [];
     Hw.roads.forEach((R) => {
       if (!R.near(pos.x, pos.z, 1500)) return;
-      const p = R.main ? pr : R.project(pos.x, pos.z);
-      if (p.d > 1400) return;
-      const k0 = Math.floor((p.s - 1300) / SEG_LEN), k1 = Math.floor((p.s + 1300) / SEG_LEN);
-      for (let k = k0 - 1; k <= k1 + 1; k++) keep.add(R.id + ':' + k);
-      for (let k = k0; k <= k1 && budget > 0; k++) {
-        if (k < 0 || k * SEG_LEN > (R.main ? Hw.length() : R.len)) continue;
-        const key = R.id + ':' + k;
-        if (!Hw.segs.has(key)) { Hw.segs.set(key, buildSegment(R, k, Hw.scene)); budget--; changed = true; }
-      }
+      segBounds(R).forEach((b, k) => {
+        const d = Math.hypot(b.x - pos.x, b.z - pos.z) - b.r;
+        if (d < 1400) keep.add(R.id + ':' + k);
+        if (d < 1300 && !Hw.segs.has(R.id + ':' + k)) need.push({ R, k, d });
+      });
     });
+    need.sort((a, b) => a.d - b.d);
+    for (let i = 0; i < need.length && budget > 0; i++, budget--) {
+      Hw.segs.set(need[i].R.id + ':' + need[i].k, buildSegment(need[i].R, need[i].k, Hw.scene));
+      changed = true;
+    }
     Hw.segs.forEach((sg, key) => {
       if (!keep.has(key)) { Hw.scene.remove(sg.group); disposeGroup(sg.group); Hw.segs.delete(key); changed = true; }
     });
