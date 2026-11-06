@@ -191,6 +191,7 @@
         const kind = rng() < 0.5 ? 'car' : rng() < 0.5 ? 'auto' : 'scooter';
         const lat = sd * (kind === 'scooter' ? 7.2 : 6.95); // parking strip beside the footpath
         if (!free(al, lat, 1.3)) return;
+        if (Hw.main.junctions.some((j) => j.side === sd && Math.abs(j.s - (hub.s + al)) < 7)) return; // a lane's mouth
         const h = Hw.frame(hub.s + al).heading + (sd < 0 ? 0 : Math.PI);
         park(kind, al, lat, h);
       });

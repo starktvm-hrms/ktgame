@@ -193,6 +193,9 @@
       const A = { x: P.x + ti.x * P.fwd, z: P.z + ti.z * P.fwd }, B = { x: Q.x - tj.x * Q.back, z: Q.z - tj.z * Q.back };
       const L = Math.hypot(B.x - A.x, B.z - A.z);
       let best = { R: -1e9, f: 1 };
+      // only the towns this piece could come near
+      const mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
+      const hubs = opts.avoidTowns ? HUB_XZ.filter((c, h) => h !== opts.home && Math.hypot(c.x - mx, c.z - mz) < L * 1.6 + 400) : [];
       TENSION.forEach((f) => {
         let minR = 1e9, minE = 1e9, minH = 1e9;
         for (let k = 1; k < 60; k++) {
@@ -203,7 +206,7 @@
           const R = (la * lb * Math.hypot(ax + bx, az + bz)) / Math.max(1e-9, 2 * cross);
           if (R < minR) minR = R;
           minE = Math.min(minE, _b.x - Hw.coastX(_b.z));
-          if (opts.avoidTowns) for (let h = 0; h < HUB_XZ.length; h++) if (h !== opts.home) minH = Math.min(minH, Math.hypot(_b.x - HUB_XZ[h].x, _b.z - HUB_XZ[h].z));
+          for (let h = 0; h < hubs.length; h++) minH = Math.min(minH, Math.hypot(_b.x - hubs[h].x, _b.z - hubs[h].z));
         }
         // wide enough is enough: then the shortest (lowest tension) wins;
         // keep out of the sea and the towns
@@ -534,6 +537,119 @@
     return best;
   };
 
+  // ----------------------------------------------------- country roads
+  // Narrow village roads. Between every two district centres one loops
+  // inland off the highway through two villages and back again, and
+  // another towards the sea where the coast is far enough away. Every
+  // sight also gets a short lane from its road (made once the sights are
+  // placed, below).
+  const COUNTRY_HALF = 3.2, LANE_HALF = 2.6;
+  const VILLAGES = ['Kizhakkekara', 'Puthenvila', 'Kunnumpuram', 'Thekkemuri', 'Ambalakkadavu', 'Vadakkemuri', 'Padinjarekara', 'Cheruvally', 'Pallikkunnu', 'Puthussery', 'Karimpadam', 'Valiyavila', 'Mangalassery', 'Kallumala', 'Nellikkunnu', 'Chirakkara', 'Elamkulam', 'Thottumugham', 'Kadavoor', 'Perumbadavu', 'Mannarkadavu', 'Vazhayila', 'Chembakassery', 'Edakkara', 'Kottappuram', 'Moozhikkal', 'Kuttikkad', 'Thazhathangadi', 'Melemuri', 'Panayil', 'Kavumpuram', 'Kulathoor', 'Mukkada', 'Payyanur', 'Kaithakkal', 'Pookkottur', 'Arayoor', 'Mundakkal', 'Thengumthottam', 'Valiyapadam', 'Koonammavu', 'Ottapalam', 'Kizhakkumbhagam', 'Puthiyakavu', 'Neeleswaram', 'Manakkadu', 'Kannankara', 'Chundakkuzhi', 'Kozhimala', 'Vettikkavala', 'Ezhamkulam', 'Kodumon'];
+  Hw.country = [];
+  let villageK = 0, countryId = 100;
+  // the road stays in the countryside: clear of the sea, the towns and the
+  // other roads (apart from where it meets them, near its ends)
+  function countryClear(PX, PZ, ends) {
+    for (let i = 0; i < PX.length; i += 15) {
+      const x = PX[i], z = PZ[i];
+      if (!Hw.inMap(x, z) || x - Hw.coastX(z) < 160) return false;
+      if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 340)) return false;
+      // near its ends it leaves the highway gradually
+      const e = Math.min(i * STEP, (PX.length - i) * STEP), clear = e < ends ? e * 0.25 : 60;
+      for (let r = 0; r < Hw.roads.length; r++) {
+        const R = Hw.roads[r];
+        if (R.skipClear) continue;
+        if (R.near(x, z, clear) && R.project(x, z).d < clear) return false;
+      }
+    }
+    return true;
+  }
+  function countryLoop(sA, sB, vil) {
+    const J0 = { road: MAIN, s: sA }, J1 = { road: MAIN, s: sB };
+    const L0 = leave(J0, vil[0]), L1 = leave(J1, vil[vil.length - 1]);
+    const C = [{ x: L0.x, z: L0.z, t: L0.t }].concat(vil.map((v, k) => ({ x: v.x, z: v.z, town: k })), [{ x: L1.x, z: L1.z, t: { x: -L1.t.x, z: -L1.t.z } }]);
+    const cv = curveThrough(C, { avoidTowns: true, passes: 2, angles: 16 });
+    if (!countryClear(cv.PX, cv.PZ, 240)) return null;
+    const PY = heightProfile(cv.PX, cv.PZ, 9000 + countryId * 977);
+    const names = vil.map(() => VILLAGES[villageK++ % VILLAGES.length]);
+    const R = makeRoad(cv.PX, cv.PZ, PY, { id: countryId++, nh: 'Village road', name: names[names.length - 1], country: true, half: COUNTRY_HALF });
+    levelAt(PY, 0, L0.y, 20, 160);
+    levelAt(PY, R.len, L1.y, 20, 160);
+    R.towns = names.map((n, k) => ({ name: n, road: 'Village road', s: cv.S[C.findIndex((c) => c.town === k)] }));
+    R.start = { road: MAIN, s: sA, side: L0.side };
+    R.finish = { road: MAIN, s: sB, side: L1.side };
+    R.junctions.push({ s: 0, side: 0, other: MAIN }, { s: R.len, side: 0, other: MAIN });
+    MAIN.junctions.push({ s: sA, side: L0.side, other: R }, { s: sB, side: L1.side, other: R });
+    Hw.roads.push(R);
+    Hw.country.push(R);
+    return R;
+  }
+  for (let i = 0; i < HUB_S.length - 1; i++) {
+    const a = HUB_S[i] + 560, b = HUB_S[i + 1] - 560;
+    if (b - a < 1000) continue;
+    const rng = KT.makeRng(9100 + i * 31);
+    const E = (x, z) => x - Hw.coastX(z);
+    const mid = MAIN.frame((a + b) / 2);
+    const toSea = E(mid.x + mid.rx, mid.z + mid.rz) < E(mid.x, mid.z) ? 1 : -1;
+    [-toSea, toSea].forEach((side, k) => {
+      // where it can meet the highway: clear of the other junctions
+      const free = (s) => !MAIN.junctions.some((j) => Math.abs(j.s - s) < 130);
+      const spots = (from, dir) => { const out = []; for (let d = 0; d < 700 && out.length < 4; d += 40) if (free(from + dir * d)) out.push(from + dir * d); return out; };
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const off = side * (k === 0 ? 420 + rng() * 520 : 280 + rng() * 320);
+        const SA = spots(a - 120, 1), SB = spots(b + 120, -1);
+        if (!SA.length || !SB.length) break;
+        const sA = SA[Math.floor(rng() * SA.length)], sB = SB[Math.floor(rng() * SB.length)];
+        if (sB - sA < 900) break;
+        const vil = [0.33 + rng() * 0.08, 0.62 + rng() * 0.08].map((t) => {
+          const f = MAIN.frame(sA + (sB - sA) * t), o = off * (0.8 + rng() * 0.4);
+          return { x: f.x + f.rx * o, z: f.z + f.rz * o };
+        });
+        // (a quick look at the villages first: the full check is slow)
+        if (vil.some((v) => !Hw.inMap(v.x, v.z) || v.x - Hw.coastX(v.z) < 220 || HUB_XZ.some((c) => Math.hypot(v.x - c.x, v.z - c.z) < 420) ||
+          Hw.roads.some((R) => R.near(v.x, v.z, 150) && R.project(v.x, v.z).d < 150))) continue;
+        if (countryLoop(sA, sB, vil)) break;
+      }
+    });
+  }
+  // from each village a dead-end road runs on to a hamlet
+  Hw.country.slice().forEach((V, vi) => {
+    const rng = KT.makeRng(7300 + vi * 53);
+    V.towns.forEach((w) => {
+      const f = V.frame(w.s);
+      // away from the highway
+      const toMain = MAIN.project(f.x, f.z), side = (toMain.x - f.x) * f.rx + (toMain.z - f.z) * f.rz > 0 ? -1 : 1;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const sJ = w.s + (rng() - 0.5) * 160;
+        if (sJ < 200 || sJ > V.len - 200 || V.junctions.some((j) => Math.abs(j.s - sJ) < 120)) continue;
+        const len = 450 + rng() * 450, ang = side * (0.9 + rng() * 0.7);
+        const g = V.frame(sJ), dx = g.fx * Math.cos(ang) + g.rx * Math.sin(ang) * side * side, dz = g.fz * Math.cos(ang) + g.rz * Math.sin(ang) * side * side;
+        const H = { x: g.x + dx * len, z: g.z + dz * len };
+        if (!Hw.inMap(H.x, H.z) || H.x - Hw.coastX(H.z) < 220 || Hw.roads.some((R) => R.near(H.x, H.z, 160) && R.project(H.x, H.z).d < 160)) continue;
+        const J = { road: V, s: sJ }, L = leave(J, H);
+        const C = [{ x: L.x, z: L.z, t: L.t }, { x: H.x, z: H.z, town: 0 }];
+        const cv = curveThrough(C, { avoidTowns: true, passes: 1, angles: 12 });
+        // clear of everything but the road it leaves
+        V.skipClear = true;
+        const ok = countryClear(cv.PX, cv.PZ, 200);
+        V.skipClear = false;
+        if (!ok) continue;
+        const PY = heightProfile(cv.PX, cv.PZ, 9000 + countryId * 977);
+        const name = VILLAGES[villageK++ % VILLAGES.length];
+        const R = makeRoad(cv.PX, cv.PZ, PY, { id: countryId++, nh: 'Village road', name, country: true, half: COUNTRY_HALF, hamlet: true });
+        levelAt(PY, 0, V.y(sJ), 20, 160);
+        R.towns = [{ name, road: 'Village road', s: R.len }];
+        R.start = { road: V, s: sJ, side: L.side };
+        R.junctions.push({ s: 0, side: 0, other: V });
+        V.junctions.push({ s: sJ, side: L.side, other: R });
+        Hw.roads.push(R);
+        Hw.country.push(R);
+        break;
+      }
+    });
+  });
+  Hw.reachRoads(Hw.roads);
+
   // rivers cross the road half-way between district centres, at right angles
   // (clear of the junctions)
   const RIVERS = [];
@@ -594,7 +710,11 @@
     const w = 1 - KT.smoothstep(8, 30 + 30 * gh, Math.abs(lat));
     h = KT.lerp(h, roadY(s) - 0.2, w);
     const b = Hw.nearBranch(x, z, 90);
-    if (b) h = KT.lerp(h, b.road.y(b.s) - 0.2, 1 - KT.smoothstep(8, 30 + 30 * gh, b.d));
+    if (b) {
+      // (a country road's banks are narrower; a lane reaches no further than its ends)
+      const c = b.road.country, beyond = c && (b.s < 0 || b.s > b.road.len);
+      if (!beyond) h = KT.lerp(h, b.road.y(b.s) - 0.2, 1 - KT.smoothstep(c ? b.road.half + 3 : 8, c ? 18 + 26 * gh : 30 + 30 * gh, b.d));
+    }
     // level ground for the sights
     for (let i = 0; i < PADS.length; i++) {
       const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
@@ -653,7 +773,7 @@
       if (hub && hub.footpaths && hub.footpaths.some((g) => g[0] <= p.s - hub.s && p.s - hub.s <= g[1] && Math.sign(p.lat) === g[2])) y = Math.max(y, roadY(p.s) + 0.14);
     }
     const b = Hw.nearBranch(x, z, ROAD_HALF + 0.6);
-    if (b && b.s > -1 && b.s < b.road.len + 1) y = Math.max(y, b.road.y(b.s) + 0.06);
+    if (b && b.s > -1 && b.s < b.road.len + 1 && b.d < (b.road.half || ROAD_HALF) + 0.6) y = Math.max(y, b.road.y(b.s) + 0.06);
     return { y, onPlatform: false };
   };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
@@ -694,7 +814,8 @@
     sAt = KT.clamp(sAt, 60, (R.main ? Hw.length() : R.len) - 60);
     const f = R.frame(sAt);
     const north = Math.cos(heading - f.heading) >= 0;
-    const q = R.at(sAt, north ? -2.6 : 2.6);
+    const ln = Math.min(2.6, (R.half || ROAD_HALF) * 0.45);
+    const q = R.at(sAt, north ? -ln : ln);
     return { x: q.x, z: q.z, heading: north ? f.heading : f.heading + Math.PI };
   };
   Hw.bounds = { minX: -1e6, maxX: 1e6, minZ: -1e6, maxZ: 1e6 };
@@ -882,6 +1003,7 @@
   const shopCache = new Map();
   function shopClusters(road, k) {
     const key = road.id * 100000 + k;
+    if (road.lane) return [];
     if (shopCache.has(key)) return shopCache.get(key);
     const rng = KT.makeRng(k * 7919 + 13 + road.id * 104729);
     const out = [];
@@ -902,11 +1024,12 @@
       }
       if (road.junctions.some((j) => j.s > start - 60 && j.s < end + 60)) continue;
       // not on top of another road running close by
-      const mid = road.at((start + end) / 2, side * 11.8), nr = Hw.nearestRoad(mid.x, mid.z, 30);
+      const shopLat = (road.half || ROAD_HALF) + 6.3;
+      const mid = road.at((start + end) / 2, side * shopLat), nr = Hw.nearestRoad(mid.x, mid.z, 30);
       if (nr.road !== road && nr.d < 20) continue;
       if (Math.floor((start - 14) / 500) !== Math.floor((end + 14) / 500)) continue; // keep clear of direction signs
       if (out.some((o) => o.side === side && Math.abs(o.s - start) < 30)) continue;
-      for (let i = 0; i < n; i++) out.push({ s: start + i * 4.8 + 2.4, lat: side * 11.8, side, type: Models.SHOP_TYPES[Math.floor(rng() * Models.SHOP_TYPES.length)] });
+      for (let i = 0; i < n; i++) out.push({ s: start + i * 4.8 + 2.4, lat: side * shopLat, side, type: Models.SHOP_TYPES[Math.floor(rng() * Models.SHOP_TYPES.length)] });
     }
     shopCache.set(key, out);
     return out;
@@ -921,7 +1044,7 @@
 
   // ------------------------------------------------------------- tiles
   const _c = new T.Color();
-  function tileColor(x, z, h, lat, yRoad) {
+  function tileColor(x, z, h, lat, yRoad, half) {
     const n = KT.noise(x * 0.02, z * 0.02);
     const n2 = KT.noise(x * 0.004 + 9, z * 0.004);
     _c.setRGB(0.55 + n * 0.08, 0.78 + n * 0.08, 0.42 + n * 0.05);
@@ -929,7 +1052,8 @@
     const gh = Hw.ghats(x, z);
     if (gh > 0) _c.lerp(new T.Color(0.42, 0.62, 0.36), gh * KT.smoothstep(20, 120, Math.abs(lat))); // darker ghats
     const a = Math.abs(lat);
-    if (a > ROAD_HALF - 0.5 && a < 10) _c.lerp(new T.Color(0.75, 0.48, 0.32), 1 - KT.smoothstep(7.5, 10, a)); // laterite shoulder
+    const hw = half || ROAD_HALF;
+    if (a > hw - 0.5 && a < hw + 4.5) _c.lerp(new T.Color(0.75, 0.48, 0.32), 1 - KT.smoothstep(hw + 2, hw + 4.5, a)); // laterite shoulder
     const wl = Hw.waterLevelAt(x, z);
     if (wl > -1e8 && h < wl + 1.5) _c.lerp(new T.Color(0.85, 0.78, 0.6), KT.smoothstep(wl + 1.5, wl, h));
     const E = x - Hw.coastX(z);
@@ -949,7 +1073,7 @@
       P.setXYZ(i, x, h, z);
       U.setXY(i, x / 7, z / 7);
       const pr = Hw.nearestRoad(x, z, 900);
-      const c = tileColor(x, z, h, pr.d, pr.road.y(pr.s));
+      const c = tileColor(x, z, h, pr.d, pr.road.y(pr.s), pr.road.half);
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new T.BufferAttribute(col, 3));
@@ -1018,12 +1142,13 @@
     const s0 = k * SEG_LEN, s1 = s0 + SEG_LEN;
     const a0 = R.main ? s0 : Math.max(0, s0), a1 = R.main ? s1 : Math.min(R.len, s1);
     const group = new T.Group();
+    const HALF = R.half || ROAD_HALF, C = R.country;
     const pos = [], uv = [], idx = [];
     let n = 0;
     for (let s = a0; s <= a1 + 0.01; s += 4) {
       const ss = Math.min(s, a1), f = R.frame(ss);
       const y = R.y(ss) + 0.06;
-      pos.push(f.x - f.rx * ROAD_HALF, y, f.z - f.rz * ROAD_HALF, f.x + f.rx * ROAD_HALF, y, f.z + f.rz * ROAD_HALF);
+      pos.push(f.x - f.rx * HALF, y, f.z - f.rz * HALF, f.x + f.rx * HALF, y, f.z + f.rz * HALF);
       uv.push(0, ss / 14, 1, ss / 14);
       if (n > 0) { const a = (n - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
       n++;
@@ -1040,7 +1165,13 @@
       geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
       geo.setIndex(idx);
       geo.computeVertexNormals();
-      const road = new T.Mesh(geo, R.main ? mats.road : mats.roadBranch);
+      if (!mats.roadCountry) {
+        // village roads: older, paler tarmac, sitting under the roads they join
+        mats.roadCountry = mats.roadBranch.clone();
+        mats.roadCountry.color = new T.Color(0xc9c2b4);
+        mats.roadCountry.polygonOffsetUnits = 8;
+      }
+      const road = new T.Mesh(geo, R.main ? mats.road : C ? mats.roadCountry : mats.roadBranch);
       road.receiveShadow = true;
       group.add(road);
     }
@@ -1051,12 +1182,12 @@
       const q = R.at(s, lat);
       return new T.Matrix4().compose(new T.Vector3(q.x, Hw.groundY(q.x, q.z).y, q.z), new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), rot), new T.Vector3(1, 1, 1));
     };
-    for (let s = Math.ceil(a0 / 40) * 40; s < a1; s += 40) {
+    for (let s = Math.ceil(a0 / 40) * 40; s < a1 && !R.lane; s += 40) {
       const f = R.frame(s);
       if (bridged(s) || junc(s, 28) || s < 20 || s > R.len - 20 && !R.main) continue;
-      items.push({ key: 'pole', m: matAt(s, ROAD_HALF + 2.2, f.heading), s });
+      items.push({ key: 'pole', m: matAt(s, HALF + 2.2, f.heading), s });
       const ck = 'pole' + R.id + ':' + s;
-      if (!Hw.tileColliders.has(ck)) { const q = R.at(s, ROAD_HALF + 2.2); Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 0.2 }); Hw.tileColliders.add(ck); }
+      if (!Hw.tileColliders.has(ck)) { const q = R.at(s, HALF + 2.2); Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 0.2 }); Hw.tileColliders.add(ck); }
     }
     // painted kerbs along the open road (towns have footpaths instead, and
     // junctions are left open) and reflectors down the centre line
@@ -1064,7 +1195,7 @@
     const inTown = (s) => { if (!R.main) return false; const hi = Hw.hubIndexAt(s); return Math.abs(s - Hw.hubS(hi)) < 205; };
     const open = (s, sd) => R.junctions.some((j) => Math.abs(j.s - s) < 18 && (j.side === 0 || j.side === sd));
     const kerbGeo = G.box(0.22, 0.34, 0.96), eyeGeo = G.box(0.14, 0.04, 0.2);
-    for (let s = Math.ceil(a0); s < a1; s += 1) {
+    for (let s = Math.ceil(a0); s < a1 && !C; s += 1) {
       if (bridged(s)) continue;
       const f = R.frame(s), y = R.y(s);
       if (!inTown(s)) {
@@ -1083,7 +1214,7 @@
       group.add(m);
     });
     // milestones every 50 m of game road = 1 km on the map
-    for (let s = Math.ceil(a0 / 50) * 50; s < a1; s += 50) {
+    for (let s = Math.ceil(a0 / 50) * 50; s < a1 && !C; s += 50) {
       if (bridged(s) || junc(s, 24) || (!R.main && (s < 24 || s > R.len - 24))) continue;
       items.push({ key: 'stone', m: matAt(s, -ROAD_HALF - 1.4, R.frame(s).heading + Math.PI / 2), s });
     }
@@ -1095,7 +1226,7 @@
     };
     const km = (m) => Math.round(KT.Vehicle.toKm(m));
     // green direction signs every 500 m (10 km)
-    for (let s = Math.ceil(a0 / 500) * 500 + (R.main ? 0 : 250); s < a1; s += 500) {
+    for (let s = Math.ceil(a0 / 500) * 500 + (R.main ? 0 : 250); s < a1 && !C; s += 500) {
       if (junc(s, 60) || bridged(s)) continue;
       if (R.main) {
         const next = KT.DISTRICTS.findIndex((d, i) => Hw.hubS(i) > s + 150);
@@ -1111,8 +1242,16 @@
     }
     // signs ahead of each junction, for traffic from both directions
     R.junctions.forEach((j) => {
-      if (!j.side) return;
+      if (!j.side || j.other.lane) return;
       const O = j.other, label = O.nh + ' ' + O.name;
+      if (O.country) {
+        // a small board pointing up a village road
+        const s = j.s - 16, lat = j.side * (HALF + 2.4);
+        if (s < a0 || s >= a1 || bridged(s)) return;
+        const board = Models.signboard([(j.side < 0 ? '← ' : '') + (Math.abs(O.start.s - j.s) < 1 ? O.towns[0].name : O.towns[O.towns.length - 1].name) + (j.side > 0 ? ' →' : ''), 'Village road']);
+        placeSign(board, s, lat, j.side < 0 ? Math.PI / 2 + 0.5 : -Math.PI / 2 + 0.5);
+        return;
+      }
       [[-1, j.side < 0 ? '←' : '→'], [1, j.side < 0 ? '→' : '←']].forEach(([dir, arrow]) => {
         const s = j.s + dir * 110;
         if (s < a0 || s >= a1 || bridged(s)) return;
@@ -1127,20 +1266,20 @@
         if (sb < a0 || sb >= a1 || bridged(sb) || junc(sb, 30)) return;
         const board = Models.signboard([w.name, w.road]);
         board.scale.setScalar(1.3);
-        placeSign(board, sb, e < 0 ? -(ROAD_HALF + 2.6) : ROAD_HALF + 2.6, e < 0 ? Math.PI / 2 + 0.5 : -Math.PI / 2 + 0.5);
+        placeSign(board, sb, e < 0 ? -(HALF + 2.6) : HALF + 2.6, e < 0 ? Math.PI / 2 + 0.5 : -Math.PI / 2 + 0.5);
       });
     });
     // a paved turning place where a road ends at a sight
-    if (R.dest && R.len >= a0 && R.len < s1 + 0.01) {
+    if ((R.dest || R.hamlet) && R.len >= a0 && R.len < s1 + 0.01) {
       const f = R.frame(R.len - 6);
-      const plaza = new T.Mesh(new T.CircleGeometry(13, 32), mats.paver);
+      const plaza = new T.Mesh(new T.CircleGeometry(R.hamlet ? 7 : 13, 32), R.hamlet ? (mats.roadCountry || mats.paver) : mats.paver);
       plaza.rotation.x = -Math.PI / 2;
       plaza.position.set(f.x, R.y(R.len) + 0.07, f.z);
       plaza.receiveShadow = true;
       group.add(plaza);
     } else
     // a check-post where a highway reaches the state border
-    if (!R.main && !R.finish && R.len >= a0 && R.len < s1 + 0.01) {
+    if (!R.main && !C && !R.finish && R.len >= a0 && R.len < s1 + 0.01) {
       const s = R.len - 6, f = R.frame(s), y = R.y(s);
       const post = new T.Group();
       part(post, G.box(ROAD_HALF * 2 + 1, 0.22, 0.22), KT.mat('boomRed', { color: 0xc8302a }), 0, 1.1, 0);
@@ -1420,10 +1559,29 @@
     return sightCache;
   };
 
+  // a lane from the road to each sight standing beside it
+  Hw.sightList().forEach((sg) => {
+    if (typeof sg.lat !== 'number' || !sg.lat) return;
+    const R = sg.dest ? sg.road : MAIN, s = sg.dest ? sg.s : Hw.hubS(sg.hub) + sg.along;
+    const side = Math.sign(sg.lat), l0 = side * ((R.half || ROAD_HALF) - 0.4), l1 = sg.lat - side * Math.max(4, sg.r - 3);
+    if ((l1 - l0) * side < 8) return;
+    const n = Math.ceil(Math.abs(l1 - l0) / STEP), PX = [], PZ = [], PY = [];
+    const end = R.at(s, l1), y0 = R.y(s), y1 = Math.max(Hw.height(end.x, end.z) + 0.05, Hw.waterLevelAt(end.x, end.z) + 0.3);
+    for (let i = 0; i <= n; i++) {
+      const q = R.at(s, l0 + (l1 - l0) * i / n);
+      PX.push(q.x); PZ.push(q.z); PY.push(KT.lerp(y0, y1, KT.smoothstep(0, 1, i / n)));
+    }
+    const L = makeRoad(PX, PZ, PY, { id: countryId++, nh: sg.name, name: sg.name, country: true, lane: true, half: LANE_HALF, sight: sg });
+    L.junctions.push({ s: 0, side: 0, other: R });
+    R.junctions.push({ s, side, other: L });
+    Hw.roads.push(L);
+    Hw.country.push(L);
+  });
+
   function sightBoard(hub, sg) {
     const side = Math.sign(sg.lat);
     const lat = sg.lat - side * (sg.r + 4);
-    const board = hubPlace(hub, Models.signboard([sg.name.length > 22 ? sg.name.split(' ').slice(0, 3).join(' ') : sg.name, sg.district.name]), sg.along, lat, faceRoad(lat));
+    const board = hubPlace(hub, Models.signboard([sg.name.length > 22 ? sg.name.split(' ').slice(0, 3).join(' ') : sg.name, sg.district.name]), sg.along + 5.5, lat, faceRoad(lat));
     Hw.interactables.push({ label: 'About ' + sg.name, radius: 3, pos: () => board.position, action: () => KT.Game.readSight(sg) });
     Hw.addCollider({ type: 'circle', x: board.position.x, z: board.position.z, r: 0.5 });
   }
@@ -1610,6 +1768,8 @@
           pt.set(q.x + x * c + z * sn, 0, q.z - x * sn + z * c);
           if (KT.World.resolveList(pt, 1.0, list)) return false;
           if (Hw.waterLevelAt(pt.x, pt.z) > -1e8) return false;
+          const b = Hw.nearBranch(pt.x, pt.z, 6);
+          if (b && b.s > -2 && b.s < b.road.len + 2 && b.d < (b.road.half || ROAD_HALF) + 1.5) return false;
         }
       }
       return true;

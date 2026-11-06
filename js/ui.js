@@ -593,6 +593,8 @@
     const s = Hw.project(p.x, p.z).s;
     const span = W / scale;
     const near = (Hw.branches || []).filter((R) => R.near(p.x, p.z, span));
+    const lanes = (Hw.country || []).filter((R) => R.near(p.x, p.z, span));
+    lanes.forEach((R) => drawRoadPath(g, 0, R.len, toMap, R.lane ? 4 : 5.5, '#4a4640', R));
     near.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 9, '#2d2d2d', R));
     drawRoadPath(g, s - span, s + span, toMap, 9, '#2d2d2d');
     near.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.5, '#f4efe2', R));
@@ -671,7 +673,8 @@
     g.fillText('Western Ghats', gh[0], gh[1]);
     g.fillText('Tamil Nadu', tn[0], tn[1]);
     g.fillText('Karnataka', ka[0], ka[1]);
-    // the branch highways, then the main highway on top
+    // village roads, the branch highways, then the main highway on top
+    (Hw.country || []).forEach((R) => { if (!R.lane) drawRoadPath(g, 0, R.len, toMap, 1.4 + 0.8 * Math.min(view.zoom, 3), '#4a3f30', R); });
     const branches = Hw.branches || [];
     branches.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 3 + 1.5 * Math.min(view.zoom, 3), '#2d2d2d', R));
     branches.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.3, '#e8b85a', R));

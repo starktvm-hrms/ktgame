@@ -87,7 +87,15 @@ NH 85 to Munnar, NH 544 to Walayar, NH 766 to Sulthan Bathery, and the
 coastal NH 66 from Kollam to Alappuzha, Cherthala to Kochi, Kochi to
 Kozhikode and Kozhikode to Kannur, plus the roads south to Parassala and
 north to Manjeshwar. Roads that reach the state border end at a
-check-post. The big map (M) shows every road on the outline of Kerala. Each centre has welcome gates, a bus stand, an information board,
+check-post. The big map (M) shows every road on the outline of Kerala.
+
+Narrow **village roads** fill in the countryside: between district centres
+they loop off the highway (inland, and towards the sea where there is room)
+through two villages and back, with a small board at each turning, and from
+the villages dead-end roads run on to hamlets. Every tourist attraction,
+in every district, has its own lane from the road beside it.
+
+Each centre has welcome gates, a bus stand, an information board,
 local people to talk to, shops and a landmark, such as a temple gopuram, a
 lighthouse, Chinese fishing nets, the Idukki arch dam, a hill shrine or
 Bekal fort. Milestones count the kilometres, green signs point to the next
