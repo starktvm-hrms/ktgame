@@ -185,7 +185,8 @@ window.KT = window.KT || {};
     // street lights: dark by day, lit at night (see sky.js), and the soft
     // pool of light each throws on the ground
     M.streetLamp = KT.mat('streetLamp', { color: 0xd8d2c0, emissive: 0xffd590, emissiveIntensity: 0, roughness: 0.4 });
-    M.lightPool = KT.mat('lightPool', { color: 0x000000, emissive: 0x000000, transparent: true, opacity: 0, depthWrite: false });
+    // (unlit, so it shows on a dark night: it is the light)
+    M.lightPool = new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false, fog: false });
     M.lightPool.map = (() => {
       const c = document.createElement('canvas');
       c.width = c.height = 128;
