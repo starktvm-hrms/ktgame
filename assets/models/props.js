@@ -21,7 +21,7 @@
     part(g, G.sph(0.04), M().brass, 0.55, 3.6, 0);
     part(g, G.cyl(0.13, 0.15, 0.05, 6), M().black, 0.55, 2.93, 0);
     // the pool of light under the lantern at night
-    const pool = new T.Mesh(new T.CircleGeometry(3.6, 20), M().lightPool);
+    const pool = new T.Mesh(new T.CircleGeometry(4.6, 22), M().lightPool);
     pool.rotation.x = -Math.PI / 2; pool.position.set(0.55, 0.08, 0);
     g.add(pool);
     part(g, G.cyl(0.025, 0.025, 0.25, 8), M().black, 0.55, 3.45, 0);

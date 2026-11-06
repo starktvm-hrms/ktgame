@@ -2066,6 +2066,15 @@
       sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
     }
     scene.add(sun); scene.add(sun.target);
+    // real light from the street lamps nearest the player (a fixed few, so
+    // the shaders never need rebuilding), dark by day
+    Hw.lampLights = [];
+    for (let i = 0; i < 6; i++) {
+      const l = new T.PointLight(0xffd8a0, 0, 26, 1.6);
+      l.position.set(0, -100, 0);
+      scene.add(l);
+      Hw.lampLights.push(l);
+    }
     scene.fog = new T.Fog(0xc8e0ec, 220, 1150);
     progress && progress('Planting the roadside palms...');
     makePools(scene);
@@ -2303,6 +2312,26 @@
     Hw.sun.position.set(fx, focus.y, fz).addScaledVector(Hw.sunDir, 150);
   };
 
+  // the street lamps nearest the player light the road, cars and people
+  let lampT = 0;
+  const _lamp = new T.Vector3();
+  function placeLampLights(dt, pos) {
+    const lit = (KT.Sky && KT.Sky.lit) || 0;
+    Hw.lampLights.forEach((l) => { l.intensity = 1.8 * lit; });
+    if (lit < 0.01 || (lampT -= dt) > 0) return;
+    lampT = 0.4;
+    const near = [];
+    Hw.segs.forEach((sg) => sg.items.forEach((it) => {
+      if (it.key !== 'pole') return;
+      const e = it.m.elements, dx = e[12] - pos.x, dz = e[14] - pos.z, d = dx * dx + dz * dz;
+      if (d < 140 * 140) near.push({ m: it.m, d });
+    }));
+    near.sort((a, b) => a.d - b.d);
+    Hw.lampLights.forEach((l, i) => {
+      if (near[i]) l.position.copy(_lamp.set(2.55, 6.3, 0).applyMatrix4(near[i].m));
+      else l.position.set(0, -100, 0);
+    });
+  }
   Hw.update = function (dt, player, camera) {
     Hw.animTime += dt;
     KT.World.animTime = Hw.animTime;
@@ -2310,6 +2339,7 @@
     if (camera) { Hw.sky.position.copy(camera.position); Hw.horizon.position.set(camera.position.x, 0, camera.position.z); Hw.clouds.position.set(camera.position.x, 0, camera.position.z); }
     if (mats.water.userData.normal) mats.water.userData.normal.offset.set(Hw.animTime * 0.01, Hw.animTime * 0.006);
     Hw.stream(player.pos, 2);
+    placeLampLights(dt, player.pos);
     KT.Traffic.updateHighway(dt, camera ? camera.position : null);
     const kochi = Hw.hubs.find((h) => h.lagoon && h.group.visible);
     if (kochi) KT.Fishing.ambient(dt, kochi.lagoon, player.pos);

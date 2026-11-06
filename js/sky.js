@@ -389,10 +389,10 @@
     // street and house lamps glow brighter at night
     KT.M.lampGlow.emissiveIntensity = 1.4 + 2.2 * S.night;
     // street lights come on at dusk and light the road under them
-    const lit = KT.smoothstep(0.15, 0.6, S.night);
-    KT.M.streetLamp.emissiveIntensity = 3.2 * lit;
-    KT.M.lightPool.color.setRGB(lit, lit, lit);
-    KT.M.lightPool.opacity = 0.75 * lit;
+    const lit = S.lit = KT.smoothstep(0.15, 0.6, S.night);
+    KT.M.streetLamp.emissiveIntensity = 7 * lit;
+    KT.M.lightPool.color.setRGB(lit, lit * 0.95, lit * 0.85);
+    KT.M.lightPool.opacity = lit;
     KT.M.lightPool.visible = lit > 0.01;
     if (KT.Highway && KT.Highway.built) KT.mat('catEye').emissiveIntensity = 0.3 + 2.2 * S.night;
     // rain follows the camera on the outdoor maps

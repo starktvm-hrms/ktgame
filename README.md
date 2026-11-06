@@ -274,7 +274,8 @@ coast stretches with it:
   You can climb the stair onto the glass bridge and walk out to the
   canopy, walk out along the jetty, and take a motor boat or a canoe out
   on the river (E at the boat; R takes it back to its mooring; E near the
-  jetty or a bank to get out).
+  jetty or a bank to get out). The jetty is entered through a brick arch, and two
+  flights of stone steps lead down from the promenade to the water.
 - **Thiruvananthapuram Zoo** is a walled compound behind its red-brick
   gate (banded pillars, a pointed arch and a carved gable). Paths lead past
   ten landscaped enclosures: tigers by a rocky den, pool and moat; lions at

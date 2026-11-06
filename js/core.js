@@ -191,7 +191,7 @@ window.KT = window.KT || {};
       const c = document.createElement('canvas');
       c.width = c.height = 128;
       const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-      gr.addColorStop(0, 'rgba(255,214,140,1)'); gr.addColorStop(0.45, 'rgba(255,200,120,0.55)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
+      gr.addColorStop(0, 'rgba(255,226,165,1)'); gr.addColorStop(0.35, 'rgba(255,214,145,0.85)'); gr.addColorStop(0.7, 'rgba(255,200,125,0.35)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
       g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
       const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return t;
     })();

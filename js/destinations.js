@@ -764,6 +764,8 @@
     const lam = mat('akkLaterite', 0xa4553a, 0.95), cap = mat('akkCap', 0xe8e0d0, 0.8), moss = mat('akkPost', 0x8f8a7c, 0.95);
     const lawn = mat('akkLawn', 0x6aa043, 1), path = mat('akkPath', 0xb8774f, 1), sand = mat('akkSand', 0xd9c49a, 1), pipe = mat('akkPipe', 0xc9c6bc, 0.4);
     const X = 55, ZF = 42, ZB = -50;
+    const GHATS = [-39, 49], RAIL = [[-80, -42.5], [-35.5, 7.5], [12.5, 45.5], [52.5, 80]];
+    it.ghats = GHATS;
     groundPatch(g, lawn, -80, -58, 80, ZF, 0.02);
     // the compound wall (open to the river) with the arch gate in front
     const wall = (x0, z0, x1, z1) => {
@@ -778,11 +780,18 @@
     // square posts with pyramid caps and two pipe rails
     pavedStrip(g, -80, -58.6, 80, -50, 6);
     part(g, G.box(160, 2.2, 0.6), moss, 0, -0.9, -59.1);
-    for (let x = -80; x <= 80.01; x += 3.2) {
-      part(g, G.box(0.42, 1.1, 0.42), moss, x, 0.55, -58.4);
-      part(g, G.cone(0.34, 0.32, 4), moss, x, 1.26, -58.4, 0, Math.PI / 4, 0);
-    }
-    [0.55, 0.9].forEach((y) => part(g, G.cyl(0.04, 0.04, 160, 6), pipe, 0, y, -58.4, 0, 0, HP));
+    // the rail along the water, open at the jetty and at two flights of steps
+    // down to the water
+    RAIL.forEach(([x0, x1]) => {
+      for (let x = x0; x <= x1 + 0.01; x += (x1 - x0) / Math.max(1, Math.round((x1 - x0) / 3.2))) {
+        part(g, G.box(0.42, 1.1, 0.42), moss, x, 0.55, -58.4);
+        part(g, G.cone(0.34, 0.32, 4), moss, x, 1.26, -58.4, 0, Math.PI / 4, 0);
+      }
+      [0.55, 0.9].forEach((y) => part(g, G.cyl(0.04, 0.04, x1 - x0, 6), pipe, (x0 + x1) / 2, y, -58.4, 0, 0, HP));
+    });
+    GHATS.forEach((gx) => {
+      for (let k = 0; k < 6; k++) part(g, G.box(6, 0.18, 0.6), moss, gx, -0.12 - k * 0.17, -59.0 - k * 0.55);
+    });
     // children's play area on sand
     groundPatch(g, sand, -50, 8, -22, 36, 0.05);
     for (let i = 0; i < 6; i++) croton(g, -52 + i * 5.6, 38.5, 1.1);
@@ -791,7 +800,9 @@
     const gate = deco(brickArch(5, 3.6), 0, ZF, 0);
     const tag = Models.signboard(['Akkulam Tourist Village', 'Boating • Children’s park • Glass bridge']);
     deco(tag, 7.5, ZF + 2.5, 0, 0.9);
-    deco(brickArch(2.6, 2.4), 24, -46, 0);
+    deco(brickArch(3.0, 2.4), 10, -57.2, 0);
+    const jb = Models.signboard(['Boat jetty', 'Motor boats • Canoes']); jb.scale.setScalar(0.8);
+    deco(jb, 15, -55.5, 0.4);
     const tower = deco(playTower(), -36, 22, 0.3);
     const bridge = deco(glassBridge(44, 7), 36, 18, 0);
     it.bridge = { x: 36, z: 18, len: 44, y: 7 };
@@ -835,7 +846,7 @@
     const C = [];
     const box = (x0, z0, x1, z1) => C.push({ type: 'box', x: (x0 + x1) / 2, z: (z0 + z1) / 2, hw: Math.max(0.3, Math.abs(x1 - x0) / 2), hd: Math.max(0.3, Math.abs(z1 - z0) / 2) });
     box(-X, ZF, -4, ZF); box(4, ZF, X, ZF); box(-X, ZF, -X, -50); box(X, ZF, X, -50);
-    box(-80, -58.6, 8, -58.2); box(12, -58.6, 80, -58.2);   // the river rail, open at the jetty
+    RAIL.forEach(([x0, x1]) => box(x0, -58.6, x1, -58.2));   // the river rail, open at the jetty and the steps
     // the play tower's and the glass bridge's own colliders, moved into the park
     [tower, bridge].forEach((o) => (o.userData.colliders || []).forEach((c) => {
       const cr = Math.cos(o.rotation.y), sr = Math.sin(o.rotation.y);
@@ -852,9 +863,15 @@
     const B = it.bridge, bp = W(B.x, B.z);
     // (the bridge's own axes match the park's; its stair climbs from z = 9 to the landing)
     Hw.addPlatform(bp.x, bp.z, r, B.len + 12, (lx, lz) => {
+      // the stair: its 18 steps climb from z = 9 (0.3 m up) to z = 0.5 (at the deck)
+      if (Math.abs(lx) < 0.9 && lz > 0.5 && lz <= 9.5) return y0 + 0.36 + KT.clamp((9.2 - lz) / 8.7, 0, 1) * (B.y - 0.3);
       if (Math.abs(lx) < 1.85 && lz <= 1.85 && lz >= -B.len) return y0 + B.y + 0.05;
-      if (Math.abs(lx) < 0.85 && lz > 1.85 && lz <= 9.4) return y0 + 0.3 + KT.clamp((9.2 - lz) / 0.5, 0, 18) * (B.y - 0.3) / 18 + 0.06;
       return null;
+    });
+    // the steps down to the water
+    it.ghats.forEach((gx) => {
+      const gp = W(gx, -58.6);
+      Hw.addPlatform(gp.x, gp.z, r, 8, (lx, lz) => (Math.abs(lx) < 3 && lz <= 0.2 && lz >= -3.4 ? y0 - 0.03 - KT.clamp(-lz / 3.3, 0, 1) * 0.85 : null));
     });
     const J = it.jetty, jp = W(J.x, J.z);
     Hw.addPlatform(jp.x, jp.z, r, 20, (lx, lz) => (Math.abs(lx) < 2.0 && lz <= 1.3 && lz >= -16.4 ? y0 + 0.3 : null));
@@ -862,7 +879,7 @@
     const V = KT.Vehicle;
     [[J.x - 6.2, J.z - 6, 'boat'], [J.x - 3.0, J.z - 6, 'canoe'], [J.x + 3.0, J.z - 8, 'canoe'], [J.x + 6.2, J.z - 8, 'boat']].forEach(([mx, mz, type]) => {
       const q = W(mx, mz), veh = V.create(Hw.scene, q.x, q.z, r + Math.PI, type);
-      Hw.interactables.push({ label: 'Take the ' + veh.spec.name + ' out on the river', radius: 3 + veh.spec.length / 2, pos: () => veh.obj.position,
+      Hw.interactables.push({ label: 'Take the ' + veh.spec.name + ' out on the river', radius: 4.5 + veh.spec.length / 2, pos: () => veh.obj.position,
         enabled: () => !veh.occupied, action: () => { KT.Player.boardBus(veh); KT.UI.toast('W/S for speed, A/D to steer. Bring it back to the jetty and press E to get out.', 'info'); } });
     });
   }

@@ -18,8 +18,9 @@
     part(g, G.cyl(0.035, 0.035, 2.6, 6), M().darkGrey, 1.25, 6.55, 0, 0, 0, Math.PI / 2 - 0.12);
     part(g, G.box(0.55, 0.12, 0.26), M().darkGrey, 2.55, 6.68, 0);
     part(g, G.box(0.46, 0.05, 0.2), M().streetLamp, 2.55, 6.6, 0);
-    const pool = new T.Mesh(new T.CircleGeometry(5.5, 24), M().lightPool);
-    pool.rotation.x = -Math.PI / 2; pool.position.set(2.8, 0.35, 0);
+    part(g, G.sph(0.16, 8, 6), M().streetLamp, 2.55, 6.55, 0, 0, 0, 0, 1.4, 0.5, 1); // the bulb, seen from below
+    const pool = new T.Mesh(new T.CircleGeometry(7.5, 28), M().lightPool);
+    pool.rotation.x = -Math.PI / 2; pool.position.set(2.6, 0.35, 0);
     g.add(pool);
     return KT.bake(g);
   };
