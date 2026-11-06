@@ -164,6 +164,12 @@ Press G (or the 🚲 button) to open My Vehicles and ride one, on the
 backwaters map or along the highway between districts. Other players see
 you riding it.
 
+Once a kind of vehicle is unlocked you can also ride any vehicle of that
+kind you find: walk up to a parked car, an auto waiting at a town's auto
+stand, or a car or auto standing still in the traffic, and press E. (Scooters
+in the traffic have their riders on, so only parked scooters can be taken.)
+It becomes your ride, in its own colours, in place of the one you had.
+
 ## Groups, chat and voice
 
 Every player picks a **username** (like `@anjali_nair`) when they register;

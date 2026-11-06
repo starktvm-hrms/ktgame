@@ -148,9 +148,18 @@
   const CAR_COLS = [0xf3f3f0, 0xb9bec4, 0xb3261e, 0x2c5fa8, 0x1d1d1f, 0x2a6f5a];
   function vehicleModel(kind, rng, ridden) {
     const M = KT.Models;
-    if (kind === 'car') return M.car(CAR_COLS[Math.floor(rng() * CAR_COLS.length)], ['hatch', 'sedan', 'suv'][Math.floor(rng() * 3)]);
-    if (kind === 'auto') return M.autoRickshaw();
-    return M.scooter([0xf3f3f0, 0xb3261e, 0x1d1d1f, 0x2c5fa8][Math.floor(rng() * 4)], ridden ? TOPS[Math.floor(rng() * TOPS.length)] : null, 0x111111);
+    let o, look = null;
+    if (kind === 'car') {
+      look = { col: CAR_COLS[Math.floor(rng() * CAR_COLS.length)], style: ['hatch', 'sedan', 'suv'][Math.floor(rng() * 3)] };
+      o = M.car(look.col, look.style);
+    } else if (kind === 'auto') o = M.autoRickshaw();
+    else {
+      look = { col: [0xf3f3f0, 0xb3261e, 0x1d1d1f, 0x2c5fa8][Math.floor(rng() * 4)] };
+      o = M.scooter(look.col, ridden ? TOPS[Math.floor(rng() * TOPS.length)] : null, 0x111111);
+    }
+    o.userData.kind = kind;
+    o.userData.look = look;
+    return o;
   }
   function addParked(hub, rng) {
     const Hw = KT.Highway, grp = new T.Group(), pt = new T.Vector3();
@@ -159,6 +168,9 @@
       pt.set(q.x, 0, q.z);
       return !KT.World.resolveList(pt, r, Hw.nearbyColliders(q.x, q.z, 8));
     };
+    // each parked vehicle stays its own object (one can be taken away);
+    // what the town shows is them all baked together
+    hub.parked = [];
     const park = (kind, along, lat, rot) => {
       const o = vehicleModel(kind, rng, false);
       const q = Hw.at(hub.s + along, lat);
@@ -166,8 +178,11 @@
       o.rotation.y = rot;
       grp.add(o);
       const sz = o.userData.size || { length: 2.7, width: 1.3 };
-      Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: sz.width / 2, hd: sz.length / 2, rot });
+      const collider = Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: sz.width / 2, hd: sz.length / 2, rot });
+      hub.parked.push({ kind, look: o.userData.look, len: sz.length, obj: o, heading: rot, collider });
     };
+    // the autos waiting at the side-street corners (laid out with the town)
+    (hub.autoStand || []).forEach(([along, lat, rot]) => park('auto', along, lat, rot));
     // along the main road's shoulders, clear of the crossing and the bus bay
     for (let al = -146; al <= 146; al += 9) {
       if (Math.abs(al - KT.Highway.CROSSING) < 13 || Math.abs(al - 10) < 12 || Math.abs(((al % 20) + 20) % 20) < 3) continue;
@@ -189,7 +204,16 @@
         park('scooter', along, sd * k, Hw.frame(hub.s + SA).heading + Math.PI / 2 + (rng() - 0.5) * 0.4);
       }
     });
-    if (grp.children.length) hub.group.add(KT.bake(grp));
+    hub.parkedSrc = grp;
+    rebakeParked(hub);
+  }
+  function rebakeParked(hub) {
+    if (hub.parkedBaked) {
+      hub.group.remove(hub.parkedBaked);
+      hub.parkedBaked.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+      hub.parkedBaked = null;
+    }
+    if (hub.parkedSrc.children.length) hub.group.add(hub.parkedBaked = KT.bake(hub.parkedSrc));
   }
 
   // ------------------------------------------- side-street traffic
@@ -201,7 +225,7 @@
       ['auto', 'scooter', 'car'].slice(0, 2 + (k + hub.index) % 2).forEach((kind, i) => {
         const obj = vehicleModel(kind, rng, true);
         hub.group.add(obj);
-        TF.vehicles.push({ hub, obj, SA, side: sd, t: 14 + i * 30 + rng() * 10, dir: i % 2 ? -1 : 1, speed: kind === 'car' ? 6.5 : kind === 'auto' ? 5.5 : 7, v: 0, wait: rng() * 3, turn: 0, len: kind === 'car' ? 3.8 : kind === 'auto' ? 2.7 : 1.8 });
+        TF.vehicles.push({ hub, obj, kind, look: obj.userData.look, SA, side: sd, t: 14 + i * 30 + rng() * 10, dir: i % 2 ? -1 : 1, speed: kind === 'car' ? 6.5 : kind === 'auto' ? 5.5 : 7, v: 0, wait: rng() * 3, turn: 0, len: kind === 'car' ? 3.8 : kind === 'auto' ? 2.7 : 1.8 });
       });
     });
   }
@@ -336,6 +360,34 @@
     w.obj = next;
     w.lod = want;
   }
+
+  // Vehicles the player can take: parked ones, and cars and autos standing
+  // still in the side streets (scooters there have their riders on).
+  TF.takeable = function (pos, range) {
+    const out = [];
+    const near = (p) => Math.abs(p.x - pos.x) < range && Math.abs(p.z - pos.z) < range;
+    KT.Highway.hubs.forEach((hub) => {
+      if (!hub.parked || !hub.group.visible) return;
+      hub.parked.forEach((c) => {
+        if (!near(c.obj.position)) return;
+        c.take = c.take || (() => {
+          hub.parked.splice(hub.parked.indexOf(c), 1);
+          hub.parkedSrc.remove(c.obj);
+          c.collider.disabled = true;
+          rebakeParked(hub);
+        });
+        out.push(c);
+      });
+    });
+    TF.vehicles.forEach((v) => {
+      if (v.kind === 'scooter' || !v.obj.visible || v.v > 0.4 || v.turn > 0 || !near(v.obj.position)) return;
+      out.push({ kind: v.kind, look: v.look, len: v.len, obj: v.obj, heading: v.obj.rotation.y, take: () => {
+        TF.vehicles.splice(TF.vehicles.indexOf(v), 1);
+        v.hub.group.remove(v.obj);
+      } });
+    });
+    return out;
+  };
 
   // people on the carriageway (for the traffic to stop for)
   TF.onRoad = function () {

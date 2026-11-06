@@ -407,6 +407,29 @@
     if (!r || r.occupied || r.level !== Game.level) return [];
     return [{ label: 'Ride your ' + r.spec.name, radius: 1.6 + r.spec.length / 2, pos: () => r.obj.position, action: () => KT.Player.boardBus(r) }];
   }
+  // Any vehicle of a kind the player has unlocked can be ridden: parked in
+  // a town, waiting at an auto stand, or standing still in the traffic.
+  function streetRides() {
+    const P = KT.Player, owned = (Game.data && Game.data.vehicles) || [];
+    if (P.mode !== 'foot' || !owned.length || KT.L.noVehicles) return [];
+    const lvl = Game.level === 'highway' ? 'highway' : Game.level === 'home' ? 'home' : null;
+    if (!lvl) return [];
+    let cands = KT.Traffic.takeable(P.pos, 6, lvl);
+    if (lvl === 'highway' && KT.Townfolk) cands = cands.concat(KT.Townfolk.takeable(P.pos, 6));
+    return cands.filter((c) => owned.indexOf(c.kind) >= 0).map((c) => ({
+      label: 'Ride this ' + KT.Vehicle.TYPES[c.kind].name, radius: 1.2 + c.len / 2, pos: () => c.obj.position, action: () => Game.takeVehicle(c)
+    }));
+  }
+  Game.takeVehicle = function (c) {
+    const P = KT.Player, p = c.obj.position;
+    const x = p.x, z = p.z, h = c.heading || 0;
+    c.take();
+    // it becomes your ride (the one you had waits no longer)
+    if (Game.ride) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
+    Game.ride = KT.Vehicle.create(Game.scene, x, z, h, c.kind, c.look);
+    P.boardBus(Game.ride);
+    KT.UI.toast('W/S to ride, A/D to steer, H for the horn, E to get off.', 'info');
+  };
   // distance on the road (map scale), any vehicle on the highway
   function trackDistance() {
     const P = KT.Player, v = P.mode === 'bus' ? P.bus : null;
@@ -1072,7 +1095,7 @@
   let hwUiT = 0;
   function highwayGameplay(dt) {
     const P = KT.Player, Hw = KT.Highway, d = Game.data;
-    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract()));
+    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract(), streetRides()));
     Game.nearInteract = best;
     showPrompt(best);
     trackDistance();
@@ -1113,7 +1136,7 @@
   function gameplay(dt) {
     const P = KT.Player, d = Game.data, E = KT.Entities;
     // interactions
-    const best = pickInteract(E.interactables.concat(rideInteract()));
+    const best = pickInteract(E.interactables.concat(rideInteract(), streetRides()));
     Game.nearInteract = best;
     showPrompt(best);
     $('speedo').classList.toggle('hidden', P.mode !== 'bus');

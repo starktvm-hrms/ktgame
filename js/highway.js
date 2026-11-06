@@ -1665,9 +1665,9 @@
         if (!Hw.nearbyColliders(q.x, q.z, 1.5).length) put(Models.lampPost(), at, lt, heading + (k % 28 ? -Math.PI / 2 : Math.PI / 2));
       }
       // autos waiting at the corner
-      if (Models.autoRickshaw) {
-        [[SA - 2, 14], [SA + 2, 20]].forEach(([al, la], i) => { const q = Hw.at(hub.s + al, side * la); if (!Hw.nearbyColliders(q.x, q.z, 3).length) put(Models.autoRickshaw(), al, side * la, heading + Math.PI / 2 + i * Math.PI); });
-      }
+      // (placed with the parked vehicles, so the player can take one)
+      hub.autoStand = hub.autoStand || [];
+      [[SA - 2, 14], [SA + 2, 20]].forEach(([al, la], i) => { const q = Hw.at(hub.s + al, side * la); if (!Hw.nearbyColliders(q.x, q.z, 3).length) hub.autoStand.push([al, side * la, heading + Math.PI / 2 + i * Math.PI]); });
     });
     hub.group.add(KT.bake(town));
     hub.townSize = n;

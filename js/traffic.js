@@ -26,7 +26,7 @@
       const style = ['hatch', 'hatch', 'sedan', 'suv'][Math.floor(rng() * 4)];
       const col = CAR_COLOURS[Math.floor(rng() * CAR_COLOURS.length)];
       const obj = proto('car' + style + col, () => Models.car(col, style));
-      return { obj, len: obj.userData.size.length, w: obj.userData.size.width, cruise: 14 + rng() * 4 };
+      return { obj, len: obj.userData.size.length, w: obj.userData.size.width, cruise: 14 + rng() * 4, look: { col, style } };
     },
     auto: (rng) => ({ obj: proto('auto', Models.autoRickshaw), len: 2.7, w: 1.32, cruise: 8.5 + rng() * 2 }),
     lorry: (rng) => {
@@ -500,5 +500,31 @@
   Tr.updateHome = function (dt, camPos) {
     if (Tr.home) Tr.home.update(dt, KT.World.animTime, camPos);
   };
+  // Vehicles the player can take: cars and autos standing still (at a
+  // signal, or stopped for the player). Scooters all have their riders on.
+  // A taken vehicle is replaced by a new one further down the road.
+  Tr.takeable = function (pos, range, level) {
+    const out = [];
+    (level === 'home' ? [Tr.home] : [Tr.hw, Tr.activeBranch ? Tr.hwb : null]).forEach((set) => {
+      if (!set) return;
+      set.vehicles.forEach((v) => {
+        if ((v.kind !== 'car' && v.kind !== 'auto') || v.v > 0.4 || !v.obj.visible || !v.road) return;
+        const p = v.obj.position;
+        if (Math.abs(p.x - pos.x) > range || Math.abs(p.z - pos.z) > range) return;
+        out.push({ kind: v.kind, look: v.look, len: v.len, obj: v.obj, heading: v.heading, take: () => replace(set, v) });
+      });
+    });
+    return out;
+  };
+  const takeRng = KT.makeRng(99);
+  function replace(set, v) {
+    set.scene.remove(v.obj);
+    set.vehicles.splice(set.vehicles.indexOf(v), 1);
+    const nv = makeVehicle(v.kind, takeRng), L = v.road.length;
+    if (set === Tr.home) nv.cruise = Math.min(nv.cruise, 8 + takeRng() * 2);
+    // half a road away (the highway's traffic window brings it back round)
+    set.add(nv, v.road, KT.clamp((v.d + L / 2) % L, 10, L - 10), v.dir, v.laneOff);
+    if (set.opts.wrap) set.opts.wrap(nv);
+  }
   Tr.highwayColliders = (pos, range) => (Tr.hw ? Tr.hw.colliders(pos, range).concat(Tr.activeBranch ? Tr.hwb.colliders(pos, range) : []) : []);
 })();

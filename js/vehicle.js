@@ -60,11 +60,18 @@
   };
   V.CODES = ['bus', 'bicycle', 'auto', 'scooter', 'car']; // network type codes
 
-  // A drivable vehicle living in the current level.
-  V.create = function (scene, x, z, heading, type) {
+  // A drivable vehicle living in the current level. look: the paint (and
+  // body style) of a vehicle found in the street, so it keeps its colours.
+  V.create = function (scene, x, z, heading, type, look) {
     type = type || 'bus';
-    const spec = V.TYPES[type];
-    const obj = spec.make();
+    let spec = V.TYPES[type], obj;
+    if (look && type === 'car') {
+      obj = KT.Models.car(look.col, look.style);
+      // a saloon or an SUV is longer than the hatchback: scale its axles
+      const sz = obj.userData.size, k = sz.length / spec.length;
+      spec = Object.assign({}, spec, { length: sz.length, width: sz.width, frontAxle: spec.frontAxle * k, rearAxle: spec.rearAxle * k, hits: spec.hits.map((h) => h * k), exits: spec.exits.map((e) => [e[0] * sz.width / spec.width, e[1] * k]) });
+    } else if (look && type === 'scooter') obj = KT.Models.scooter(look.col, null);
+    else obj = spec.make();
     scene.add(obj);
     const veh = { obj, type, spec, scene, level: KT.L.id, heading: heading || 0, speed: 0, steer: 0, odo: 0, occupied: false, y: 0 };
     obj.position.set(x, KT.L.groundY(x, z).y, z);
