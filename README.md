@@ -265,6 +265,12 @@ coast stretches with it:
   sculpture, and to the lake at Akkulam Tourist Village before rejoining the
   highway. The main highway begins at a junction on MG Road, and NH 66 leaves
   East Fort for Neyyattinkara.
+- **Akkulam Tourist Village** is a walled park behind a brick-arch gate, on
+  a long backwater that winds past it, with water hyacinth along the banks.
+  A red-paved promenade with stone posts, pipe rails, lamps, shade trees and
+  benches runs along the river; there is a children's play tower with
+  slides, the glass bridge with its yellow-draped canopy, a boat jetty, and
+  lawns with crotons. People stroll the promenade and sit on the benches.
 - **Thiruvananthapuram Zoo** is a walled compound behind its red-brick
   gate (banded pillars, a pointed arch and a carved gable). Paths lead past
   ten landscaped enclosures: tigers by a rocky den, pool and moat; lions at

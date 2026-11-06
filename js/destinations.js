@@ -27,8 +27,19 @@
       const sg = it.sg, k = sg.kind;
       if (k === 'mermaidBeach') return; // the beach itself
       if (k === 'lakeVillage') {
-        it.lake = { x: sg.x + it.out.x * 14, z: sg.z + it.out.z * 14, r: 32, y: it.y - 1.3 };
-        pads.push({ x: sg.x - it.out.x * 28, z: sg.z - it.out.z * 28, r: 16, y: it.y });
+        // the backwater: a long river along the far side of the park, straight
+        // by the promenade and winding beyond it (clear of the roads and the
+        // beach), made of a chain of lake circles with walled banks
+        const f = it.f, pts = [], D0 = 86, rw = 22;
+        for (let t = -330; t <= 130; t += 12) {
+          const m = D0 + 9 * Math.sin(t / 80) * KT.smoothstep(60, 140, Math.abs(t));
+          pts.push({ x: sg.x + it.out.x * m + f.fx * t, z: sg.z + it.out.z * m + f.fz * t });
+        }
+        it.river = { pts, r: rw, y: it.y - 0.9 };
+        pts.forEach((q) => lakes.push({ x: q.x, z: q.z, r: rw, y: it.river.y, edge: 5 }));
+        // level, low banks on both sides (as on the backwaters)
+        pts.forEach((q, i) => { if (i % 2 === 0) pads.push({ x: q.x, z: q.z, r: rw + 26, y: it.y - 0.1 }); });
+        pads.push({ x: sg.x - it.out.x * 4, z: sg.z - it.out.z * 4, r: 66, y: it.y, paved: true });
       } else if (k === 'islandTemple') {
         it.lake = { x: sg.x, z: sg.z, r: 46, y: it.y - 1.3, island: { x: sg.x + it.out.x * 6, z: sg.z + it.out.z * 6, r: 15 } };
       } else if (k === 'reservoir') {
@@ -554,6 +565,302 @@
     });
   }
 
+  // ------------------------------------------------- Akkulam Tourist Village
+  // A walled park on the backwater: a brick-arch gate, lawns with crotons, a
+  // children's play tower with slides, the glass bridge with its draped
+  // canopy, a boat jetty, and a red-paved promenade along the river under
+  // rain trees, with posts and pipe rails, lamps and benches. Model space:
+  // +z towards the road, the river beyond z = -59.
+  function brickArch(w, h) {
+    const g = new T.Group();
+    const brick = mat('akkBrick', 0xa8452e, 0.95), cap = mat('akkCap', 0xe8e0d0, 0.8);
+    const s = new T.Shape();
+    s.moveTo(-w / 2 - 0.7, 0); s.lineTo(w / 2 + 0.7, 0); s.lineTo(w / 2 + 0.7, h); s.absarc(0, h, w / 2 + 0.7, 0, Math.PI, false); s.lineTo(-w / 2 - 0.7, 0);
+    const hole = new T.Path();
+    hole.moveTo(-w / 2, 0); hole.lineTo(w / 2, 0); hole.lineTo(w / 2, h); hole.absarc(0, h, w / 2, 0, Math.PI, false); hole.lineTo(-w / 2, 0);
+    s.holes.push(hole);
+    const geo = new T.ExtrudeGeometry(s, { depth: 0.7, bevelEnabled: false, curveSegments: 20 });
+    geo.translate(0, 0, -0.35);
+    g.add(new T.Mesh(geo, brick));
+    [-1, 1].forEach((sd) => { part(g, G.box(1.6, 1.6, 1.6), brick, sd * (w / 2 + 2.2), 0.8, 0); part(g, G.box(1.8, 0.2, 1.8), cap, sd * (w / 2 + 2.2), 1.7, 0); part(g, G.cone(0.4, 0.7, 4), cap, sd * (w / 2 + 2.2), 2.15, 0, 0, Math.PI / 4, 0); });
+    return KT.bake(g);
+  }
+  // the children's play tower: platforms on posts, cone roofs, slides and steps
+  function playTower() {
+    const g = new T.Group();
+    const post = mat('playPost', 0x2e8a5a, 0.5), red = mat('playRed', 0xd8352a, 0.5), yel = mat('playYellow', 0xf2b724, 0.5), blue = mat('playBlue', 0x2a86c8, 0.5);
+    const purple = mat('playPurple', 0x8a4ab0, 0.5), pink = mat('playPink', 0xe86a9a, 0.5), green = mat('playGreen', 0x6cc04a, 0.5);
+    const tower = (x, z, h, roof, k) => {
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => part(g, G.cyl(0.08, 0.08, h + 1.6, 8), post, x + a * k, (h + 1.6) / 2, z + b * k));
+      part(g, G.box(2 * k + 0.3, 0.15, 2 * k + 0.3), yel, x, h, z);
+      [[0, -1], [1, 0], [-1, 0]].forEach(([a, b]) => part(g, G.box(a ? 0.06 : 2 * k, 0.9, a ? 2 * k : 0.06), b < 0 ? red : blue, x + a * k, h + 0.5, z + b * k));
+      part(g, G.cyl(k * 1.45, k * 1.45, 0.25, 12), red, x, h + 1.7, z);
+      part(g, G.cone(k * 1.3, k * 1.6, 12), roof, x, h + 2.6, z);
+      part(g, G.cyl(0.02, 0.02, 0.6, 4), post, x, h + 3.7, z);
+      part(g, G.box(0.35, 0.22, 0.02), red, x + 0.18, h + 3.9, z);
+    };
+    tower(0, 0, 3.4, purple, 1.2);
+    tower(-4.2, 0.6, 2.2, pink, 0.95);
+    tower(4.0, -0.4, 1.6, green, 0.9);
+    // a tube between the towers, arches on top, a frog panel
+    part(g, G.cyl(0.45, 0.45, 2.2, 14, 1, true), yel, -2.1, 2.6, 0.3, 0, 0, HP);
+    [[-4.2, 0.6, 3.2], [4, -0.4, 2.6]].forEach(([x, z, y]) => part(g, G.torus(0.6, 0.12, 6, 12, Math.PI), red, x, y, z + 0.9));
+    const frog = new T.Group();
+    part(frog, G.box(1.6, 1.2, 0.06), mat('playPanel', 0xf4f0e0, 0.6), 0, 0, 0);
+    part(frog, G.sph(0.42, 10, 8), green, 0, -0.08, 0.04, 0, 0, 0, 1.3, 0.8, 0.3);
+    [-1, 1].forEach((sd) => { part(frog, G.sph(0.14, 8, 6), green, sd * 0.25, 0.28, 0.05); part(frog, G.sph(0.06, 6, 5), KT.M.white, sd * 0.25, 0.3, 0.12); });
+    frog.position.set(0, 0.9, 1.25); g.add(frog);
+    // a straight slide and a spiral slide
+    const slide = new T.Group();
+    part(slide, G.box(0.9, 0.08, 4.6), red, 0, 0, 0);
+    [-1, 1].forEach((sd) => part(slide, G.box(0.08, 0.3, 4.6), red, sd * 0.45, 0.15, 0));
+    slide.position.set(-4.2, 1.15, 3.9); slide.rotation.x = 0.5; g.add(slide);
+    for (let i = 0; i < 18; i++) {
+      const a = i / 18 * Math.PI * 2.2, y = 3.3 - i * 0.18;
+      part(g, G.box(1.0, 0.1, 0.9), i % 2 ? yel : mat('playOrange', 0xf08a24, 0.5), 2.2 + Math.cos(a) * 1.4, y, 2.4 + Math.sin(a) * 1.4, 0, -a, 0.2);
+    }
+    part(g, G.cyl(0.12, 0.12, 3.6, 8), post, 2.2, 1.8, 2.4);
+    // blue steps up to the small tower
+    for (let i = 0; i < 6; i++) part(g, G.box(1.2, 0.12, 0.35), blue, 4.0, 0.2 + i * 0.27, 1.7 + (5 - i) * 0.32);
+    [-1, 1].forEach((sd) => part(g, G.box(0.06, 0.06, 2.4), blue, 4.0 + sd * 0.6, 1.4, 2.5, 0.6));
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0.5, hw: 6, hd: 2.4 }];
+    return baked;
+  }
+  // the glass bridge: a raised walk with a glass floor, white rails and, at
+  // its end over the water, a canopy draped in yellow with a flower garland
+  function glassBridge(len, y) {
+    const g = new T.Group();
+    const white = mat('gbWhite', 0xf4f4f0, 0.5), steel = mat('gbSteel', 0x9aa3a8, 0.4);
+    const glass = KT.mat('gbGlass', { color: 0x9fd8e8, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.4, depthWrite: false });
+    part(g, G.box(3.6, 0.08, len), glass, 0, y, -len / 2);
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(0.25, 0.35, len), white, sd * 1.9, y - 0.1, -len / 2);
+      part(g, G.box(0.08, 0.08, len), white, sd * 1.9, y + 1.15, -len / 2);
+      part(g, G.box(0.04, 0.95, len), glass, sd * 1.88, y + 0.6, -len / 2);
+      for (let z = 0; z <= len; z += 2.5) part(g, G.box(0.08, 1.15, 0.08), white, sd * 1.9, y + 0.58, -z);
+    });
+    for (let z = 4; z < len; z += 9) [-1, 1].forEach((sd) => part(g, G.cyl(0.22, 0.26, y, 10), steel, sd * 1.4, y / 2, -z));
+    // the stair tower at the land end
+    for (let i = 0; i < 18; i++) part(g, G.box(1.6, 0.12, 0.45), white, 0, 0.3 + i * (y - 0.3) / 18, 9 - i * 0.5);
+    [-1, 1].forEach((sd) => part(g, G.box(0.08, 0.08, 9.6), white, sd * 0.85, y / 2 + 1, 4.5, Math.atan2(y, 9)));
+    part(g, G.box(3.6, 0.2, 2.5), white, 0, y - 0.05, 0.6);
+    // the draped canopy
+    const cz = -len + 3, gold = mat('gbYellow', 0xf2b12a, 0.8), dk = mat('gbGreen', 0x2f5a2a, 0.7);
+    [[-1.5, cz - 1.5], [1.5, cz - 1.5], [-1.5, cz + 1.5], [1.5, cz + 1.5]].forEach(([x, z]) => part(g, G.box(0.18, 3.2, 0.18), dk, x, y + 1.6, z));
+    part(g, G.box(3.6, 0.3, 3.6), dk, 0, y + 3.25, cz);
+    [-1, 1].forEach((sd) => [-1, 1].forEach((e) => part(g, G.box(0.6, 2.8, 0.05), gold, sd * 1.25, y + 1.8, cz + e * 1.62, 0, 0, sd * 0.12)));
+    for (let i = 0; i < 26; i++) {
+      const a = i / 26 * Math.PI * 2, rr = 1.8;
+      part(g, G.sph(0.18, 6, 5), i % 3 ? mat('gbRose', 0xb8305a, 0.7) : mat('gbWhiteF', 0xf6eef0, 0.7), Math.cos(a) * rr * (Math.abs(Math.cos(a)) > 0.7 ? 1 : 1.0), y + 3.45, cz + Math.sin(a) * rr);
+    }
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 5, hw: 1.0, hd: 4.5 }];
+    return baked;
+  }
+  // red interlocking pavers with little yellow flower motifs (the promenade)
+  let promMat = null;
+  function promenadeMat() {
+    if (promMat) return promMat;
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#9a3a2a'; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = '#6e2418'; g.lineWidth = 2;
+    for (let y = 0; y < 256; y += 16) for (let x = (y / 16) % 2 ? 0 : 12; x < 256; x += 24) {
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + 8, y); g.lineTo(x + 12, y + 8); g.lineTo(x + 8, y + 16); g.lineTo(x, y + 16); g.lineTo(x - 4, y + 8); g.closePath(); g.stroke();
+    }
+    g.fillStyle = '#e8c23a';
+    [[64, 64], [192, 192]].forEach(([x, y]) => { for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g.beginPath(); g.ellipse(x + Math.cos(a) * 9, y + Math.sin(a) * 9, 6, 3, a, 0, 7); g.fill(); } });
+    const tex = new T.CanvasTexture(c);
+    tex.encoding = T.sRGBEncoding; tex.wrapS = tex.wrapT = T.RepeatWrapping; tex.repeat.set(1, 1);
+    return (promMat = new T.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
+  }
+  function pavedStrip(g, x0, z0, x1, z1, scale) {
+    const geo = new T.PlaneGeometry(x1 - x0, z1 - z0);
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (x1 - x0) / scale, uv.getY(i) * (z1 - z0) / scale);
+    const m = new T.Mesh(geo, promenadeMat());
+    m.rotation.x = -HP; m.position.set((x0 + x1) / 2, 0.05, (z0 + z1) / 2);
+    m.receiveShadow = true;
+    g.add(m);
+  }
+  // croton bushes: yellow-green variegated leaves
+  function croton(g, x, z, k) {
+    const a = mat('crotonY', 0xc9c23a, 0.8), b = mat('crotonG', 0x5f8a2a, 0.8);
+    part(g, G.sph(0.55 * k, 8, 6), b, x, 0.5 * k, z, 0, 0, 0, 1, 0.9, 1);
+    for (let i = 0; i < 5; i++) part(g, G.sph(0.25 * k, 6, 5), i % 2 ? a : b, x + Math.cos(i * 1.3) * 0.4 * k, 0.65 * k + (i % 2) * 0.2 * k, z + Math.sin(i * 1.3) * 0.4 * k);
+  }
+  // people walking back and forth along a line, or round a loop
+  function strollers(it, parent, routes, seed) {
+    const rng = KT.makeRng(seed);
+    let n = 0;
+    routes.forEach((pts) => {
+      const speed = 0.9 + rng() * 0.4, legs = [];
+      let T0 = 0;
+      for (let i = 0; i < pts.length - 1; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) / speed; legs.push({ a: pts[i], b: pts[i + 1], t0: T0, t1: T0 + d }); T0 += d; legs.push({ a: pts[i + 1], b: pts[i + 1], t0: T0, t1: T0 + 3 + rng() * 6, stop: true }); T0 = legs[legs.length - 1].t1; }
+      const people = 1 + Math.floor(rng() * 2.6), start = rng() * T0;
+      for (let k = 0; k < people; k++) {
+        const look = VISIT_LOOKS[(n * 3 + seed) % VISIT_LOOKS.length], female = look[0] === 'female', kid = k === 2;
+        const ch = Models.character({ gender: look[0], outfit: kid ? 'casual' : look[1], lite: true, hair: female ? ['bun', 'braid', 'default', 'loose', 'curly'][n % 5] : ['short', 'default', 'wavy', 'curly'][n % 4],
+          skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][n % 4], acc: { backpack: rng() < 0.2, hat: rng() < 0.25, sunglasses: rng() < 0.3, camera: rng() < 0.2 }, scale: kid ? 0.7 : 0.92 + rng() * 0.1, seed: 900 + n });
+        parent.add(ch);
+        n++;
+        const side = (k - (people - 1) / 2) * 0.9, lag = k * 0.4 / speed;
+        let last = null;
+        it.anim.push((t) => {
+          const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+          last = t;
+          const u = (t + start - lag + T0 * 4) % T0;
+          let L = legs[legs.length - 1];
+          for (let i = 0; i < legs.length; i++) if (u < legs[i].t1) { L = legs[i]; break; }
+          const q = L.t1 > L.t0 ? (u - L.t0) / (L.t1 - L.t0) : 0;
+          if (L.stop) { KT.Models.animateCharacter(ch, 'idle', dt, 1); return; }
+          const dx = L.b[0] - L.a[0], dz = L.b[1] - L.a[1], len = Math.hypot(dx, dz) || 1;
+          ch.position.set(L.a[0] + dx * q + (dz / len) * side, 0, L.a[1] + dz * q - (dx / len) * side);
+          ch.rotation.y = KT.angleLerp(ch.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 6));
+          KT.Models.animateCharacter(ch, 'walk', dt, speed / 1.1);
+        });
+      }
+    });
+  }
+  function sitters(it, parent, seats, seed) {
+    const rng = KT.makeRng(seed);
+    seats.forEach(([bx, bz, br], i) => {
+      const two = rng() < 0.6;
+      (two ? [-0.42, 0.42] : [(rng() - 0.5) * 0.5]).forEach((o, k) => {
+        const look = VISIT_LOOKS[(i * 2 + k + seed) % VISIT_LOOKS.length], female = look[0] === 'female';
+        const ch = Models.character({ gender: look[0], outfit: look[1], lite: true, hair: female ? ['bun', 'braid', 'loose'][i % 3] : ['short', 'default'][i % 2],
+          skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][(i + k) % 4], glasses: rng() < 0.25, acc: { hat: rng() < 0.2 }, carry: rng() < 0.3 ? 'phone' : null, scale: 0.93 + rng() * 0.07, seed: 1000 + i * 2 + k });
+        const c = Math.cos(br), sn = Math.sin(br);
+        ch.position.set(bx + o * c + 0.06 * sn, 0, bz - o * sn + 0.06 * c);
+        ch.rotation.y = br;
+        parent.add(ch);
+        const ph = rng() * 9, turn = two ? (k ? 0.5 : -0.5) : 0;
+        let last = null;
+        it.anim.push((t) => {
+          const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+          last = t;
+          KT.Models.animateCharacter(ch, 'sit', dt, 1);
+          const head = ch.userData.rig && ch.userData.rig.head;
+          if (head) head.rotation.y = Math.sin((t + ph) * 0.25) > 0.6 ? turn : Math.sin((t + ph) * 0.35) * 0.45;
+        });
+      });
+    });
+  }
+  function akkulam(it) {
+    const root = new T.Group(), g = new T.Group(), people = new T.Group();
+    root.add(people);
+    const lam = mat('akkLaterite', 0xa4553a, 0.95), cap = mat('akkCap', 0xe8e0d0, 0.8), moss = mat('akkPost', 0x8f8a7c, 0.95);
+    const lawn = mat('akkLawn', 0x6aa043, 1), path = mat('akkPath', 0xb8774f, 1), sand = mat('akkSand', 0xd9c49a, 1), pipe = mat('akkPipe', 0xc9c6bc, 0.4);
+    const X = 55, ZF = 42, ZB = -50;
+    groundPatch(g, lawn, -80, -58, 80, ZF, 0.02);
+    // the compound wall (open to the river) with the arch gate in front
+    const wall = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + HP;
+      part(g, G.box(len, 1.4, 0.45), lam, (x0 + x1) / 2, 0.7, (z0 + z1) / 2, 0, ang, 0);
+      part(g, G.box(len, 0.12, 0.6), cap, (x0 + x1) / 2, 1.45, (z0 + z1) / 2, 0, ang, 0);
+    };
+    wall(-X, ZF, -4, ZF); wall(4, ZF, X, ZF); wall(-X, ZF, -X, -50); wall(X, ZF, X, -50);
+    groundPatch(g, path, -3, ZB, 3, ZF + 4, 0.04);
+    groundPatch(g, path, -X + 2, -2.5, X - 2, 2.5, 0.04);
+    // the promenade along the river: pavers, a low wall at the water's edge,
+    // square posts with pyramid caps and two pipe rails
+    pavedStrip(g, -80, -58.6, 80, -50, 6);
+    part(g, G.box(160, 2.2, 0.6), moss, 0, -0.9, -59.1);
+    for (let x = -80; x <= 80.01; x += 3.2) {
+      part(g, G.box(0.42, 1.1, 0.42), moss, x, 0.55, -58.4);
+      part(g, G.cone(0.34, 0.32, 4), moss, x, 1.26, -58.4, 0, Math.PI / 4, 0);
+    }
+    [0.55, 0.9].forEach((y) => part(g, G.cyl(0.04, 0.04, 160, 6), pipe, 0, y, -58.4, 0, 0, HP));
+    // children's play area on sand
+    groundPatch(g, sand, -50, 8, -22, 36, 0.05);
+    for (let i = 0; i < 6; i++) croton(g, -52 + i * 5.6, 38.5, 1.1);
+    root.add(KT.bake(g));
+    const deco = (obj, x, z, r, sc) => { obj.position.set(x, 0, z); obj.rotation.y = r || 0; if (sc) obj.scale.setScalar(sc); root.add(obj); return obj; };
+    const gate = deco(brickArch(5, 3.6), 0, ZF, 0);
+    const tag = Models.signboard(['Akkulam Tourist Village', 'Boating • Children’s park • Glass bridge']);
+    deco(tag, 7.5, ZF + 2.5, 0, 0.9);
+    deco(brickArch(2.6, 2.4), 24, -46, 0);
+    deco(playTower(), -36, 22, 0.3);
+    deco(glassBridge(44, 7), 36, 18, 0);
+    // the boat jetty, with pedal boats and motor boats moored
+    const jetty = new T.Group();
+    for (let k = 0; k < 6; k++) { const js = Models.jettySection(); js.position.z = -k * 3; jetty.add(js); }
+    deco(jetty, 10, -60, 0).position.y = -0.3;
+    const wy = it.river.y - it.y;
+    [[6.5, -64, 0.2], [13.5, -66, -0.3], [6.5, -70, 0.4]].forEach(([x, z, r], i) => { const b = i === 1 && Models.motorBoat ? Models.motorBoat() : Models.canoe(); deco(b, x, z, r).position.y = wy + 0.02; });
+    // rain trees along the promenade, and trees and crotons on the lawns
+    for (let x = -74; x <= 74; x += 16) deco(Models.mangoTree(), x, -46.5, x * 0.1, 1.25);
+    [[-46, -20], [-20, -30], [-46, 0], [48, -32], [20, -12], [-14, 26], [46, 36]].forEach(([x, z], i) => deco(i % 2 ? Models.mangoTree() : Models.banyanTree(), x, z, i, 0.85));
+    const cro = new T.Group();
+    [[-6, 30], [6, 30], [-6, 14], [6, 14], [-6, -10], [6, -10], [-6, -30], [6, -30], [-30, -44], [40, -44], [30, 30], [16, 34], [-16, -18], [26, -24]].forEach(([x, z], i) => croton(cro, x, z, 0.8 + (i % 3) * 0.2));
+    root.add(KT.bake(cro));
+    for (let x = -72; x <= 72; x += 14.4) deco(Models.lampPost(), x + 7, -50.6, Math.PI);
+    // benches along the promenade facing the water, and a few on the lawns
+    const SEATS = [];
+    for (let x = -70; x <= 70; x += 11.6) SEATS.push([x, -51.6, Math.PI]);
+    SEATS.push([-8, 20, -HP], [8, -20, HP], [-24, 4.5, Math.PI], [26, -4.5, 0]);
+    SEATS.forEach(([x, z, r]) => deco(Models.bench(), x, z, r));
+    sitters(it, people, SEATS.filter((s, i) => i % 3 !== 1), 31);
+    // strollers on the promenade, on the paths, and children at play
+    strollers(it, people, [
+      [[-76, -54.5], [76, -54.5], [-76, -54.5]], [[60, -53.5], [-60, -53.5], [60, -53.5]], [[-20, -55.5], [40, -55.5], [-20, -55.5]],
+      [[0, 44], [0, -48], [-50, -53], [-70, -54], [-50, -53], [0, -48], [0, 44]], [[0, 40], [0, 0], [40, 0], [40, -10], [40, 0], [0, 0], [0, 40]],
+      [[0, 38], [0, 0], [-30, 0], [-30, 6], [-30, 0], [0, 0], [0, 38]], [[70, -55], [10, -55], [10, -57], [10, -55], [70, -55]]
+    ], 47);
+    const kids = new T.Group(); people.add(kids);
+    strollers(it, kids, [[[-46, 12], [-28, 14], [-30, 32], [-46, 30], [-46, 12]], [[-26, 30], [-44, 18], [-26, 30]]], 53);
+    // a few people up on the glass bridge, at the canopy
+    [[35.2, 18 - 44 + 4.5], [36.8, 18 - 44 + 5.2]].forEach(([x, z], i) => {
+      const ch = Models.character({ gender: i ? 'female' : 'male', outfit: i ? 'saree' : 'formal', lite: true, hair: i ? 'bun' : 'short', skin: 0xc08660, acc: {}, scale: 0.95, seed: 1200 + i });
+      ch.position.set(x, 7.05, z); ch.rotation.y = i ? 2.6 : -0.5;
+      people.add(ch);
+      let last = null;
+      it.anim.push((t) => { const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last)); last = t; KT.Models.animateCharacter(ch, i && Math.sin(t * 0.3) > 0.7 ? 'wave' : 'idle', dt, 1); });
+    });
+    it.fauna = people; // drawn and moved only nearby
+    // walls stop the player; the gate's opening, the promenade and the river's edge
+    const C = [];
+    const box = (x0, z0, x1, z1) => C.push({ type: 'box', x: (x0 + x1) / 2, z: (z0 + z1) / 2, hw: Math.max(0.3, Math.abs(x1 - x0) / 2), hd: Math.max(0.3, Math.abs(z1 - z0) / 2) });
+    box(-X, ZF, -4, ZF); box(4, ZF, X, ZF); box(-X, ZF, -X, -50); box(X, ZF, X, -50);
+    box(-80, -58.6, 8, -58.2); box(12, -58.6, 80, -58.2);   // the river rail, open at the jetty
+    (gate.userData.colliders || []).forEach((c) => C.push(c));
+    root.userData.colliders = C;
+    return root;
+  }
+  function riverWater(it) {
+    // one water surface along the river, with water hyacinth by the banks
+    const R = it.river, pos = [], idx = [];
+    const n = R.pts.length;
+    for (let i = 0; i < n; i++) {
+      const a = R.pts[Math.max(0, i - 1)], b = R.pts[Math.min(n - 1, i + 1)], p = R.pts[i];
+      const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1, w = R.r + 5;
+      pos.push(p.x - dz / l * w, R.y, p.z + dx / l * w, p.x + dz / l * w, R.y, p.z - dx / l * w);
+      if (i) { const k = (i - 1) * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const water = new T.Mesh(geo, KT.Highway.waterMaterial());
+    it.group.add(water);
+    [0, n - 1].forEach((i) => { const c = new T.Mesh(new T.CircleGeometry(R.r + 5, 24), KT.Highway.waterMaterial()); c.rotation.x = -HP; c.position.set(R.pts[i].x, R.y, R.pts[i].z); it.group.add(c); });
+    const hy = new T.Group(), leaf = mat('hyacinth', 0x4f8a2e, 0.8), flower = mat('hyacinthFlower', 0xa58ad6, 0.7), rng = KT.makeRng(77);
+    for (let i = 1; i < n - 1; i++) {
+      const a = R.pts[i - 1], b = R.pts[i + 1], p = R.pts[i], dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz);
+      [-1, 1].forEach((sd) => {
+        for (let k = 0; k < 5; k++) {
+          const off = sd * (R.r - 3 + rng() * 5), along = (rng() - 0.5) * 12;
+          const x = p.x + (-dz / l) * off + (dx / l) * along, z = p.z + (dx / l) * off + (dz / l) * along;
+          part(hy, G.sph(0.9 + rng() * 1.2, 7, 4), leaf, x, R.y + 0.05, z, 0, rng() * 3, 0, 1, 0.18, 0.8);
+          if (rng() < 0.35) part(hy, G.sph(0.18, 5, 4), flower, x, R.y + 0.3, z);
+        }
+      });
+    }
+    it.group.add(KT.bake(hy));
+  }
+
   function zoo(it) {
     const root = new T.Group(), g = new T.Group(), fauna = new T.Group();
     root.add(fauna);
@@ -796,15 +1103,7 @@
       place(it, Models.beachSet(6), 16, 6, 0, { colliders: false });
       [-26, 30].forEach((x, i) => place(it, Models.coconutPalm(40 + i), x, -16, i));
     },
-    lakeVillage(it) {
-      const L = it.lake, w = waterOf(it, L);
-      place(it, Models.entranceArch(['Akkulam Tourist Village', 'Boating • Children’s park']), 0, -40, Math.PI, { colliders: false });
-      place(it, Models.garden(), -26, -24, 0, { colliders: false });
-      for (let k = 0; k < 4; k++) place(it, Models.jettySection(), 0, -16 + k * 3, HP, { y: w.position.y + 0.3, colliders: false });
-      [[-10, 10], [8, 16]].forEach(([x, z], i) => place(it, Models.canoe(), x, z, i, { y: w.position.y + 0.02, colliders: false }));
-      if (Models.motorBoat) place(it, Models.motorBoat(), 4, 26, 1.2, { y: w.position.y + 0.02, colliders: false });
-      [-22, 24].forEach((x) => place(it, Models.bench(), x, -30));
-    },
+    lakeVillage(it) { place(it, akkulam(it), 0, 0); },
     reservoir(it) {
       place(it, Models.earthDam(), 0, 8);
       const L = it.lake;
@@ -844,6 +1143,7 @@
     Hw.scene.add(it.group);
     infoBoard(it);
     (BUILD[it.sg.kind] || BUILD.palace)(it);
+    if (it.river) riverWater(it);
     it.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     it.built = true;
   }

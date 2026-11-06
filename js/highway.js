@@ -758,7 +758,7 @@
     for (let i = 0; i < LAKES.length; i++) {
       const L = LAKES[i], d = Math.hypot(x - L.x, z - L.z);
       if (d > L.r + 30) continue;
-      h = KT.lerp(h, L.y - 2.4, 1 - KT.smoothstep(L.r * 0.75, L.r + 25, d));
+      h = KT.lerp(h, L.y - 2.4, 1 - KT.smoothstep(L.r * 0.75, L.r + (L.edge || 25), d)); // (edge: a steep, walled bank)
       if (L.island) {
         const di = Math.hypot(x - L.island.x, z - L.island.z);
         if (di < L.island.r) h = KT.lerp(h, L.y + 1.3, 1 - KT.smoothstep(L.island.r * 0.6, L.island.r, di));
