@@ -514,6 +514,46 @@
     });
   }
 
+  // People resting on the benches: a couple or one on their own, looking
+  // about, now and then turning to each other
+  function benchSitters(it, parent, benches) {
+    const rng = KT.makeRng(611);
+    let n = 0;
+    benches.forEach(([bx, bz, br], bi) => {
+      if (bi % 5 === 4) return; // a few benches stay free for the player
+      const two = rng() < 0.6;
+      [-0.42, 0.42].slice(0, two ? 2 : 1).forEach((off, k) => {
+        const o = two ? off : (rng() - 0.5) * 0.5;
+        const look = VISIT_LOOKS[(n * 5 + 3) % VISIT_LOOKS.length], female = look[0] === 'female';
+        const old = rng() < 0.25;
+        const ch = Models.character({
+          gender: look[0], outfit: look[1], lite: true,
+          hair: female ? ['bun', 'braid', 'default', 'loose'][n % 4] : ['short', 'default', 'wavy'][n % 3],
+          hairColor: old ? 0xb4b2ac : 0x24170f, skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][n % 4],
+          beard: !female && old, glasses: old || rng() < 0.2, mustache: !female && rng() < 0.5,
+          acc: { backpack: false, hat: rng() < 0.2, sunglasses: !old && rng() < 0.3, camera: false },
+          carry: rng() < 0.3 ? 'phone' : null, scale: 0.92 + rng() * 0.08, seed: 700 + n
+        });
+        // on the seat (the bench faces its local +z; the seat is just in front of the back rest)
+        const c = Math.cos(br), sn = Math.sin(br), lx = o, lz = 0.06;
+        ch.position.set(bx + lx * c + lz * sn, 0.0, bz - lx * sn + lz * c);
+        ch.rotation.y = br;
+        parent.add(ch);
+        const turn = two ? (k ? 0.5 : -0.5) : 0, ph = rng() * 10;
+        let last = null;
+        it.anim.push((t) => {
+          const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+          last = t;
+          KT.Models.animateCharacter(ch, 'sit', dt, 1);
+          // look about, and now and then at the person beside
+          const head = ch.userData.rig && ch.userData.rig.head;
+          if (head) head.rotation.y = Math.sin((t + ph) * 0.25) > 0.6 ? turn : Math.sin((t + ph) * 0.4) * 0.5;
+        });
+        n++;
+      });
+    });
+  }
+
   function zoo(it) {
     const root = new T.Group(), g = new T.Group(), fauna = new T.Group();
     root.add(fauna);
@@ -641,7 +681,10 @@
     for (let k = 0; k < 5; k++) part(root, G.box(1.1, 0.3, 0.5), KT.mat('palmFodder', { color: 0x6f9a3a }), 25 + k * 0.8, 0.2, 31 + (k % 2) * 0.5, 0, k * 0.4, 0);
     // the lawns: shade trees, benches and lamps along the paths
     [[-30, 23.6], [30, 23.6], [-30, -16.4], [30, -16.4], [-30, -23.6], [30, -23.6]].forEach(([x, z]) => deco(Models.lampPost(), x, z, 0));
-    [[-14, 16.4], [14, 16.4], [-14, -16.4], [14, -16.4], [5, 40], [-5, -40]].forEach(([x, z]) => deco(Models.bench(), x, z, Math.abs(x) < 6 ? (x > 0 ? -HP : HP) : z > 0 ? 0 : Math.PI));
+    // benches (x, z, facing): along the cross paths and beside the main path
+    const BENCHES = [[-14, 16.4, Math.PI], [14, 16.4, Math.PI], [-14, -16.4, 0], [14, -16.4, 0], [5, 40, -HP], [-5, -40, HP],
+      [-5, 34, HP], [5, -34, -HP], [-40, -16.6, 0], [42, 16.6, Math.PI]];
+    BENCHES.forEach(([x, z, r]) => deco(Models.bench(), x, z, r));
     [[-5.5, 52], [5.5, 52], [-54, 20], [54, 20], [-54, -20], [54, -20], [5.5, -52], [-5.5, -52]].forEach(([x, z], i) => deco(i % 2 ? Models.mangoTree() : Models.banyanTree(), x, z, i, 0.85));
     // signboards at each enclosure
     [['Zebra', -39, 24.4, 0], ['Adjutant Stork', -15, 24.4, 0], ['Asian Elephant', 30, 24.4, 0], ['Lion', -41, 15.6, Math.PI], ['Leopard', -17, 15.6, Math.PI],
@@ -700,6 +743,7 @@
     [[-6, 18], [6.5, 30], [-55, -2], [54.5, 6]].forEach(([x, z], i) => stand(Models.monkey(), x, z, i * 2));
     [[-5, -30], [5, 36], [-40, 22]].forEach(([x, z], i) => stand(Models.peacock(), x, z, i * 1.7));
     zooVisitors(it, fauna);
+    benchSitters(it, fauna, BENCHES);
     // only animate the animals (and visitors) when someone is near enough to see them
     it.fauna = fauna;
     // walls and enclosures stop the player; the gate's opening does not
