@@ -239,7 +239,7 @@
       c.speed *= -0.2;
     }
     const t = KT.World.animTime;
-    c.obj.position.y = 0.05 + Math.sin(t * 1.6) * 0.04;
+    c.obj.position.y = KT.Models.CANOE_FLOAT + Math.sin(t * 1.6) * 0.03;
     c.obj.rotation.set(Math.sin(t * 1.2) * 0.015, c.heading, Math.sin(t * 1.4) * 0.03 + turn * 0.04);
     P.heading = c.heading;
     c.obj.updateMatrixWorld();

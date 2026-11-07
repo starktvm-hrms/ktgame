@@ -43,6 +43,8 @@
     return KT.mat('hull', { map: KT.tex('wood', 1, 1), color: 0x6e4a2e, side: T.DoubleSide });
   }
 
+  // how high a canoe's origin rides above the water, so its floor stays dry
+  Models.CANOE_FLOAT = 0.36;
   Models.canoe = function () {
     const g = new T.Group();
     const L = 5.6, W = 0.9, sheer = (t) => 0.3 + Math.pow(Math.abs(t * 2 - 1), 4) * 0.35;

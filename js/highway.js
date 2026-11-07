@@ -1433,7 +1433,7 @@
     const boatU = 38 * (r.s % 2 ? 1 : -1);
     const boat = Models.canoe();
     const b0 = riverWorld(r, boatU, 3), b1 = riverWorld(r, boatU + 1, 3);
-    boat.position.set(b0.x, r.y + 0.05, b0.z);
+    boat.position.set(b0.x, r.y + Models.CANOE_FLOAT, b0.z);
     boat.rotation.y = Math.atan2(b1.x - b0.x, b1.z - b0.z);
     baked.add(boat);
     // bridge railings block walking off the deck
@@ -1679,7 +1679,7 @@
         case 'lake': {
           const w = waterDisc(hub, a, l, 24);
           hubPlace(hub, Models.houseboat(), a - 4, l + side * 4, 0, { absRot: heading + 0.4, y: w.position.y + 0.05 });
-          [[-8, -12], [10, -6]].forEach(([x, z]) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading - 0.6, y: w.position.y + 0.02 }));
+          [[-8, -12], [10, -6]].forEach(([x, z]) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading - 0.6, y: w.position.y + Models.CANOE_FLOAT }));
           if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 9, l + side * 8, 0, { absRot: heading + 1.2, y: w.position.y + 0.02, colliders: false });
           for (let k = 0; k < 3; k++) hubPlace(hub, Models.jettySection(), a, l - side * (20 - k * 3), 0, { absRot: heading + Math.PI / 2, y: w.position.y + 0.3, colliders: false });
           break;

@@ -380,7 +380,7 @@
   // ---------------------------------------------------------- the canoe
   function buildCanoe() {
     const c = Models.canoe();
-    const start = new T.Vector3(World.jettyEnd.x - 3.5, 0.05, 2.9);
+    const start = new T.Vector3(World.jettyEnd.x - 3.5, Models.CANOE_FLOAT, 2.9);
     c.position.copy(start);
     c.rotation.y = HP;
     World.scene.add(c);

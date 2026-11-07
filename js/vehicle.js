@@ -68,7 +68,7 @@
     horn: 'horn', engine: 0.5
   };
   V.TYPES.canoe = {
-    name: 'canoe', make: () => KT.Models.canoe(), water: true,
+    name: 'canoe', make: () => KT.Models.canoe(), water: true, float: 0.36,
     length: 4, width: 0.95, frontAxle: 1.3, rearAxle: -1.3, wheelR: 1,
     seat: v3(0, -0.33, -1.2), eye: v3(0, 0.95, -1.0), pose: 'paddle',
     maxSpeed: 4.5, accel: 1.6, reverse: 1.2, brake: 2, cam: 1.2, camH: 1.8,
@@ -134,7 +134,7 @@
       // afloat: on the water's surface, rocking a little
       const t = KT.Highway.animTime || 0, k = dt ? 1 - Math.exp(-dt * 6) : 1;
       const wy = KT.Highway.waterLevelAt(o.position.x, o.position.z);
-      o.position.y += ((wy > -1e8 ? wy : o.position.y) + 0.02 + Math.sin(t * 1.5 + veh.heading) * 0.04 - o.position.y) * k;
+      o.position.y += ((wy > -1e8 ? wy : o.position.y) + (S.float || 0.02) + Math.sin(t * 1.5 + veh.heading) * 0.03 - o.position.y) * k;
       veh.pitch = Math.sin(t * 1.2) * 0.015 - veh.speed * 0.006;
       veh.roll = Math.sin(t * 1.5) * 0.03 + veh.steer * veh.speed * 0.02;
       o.rotation.set(-veh.pitch, veh.heading, veh.roll, 'YXZ');
