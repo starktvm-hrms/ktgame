@@ -309,8 +309,12 @@ coast stretches with it:
   animals are built with shaped bodies, jointed legs and painted coats
   (stripes, rosettes, spots), with detailed heads, manes and antlers.
 - **Ponmudi Road** climbs past Koyikkal Palace at Nedumangad and the Kallar
-  Meenmutty falls to the misty top of Ponmudi Hills. A side road runs to
-  Aruvikkara Dam.
+  Meenmutty falls to the misty top of Ponmudi Hills, the "mini Munnar":
+  rolling grassland dotted with dark boulders and shola trees in the hollows,
+  with low mist drifting by. From the car park, where the Nilgiri tahr pair
+  stand on their rock cairn, a dirt trail winds up a steep grassy peak to
+  the telecom station on top; visitors walk it and take photographs. A side
+  road runs to Aruvikkara Dam.
 - A short road from Attingal leads to the jetty for Ponnumthuruthu Island
   and its temple.
 

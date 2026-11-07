@@ -883,6 +883,126 @@
         enabled: () => !veh.occupied, action: () => { KT.Player.boardBus(veh); KT.UI.toast('W/S for speed, A/D to steer. Bring it back to the jetty and press E to get out.', 'info'); } });
     });
   }
+  // ------------------------------------------------------------- Ponmudi
+  // The grassy top of Ponmudi: a dirt trail winding up from the car park to
+  // the peak with its telecom station (a blue dome and masts), the Nilgiri
+  // tahr pair on their rock cairn behind a pole fence, low mist drifting
+  // over the hills, and visitors walking the trail and taking photographs.
+  function tahrStatue() {
+    const g = new T.Group(), stone = mat('tahrStone', 0x5c5d5a, 0.6);
+    part(g, G.sph(0.42, 12, 10), stone, 0, 0.95, 0, 0, 0, 0, 0.75, 0.7, 1.4);
+    part(g, G.sph(0.3, 10, 8), stone, 0, 1.05, 0.42, 0, 0, 0, 0.8, 0.85, 0.8);
+    [[-0.18, 0.4], [0.18, 0.4], [-0.18, -0.38], [0.18, -0.38]].forEach(([x, z]) => part(g, G.cyl(0.07, 0.05, 0.75, 6), stone, x, 0.4, z));
+    part(g, G.cyl(0.11, 0.15, 0.5, 8), stone, 0, 1.3, 0.62, 0.6);
+    part(g, G.box(0.18, 0.2, 0.38), stone, 0, 1.52, 0.86, 0.5);
+    [-1, 1].forEach((s) => part(g, G.torus(0.16, 0.03, 5, 10, Math.PI * 0.9), stone, s * 0.07, 1.68, 0.72, 0, HP, -0.4));
+    part(g, G.cone(0.05, 0.16, 5), stone, 0, 1.0, -0.62, -1.2);
+    return KT.bake(g);
+  }
+  function ponmudi(it) {
+    const Hw = KT.Highway, PM = Hw.PONMUDI, g = new T.Group(), people = new T.Group();
+    it.group.add(g); it.group.add(people);
+    const fw = PM.fwd, rt = { x: -fw.z, z: fw.x };
+    const W = (d, l) => ({ x: PM.x + fw.x * d + rt.x * l, z: PM.z + fw.z * d + rt.z * l });
+    // the trail: switchbacks up the peak from beyond the car park
+    const way = [[18, 0], [55, 22], [80, -26], [108, 24], [130, -18], [148, 12], [162, -4], [168, 0]];
+    const curve = new T.CatmullRomCurve3(way.map(([d, l]) => { const q = W(d, l); return new T.Vector3(q.x, 0, q.z); }));
+    const N = 160, pts = curve.getSpacedPoints(N), pos = [], idx = [];
+    pts.forEach((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(N, i + 1)], dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1;
+      [-1.3, 1.3].forEach((o) => { const x = p.x - dz / l * o, z = p.z + dx / l * o; pos.push(x, Hw.height(x, z) + 0.3, z); });
+      if (i) { const k = (i - 1) * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+    });
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const trailMat = KT.mat('hillTrail', { color: 0xc2a45e, roughness: 1, side: T.DoubleSide });
+    trailMat.polygonOffset = true; trailMat.polygonOffsetFactor = -2; trailMat.polygonOffsetUnits = -6;
+    const trail = new T.Mesh(geo, trailMat); trail.receiveShadow = true; g.add(trail);
+    // stones along the trail
+    for (let i = 4; i < N; i += 3) {
+      const p = pts[i], s = (i % 2 ? 1 : -1) * (1.6 + (i % 5) * 0.2);
+      const a = pts[i - 1], dx = p.x - a.x, dz = p.z - a.z, l = Math.hypot(dx, dz) || 1;
+      const x = p.x - dz / l * s, z = p.z + dx / l * s;
+      part(g, KT.blob(0.25 + (i % 3) * 0.12, 1, 0.3, i), KT.M.rock, x, Hw.height(x, z) + 0.05, z, 0, i, 0, 1, 0.6, 1);
+    }
+    // the summit station: a hut, a blue dome and three masts, fenced
+    const top = W(170, 0), ty = Hw.height(top.x, top.z);
+    const white = mat('stnWhite', 0xe8e8e2, 0.7), blue = mat('stnBlue', 0x2f6fc0, 0.4), steel = mat('stnSteel', 0x9aa2a8, 0.4);
+    const stn = new T.Group();
+    part(stn, G.box(5, 3, 4), white, 0, 1.5, 0);
+    part(stn, new T.SphereGeometry(2.2, 18, 10, 0, Math.PI * 2, 0, HP), blue, 3.5, 2.6, -1.5);
+    part(stn, G.cyl(2.2, 2.2, 2.6, 18), blue, 3.5, 1.3, -1.5);
+    [[-3.5, 1.5, 18], [-1.5, -3.5, 14], [5.5, 2.5, 12]].forEach(([x, z, h]) => {
+      [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].forEach(([a, b]) => part(stn, G.cyl(0.05, 0.05, h, 4), steel, x + a * (1 - 0), h / 2, z + b));
+      for (let y = 2; y < h; y += 2) part(stn, G.box(0.9, 0.05, 0.9), steel, x, y, z);
+      part(stn, G.sph(0.18, 6, 5), mat('stnRed', 0xd83a2a, 0.4), x, h + 0.2, z);
+    });
+    for (let a = 0; a < 6.28; a += 0.35) part(stn, G.cyl(0.05, 0.05, 1.4, 4), steel, Math.cos(a) * 9, 0.7, Math.sin(a) * 9);
+    // (baked first, then put in place: baking works in the group's own space)
+    const station = KT.bake(stn);
+    station.position.set(top.x, ty - 0.2, top.z); station.rotation.y = Math.atan2(fw.x, fw.z);
+    g.add(station);
+    Hw.addCollider({ type: 'box', x: top.x, z: top.z, hw: 4, hd: 3, rot: station.rotation.y });
+    // the Nilgiri tahr pair on their cairn, behind a pole fence, by the car park
+    const cair = W(14, 16), cy = Hw.height(cair.x, cair.z);
+    const cairn = new T.Group();
+    for (let i = 0; i < 14; i++) { const a = i * 2.3, r = 0.4 + (i % 4) * 0.45; part(cairn, KT.blob(0.7 + (i % 3) * 0.2, 1, 0.25, 200 + i), KT.M.rock, Math.cos(a) * r, 0.4 + Math.floor(i / 4) * 0.55, Math.sin(a) * r * 0.7); }
+    const t1 = tahrStatue(); t1.position.set(0.1, 2.0, 0); t1.rotation.y = 0.6; cairn.add(t1);
+    const t2 = tahrStatue(); t2.position.set(-1.6, 0.1, 1.4); t2.rotation.y = -0.9; cairn.add(t2);
+    const pole = mat('fencePole', 0x8a6a48, 0.9);
+    for (let a = 0; a < 6.28; a += 0.5) part(cairn, G.cyl(0.05, 0.05, 1.0, 5), pole, Math.cos(a) * 3.2, 0.5, Math.sin(a) * 2.6);
+    [0.45, 0.85].forEach((y) => part(cairn, G.torus(2.9, 0.035, 4, 24), pole, 0, y, 0, HP, 0, 0, 1.1, 0.9, 1));
+    const cairnB = KT.bake(cairn);
+    cairnB.position.set(cair.x, cy, cair.z);
+    g.add(cairnB);
+    Hw.addCollider({ type: 'circle', x: cair.x, z: cair.z, r: 3.2 });
+    // low mist drifting over the hills
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const cg = c.getContext('2d'), gr = cg.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.5, 'rgba(250,250,252,0.45)'); gr.addColorStop(1, 'rgba(250,250,252,0)');
+    cg.fillStyle = gr; cg.fillRect(0, 0, 128, 128);
+    const mistMat = new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, opacity: 0.55, depthWrite: false, fog: false });
+    const mists = [];
+    for (let i = 0; i < 14; i++) {
+      const s = new T.Sprite(mistMat), q = W(60 + (i * 97) % 520, ((i * 173) % 700) - 350), y = Math.max(Hw.height(q.x, q.z), PM.endY) + 8 + (i % 4) * 9;
+      s.scale.set(90 + (i % 3) * 40, 32 + (i % 2) * 14, 1);
+      s.position.set(q.x, y, q.z);
+      g.add(s); mists.push({ s, x0: q.x, z0: q.z, ph: i * 1.7 });
+    }
+    it.anim.push((t) => mists.forEach((m) => { m.s.position.x = m.x0 + Math.sin(t * 0.03 + m.ph) * 40 * rt.x; m.s.position.z = m.z0 + Math.sin(t * 0.03 + m.ph) * 40 * rt.z; }));
+    // visitors walking up and down the trail, and two photographers
+    const L = curve.getLength(), rng = KT.makeRng(1100);
+    for (let k = 0; k < 9; k++) {
+      const look = VISIT_LOOKS[(k * 3 + 1) % VISIT_LOOKS.length], female = look[0] === 'female';
+      const ch = Models.character({ gender: look[0], outfit: k % 3 === 0 ? 'hiking' : look[1], lite: true, hair: female ? ['bun', 'braid', 'loose'][k % 3] : ['short', 'default', 'wavy'][k % 3], skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][k % 4], acc: { backpack: rng() < 0.6, hat: rng() < 0.3, sunglasses: rng() < 0.4, camera: rng() < 0.4 }, scale: 0.92 + rng() * 0.1, seed: 1300 + k });
+      people.add(ch);
+      const speed = 0.7 + rng() * 0.35, off = rng() * 600, side = (rng() - 0.5) * 1.4;
+      let last = null;
+      it.anim.push((t) => {
+        const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+        last = t;
+        // up the trail, a rest at the top, then back down
+        const T2 = 2 * L / speed + 16, u = (t + off) % T2;
+        let d, dir;
+        if (u < L / speed) { d = u * speed; dir = 1; } else if (u < L / speed + 16) { d = L; dir = 0; } else { d = L - (u - L / speed - 16) * speed; dir = -1; }
+        const s = KT.clamp(d / L, 0, 1), p = curve.getPointAt(s), tg = curve.getTangentAt(s);
+        const x = p.x - tg.z * side, z = p.z + tg.x * side;
+        ch.position.set(x, Hw.height(x, z) + 0.1, z);
+        if (dir) ch.rotation.y = KT.angleLerp(ch.rotation.y, Math.atan2(tg.x * dir, tg.z * dir), Math.min(1, dt * 5));
+        KT.Models.animateCharacter(ch, dir ? 'walk' : 'idle', dt, speed / 1.1);
+      });
+    }
+    [[40, 30, 0.6], [95, -38, -0.8]].forEach(([d, l, r], k) => {
+      const q = W(d, l), ch = Models.character({ gender: k ? 'male' : 'female', outfit: k ? 'hiking' : 'casual', lite: true, hair: k ? 'short' : 'bun', skin: 0xc08660, acc: { backpack: true, camera: true }, seed: 1350 + k });
+      ch.position.set(q.x, Hw.height(q.x, q.z) + 0.1, q.z);
+      ch.rotation.y = Math.atan2(rt.x * (l > 0 ? 1 : -1), rt.z * (l > 0 ? 1 : -1)) + r;
+      people.add(ch);
+      let last = null;
+      it.anim.push((t) => { const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last)); last = t; KT.Models.animateCharacter(ch, 'idle', dt, 1); });
+    });
+    it.fauna = people;
+  }
+
   function riverWater(it) {
     // one water surface along the river, with water hyacinth by the banks
     const R = it.river, pos = [], idx = [];
@@ -1179,11 +1299,7 @@
         place(it, Models.forestTree(k), Math.cos(a) * 24, 6 + Math.sin(a) * 18, a);
       }
     },
-    hilltop(it) {
-      place(it, Models.hillView(), 0, 4);
-      place(it, Models.teaHill(), 22, -6, 0, { colliders: false });
-      [-12, -8].forEach((x, i) => place(it, Models.deer(), x, 14 + i * 4, i));
-    },
+    hilltop(it) { if (KT.Highway.PONMUDI) ponmudi(it); else place(it, Models.hillView(), 0, 4); },
     islandTemple(it) {
       const L = it.lake, w = waterOf(it, L);
       const tm = Models.temple(); tm.scale.setScalar(0.5);

@@ -512,6 +512,19 @@
     Hw.roads.push(R);
   });
   Hw.branches = Hw.roads.slice(1);
+  // Ponmudi, the "mini Munnar": rolling grassy hills round the end of its
+  // road, with a steep peak beyond the car park (the hills are added after
+  // the road, so it keeps its own climb)
+  (() => {
+    const R = Hw.roads.find((r) => r.nh === 'Ponmudi Road');
+    if (!R) return;
+    const f = R.frame(R.len), rot = (v, a) => ({ x: v.x * Math.cos(a) - v.z * Math.sin(a), z: v.x * Math.sin(a) + v.z * Math.cos(a) });
+    const fw = { x: f.fx, z: f.fz }, at = (d, a) => { const v = rot(fw, a); return { x: f.x + v.x * d, z: f.z + v.z * d }; };
+    const peak = at(170, 0);
+    Hw.PONMUDI = { x: f.x, z: f.z, r: 720, peak: { x: peak.x, z: peak.z }, endY: R.y(R.len), fwd: fw };
+    HILLS.push(Object.assign(peak, { h: 44, r: 95 }));
+    HILLS.push(Object.assign(at(300, 1.35), { h: 26, r: 150 }), Object.assign(at(290, -1.45), { h: 22, r: 140 }), Object.assign(at(520, 0.75), { h: 48, r: 210 }), Object.assign(at(460, -0.9), { h: 34, r: 170 }));
+  })();
   Hw.reachRoads(Hw.roads);
   Hw.nearJunction = (road, s, r) => road.junctions.some((j) => Math.abs(j.s - s) < r);
   // the nearest road of all (with distance d from it)
@@ -1103,6 +1116,12 @@
     if (n2 > 0.25 && Math.abs(lat) > 40 && Math.abs(lat) < 260 && h < yRoad + 3) _c.setRGB(0.66, 0.95, 0.42); // paddy
     const gh = Hw.ghats(x, z);
     if (gh > 0) _c.lerp(new T.Color(0.42, 0.62, 0.36), gh * KT.smoothstep(20, 120, Math.abs(lat))); // darker ghats
+    const pm = Hw.PONMUDI && Math.hypot(x - Hw.PONMUDI.x, z - Hw.PONMUDI.z);
+    if (pm < Hw.PONMUDI.r + 150) {
+      // Ponmudi's grassland: vivid green on the slopes, yellow-green on the tops
+      const k = 1 - KT.smoothstep(Hw.PONMUDI.r, Hw.PONMUDI.r + 150, pm), top = KT.smoothstep(Hw.PONMUDI.endY - 10, Hw.PONMUDI.endY + 30, h);
+      _c.lerp(new T.Color(0.42 + top * 0.18, 0.86 + n * 0.08, 0.2 + n * 0.06), k * 0.85);
+    }
     const a = Math.abs(lat);
     const hw = half || ROAD_HALF;
     if (a > hw - 0.5 && a < hw + 4.5) _c.lerp(new T.Color(0.75, 0.48, 0.32), 1 - KT.smoothstep(hw + 2, hw + 4.5, a)); // laterite shoulder
@@ -1156,6 +1175,13 @@
       const x = x0 + rng() * TILE, z = z0 + rng() * TILE;
       const p = free(x, z, 6);
       if (!p) continue;
+      if (Hw.PONMUDI && Math.hypot(x - Hw.PONMUDI.x, z - Hw.PONMUDI.z) < Hw.PONMUDI.r) {
+        // Ponmudi's grassland: dark boulders all over, shola trees in the hollows
+        const hh = Hw.height(x, z), hollow = hh < Hw.PONMUDI.endY - 6;
+        if (hollow && rng() < 0.45) add('forest', x, z, rng() * 6.28, 0.9 + rng() * 0.5, { type: 'circle', r: 0.6 });
+        else if (rng() < 0.8) add('rock', x, z, rng() * 6.28, 0.5 + rng() * 1.3, { type: 'circle', r: 0.8 });
+        continue;
+      }
       const near = p.d < 60;
       if (!near && rng() < 0.3) continue;
       const r = rng();
@@ -2347,7 +2373,8 @@
       const nr = Hw.nearestRoad(x, z, 40);
       const far = nr.d > (nr.road.half || ROAD_HALF) + 6;
       const town = HUB_XZ.some((c) => Math.abs(x - c.x) < 232 && Math.abs(z - c.z) < 232 && Math.hypot(x - c.x, z - c.z) < 232);
-      if (far && !town) {
+      const hills = Hw.PONMUDI && Math.hypot(x - Hw.PONMUDI.x, z - Hw.PONMUDI.z) < Hw.PONMUDI.r;
+      if (far && !town && !hills) {
         const h = Hw.height(x, z), E = x - Hw.coastX(z);
         const paddy = KT.noise(x * 0.004 + 9, z * 0.004) > 0.25 && nr.d > 40 && nr.d < 260 && h < nr.road.y(nr.s) + 3;
         const wet = Hw.waterLevelAt(x, z) > h - 0.6 || E < 60;
