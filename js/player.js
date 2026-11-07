@@ -188,16 +188,27 @@
     placeOnTrunk(0);
   };
   P.climbTop = () => P.climb && P.climb.u >= U_TOP - 0.005;
+  // Each palm leans and curves its own way: the climber follows its trunk,
+  // body along the trunk at that height, pressed against its surface (the
+  // trunk tapers from 0.3 m to 0.18 m across, scaled with the palm).
+  const _cn = new T.Vector3(), _cx = new T.Vector3(), _cz = new T.Vector3(), _cm = new T.Matrix4();
   function placeOnTrunk(dt) {
     const c = P.climb, palm = c.palm;
     palm.curve.getPointAt(c.u, _cv);
     palm.curve.getTangentAt(c.u, _ct);
-    // stand off the trunk on the climber's side, facing it, body along the trunk
-    P.pos.set(_cv.x + palm.side.x * 0.42, _cv.y - 0.15, _cv.z + palm.side.z * 0.42);
-    P.heading = Math.atan2(-palm.side.x, -palm.side.z);
-    const tilt = Math.atan2(_ct.x * -palm.side.x + _ct.z * -palm.side.z, _ct.y);
+    // the climber's side of the trunk, square to the trunk here
+    _cn.set(palm.side.x, 0, palm.side.z);
+    _cn.addScaledVector(_ct, -_cn.dot(_ct)).normalize();
+    const r = KT.lerp(0.3, 0.18, c.u) * (palm.scale || 1);
+    P.pos.copy(_cv).addScaledVector(_cn, r + 0.04).addScaledVector(_ct, -0.25);
+    // up along the trunk, facing it
+    _cz.copy(_cn).negate();
+    _cx.crossVectors(_ct, _cz).normalize();
+    _cz.crossVectors(_cx, _ct).normalize();
+    _cm.makeBasis(_cx, _ct, _cz);
     P.obj.position.copy(P.pos);
-    P.obj.rotation.set(tilt, P.heading, 0, 'YXZ');
+    P.obj.quaternion.setFromRotationMatrix(_cm);
+    P.heading = Math.atan2(_cz.x, _cz.z);
   }
   // E while climbing: collect at the top if the pot is full, else go down
   P.climbAction = function () {
@@ -218,7 +229,7 @@
     P.pos.set(b.x + c.palm.side.x * 0.9, KT.L.groundY(b.x + c.palm.side.x * 0.9, b.z + c.palm.side.z * 0.9).y, b.z + c.palm.side.z * 0.9);
     P.vy = 0; P.grounded = true;
     P.obj.position.copy(P.pos);
-    P.obj.rotation.set(0, P.heading, 0);
+    P.obj.rotation.set(0, P.heading, 0, 'XYZ');
   };
   function updateClimb(dt, input) {
     const c = P.climb;

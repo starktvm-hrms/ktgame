@@ -479,7 +479,7 @@
     const lean = new T.Vector3(pts[3].x - pts[0].x, 0, pts[3].z - pts[0].z);
     if (lean.lengthSq() < 1e-6) lean.set(1, 0, 0);
     lean.normalize();
-    p = { plain: true, curve, len: curve.getLength(), side: lean.clone().negate(), base: pts[0], readyAt: 0 };
+    p = { plain: true, curve, len: curve.getLength(), side: lean.clone().negate(), base: pts[0], readyAt: 0, scale: new T.Vector3().setFromMatrixScale(m).x };
     plainPalms.set(key, p);
     return p;
   };

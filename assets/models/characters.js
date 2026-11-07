@@ -907,18 +907,18 @@
     climb: function (p) {
       const s = Math.sin(p), c = Math.cos(p);
       return {
-        shL: [-2.55 + s * 0.35, 0, 0.42], shR: [-2.55 - s * 0.35, 0, -0.42], elL: [-0.55 - Math.max(0, s) * 0.5, 0, 0], elR: [-0.55 - Math.max(0, -s) * 0.5, 0, 0],
-        hipL: [-1.05 + c * 0.35, 0, 0.42], hipR: [-1.05 - c * 0.35, 0, -0.42], kneeL: [1.55 - c * 0.3, 0, 0], kneeR: [1.55 + c * 0.3, 0, 0], ankleL: [-0.2, 0, 0], ankleR: [-0.2, 0, 0],
-        spine: [0.12, 0, 0], head: [-0.3, 0, 0], hips: [0, 0, 0], bob: -0.12
+        shL: [-2.25 + s * 0.3, 0, 0.62], shR: [-2.25 - s * 0.3, 0, -0.62], elL: [-1.0 - Math.max(0, s) * 0.4, 0, 0], elR: [-1.0 - Math.max(0, -s) * 0.4, 0, 0],
+        hipL: [-1.55 + c * 0.3, 0, 0.62], hipR: [-1.55 - c * 0.3, 0, -0.62], kneeL: [1.85 - c * 0.25, 0, 0], kneeR: [1.85 + c * 0.25, 0, 0], ankleL: [0.25, 0, 0], ankleR: [0.25, 0, 0],
+        spine: [0.05, 0, 0], head: [-0.4, 0, 0], hips: [0, 0, 0], bob: -0.3
       };
     },
     // at the top: one arm round the trunk, the other working the pot
     tap: function (p, a) {
       const w = Math.sin(a.t * 6);
       return {
-        shL: [-2.6, 0, 0.5], elL: [-0.6, 0, 0], shR: [-1.6 + w * 0.15, 0, -0.75], elR: [-1.1 + w * 0.3, 0, 0],
-        hipL: [-1.05, 0, 0.42], hipR: [-1.05, 0, -0.42], kneeL: [1.55, 0, 0], kneeR: [1.55, 0, 0], ankleL: [-0.2, 0, 0], ankleR: [-0.2, 0, 0],
-        spine: [0.1, 0.25, 0], head: [-0.15, 0.4, 0], hips: [0, 0, 0], bob: -0.12
+        shL: [-2.25, 0, 0.62], elL: [-1.0, 0, 0], shR: [-1.6 + w * 0.15, 0, -0.75], elR: [-1.1 + w * 0.3, 0, 0],
+        hipL: [-1.55, 0, 0.62], hipR: [-1.55, 0, -0.62], kneeL: [1.85, 0, 0], kneeR: [1.85, 0, 0], ankleL: [0.25, 0, 0], ankleR: [0.25, 0, 0],
+        spine: [0.05, 0.25, 0], head: [-0.2, 0.4, 0], hips: [0, 0, 0], bob: -0.3
       };
     },
     dance: function (p, a) {
