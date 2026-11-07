@@ -903,6 +903,24 @@
         spine: [0.15 + s * 0.08, c * 0.25, 0], head: [-0.1, -c * 0.15, 0], bob: -0.42
       };
     },
+    // hugging a palm trunk, hand over hand, feet gripping below
+    climb: function (p) {
+      const s = Math.sin(p), c = Math.cos(p);
+      return {
+        shL: [-2.55 + s * 0.35, 0, 0.42], shR: [-2.55 - s * 0.35, 0, -0.42], elL: [-0.55 - Math.max(0, s) * 0.5, 0, 0], elR: [-0.55 - Math.max(0, -s) * 0.5, 0, 0],
+        hipL: [-1.05 + c * 0.35, 0, 0.42], hipR: [-1.05 - c * 0.35, 0, -0.42], kneeL: [1.55 - c * 0.3, 0, 0], kneeR: [1.55 + c * 0.3, 0, 0], ankleL: [-0.2, 0, 0], ankleR: [-0.2, 0, 0],
+        spine: [0.12, 0, 0], head: [-0.3, 0, 0], hips: [0, 0, 0], bob: -0.12
+      };
+    },
+    // at the top: one arm round the trunk, the other working the pot
+    tap: function (p, a) {
+      const w = Math.sin(a.t * 6);
+      return {
+        shL: [-2.6, 0, 0.5], elL: [-0.6, 0, 0], shR: [-1.6 + w * 0.15, 0, -0.75], elR: [-1.1 + w * 0.3, 0, 0],
+        hipL: [-1.05, 0, 0.42], hipR: [-1.05, 0, -0.42], kneeL: [1.55, 0, 0], kneeR: [1.55, 0, 0], ankleL: [-0.2, 0, 0], ankleR: [-0.2, 0, 0],
+        spine: [0.1, 0.25, 0], head: [-0.15, 0.4, 0], hips: [0, 0, 0], bob: -0.12
+      };
+    },
     dance: function (p, a) {
       const t = a.t;
       const s = Math.sin(t * 2.2), c = Math.cos(t * 1.1);
@@ -919,7 +937,7 @@
   Models.animateCharacter = function (ch, state, dt, speedFactor) {
     const rig = ch.userData.rig, a = ch.userData.anim;
     a.t += dt;
-    const rate = state === 'run' ? 10.5 : state === 'walk' ? 7.2 : state === 'paddle' ? 3 : state === 'cycle' ? 2.6 : 0;
+    const rate = state === 'run' ? 10.5 : state === 'walk' ? 7.2 : state === 'paddle' ? 3 : state === 'cycle' ? 2.6 : state === 'climb' ? 5 : 0;
     a.phase += dt * rate * (speedFactor || 1);
     const pose = (POSES[state] || POSES.idle)(a.phase, a);
     const k = 1 - Math.exp(-dt * (state === 'jump' || state === 'land' ? 16 : 12));

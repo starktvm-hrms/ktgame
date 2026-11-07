@@ -86,6 +86,7 @@
       part(top, G.sph(0.2, 8, 6), KT.M.coconut, Math.cos(a) * 0.32, -0.35 - (i % 2) * 0.15, Math.sin(a) * 0.32);
     }
     part(top, G.sph(0.3, 8, 6), KT.M.barkLight, 0, -0.1, 0, 0, 0, 0, 1, 0.6, 1);
+    g.userData.trunk = pts.map((p) => p.toArray()); // (for climbing it)
     return KT.bake(g);
   };
 

@@ -18,7 +18,7 @@
       name: 'Explorer', coins: 0, xp: 0, level: 1, leaves: 0, stars: [], mission: 0, mprog: 0,
       coinsTaken: [], plasticsTaken: [], photos: [], talked: [], pos: null, heading: Math.PI, playTime: 0,
       districts: [], distanceKm: 0, map: 'home', hwHub: null, read: [],
-      vehicles: [], fish: { total: 0, kinds: {} }
+      vehicles: [], fish: { total: 0, kinds: {} }, toddy: 0
     };
   }
 
@@ -477,6 +477,40 @@
       if (Math.hypot(KT.Player.pos.x + 130, KT.Player.pos.z + 92) < 18) KT.Audio.play('trumpet');
     }
   };
+  // ------------------------------------------------------- toddy tapping
+  Game.collectToddy = function (palm) {
+    const d = Game.data, E = KT.Entities;
+    d.toddy = (d.toddy || 0) + 1;
+    palm.readyAt = performance.now() / 1000 + E.TODDY_REFILL;
+    KT.Audio.play('splash');
+    Game.addXP(5);
+    KT.UI.toast('\u{1F965} Fresh toddy! You carry ' + d.toddy + ' pot' + (d.toddy > 1 ? 's' : '') + '. Sell it at the toddy shop by the Coir Village.', 'info');
+    Game.showToddyPot();
+    Game.save(true);
+  };
+  Game.sellToddy = function () {
+    const d = Game.data, E = KT.Entities, n = d.toddy || 0;
+    if (!n) {
+      Game.setState('dialog');
+      KT.UI.dialog('Toddy shop keeper', ['Namaskaram! Toddy is the sap of the coconut palm. The tappers climb the palms morning and evening to collect it from the pots under the crowns.',
+        'Climb one of the tapped palms in the grove (look for the clay pots), bring me the toddy, and I will pay ' + E.TODDY_PRICE + ' coins a pot.'], () => Game.setState('playing'));
+      return;
+    }
+    d.toddy = 0;
+    Game.addCoins(n * E.TODDY_PRICE);
+    Game.addXP(5 * n);
+    KT.UI.toast('\u{1F965} Sold ' + n + ' pot' + (n > 1 ? 's' : '') + ' of toddy for ' + n * E.TODDY_PRICE + ' coins.', 'level');
+    Game.showToddyPot();
+    Game.save(true);
+  };
+  // a clay pot at your waist while you carry toddy
+  Game.showToddyPot = function () {
+    const P = KT.Player, rig = P.obj && P.obj.userData.rig;
+    if (!rig || !rig.hips) return;
+    if (!P.toddyPot) { P.toddyPot = KT.Models.toddyPot(); P.toddyPot.scale.setScalar(0.75); P.toddyPot.position.set(0.2, -0.32, -0.08); }
+    if (P.toddyPot.parent !== rig.hips) rig.hips.add(P.toddyPot);
+    P.toddyPot.visible = ((Game.data && Game.data.toddy) || 0) > 0;
+  };
   Game.saveSettings = () => store(SETTINGS_KEY, Game.settings);
   Game.onEvent = function (name) {
     // the first ride: tell the player about the radio
@@ -622,6 +656,7 @@
     if (I.consume('recover') && P.mode === 'bus') { recoverVehicle(); return; }
     if (I.consume('interact')) {
       if (P.mode === 'canoe') { P.leaveCanoe(); return; }
+      if (P.mode === 'climb') { P.climbAction(); return; }
       if (P.mode === 'bus' && P.bus.stuckT > 1.5) { recoverVehicle(); return; }
       if (P.mode === 'bus') { P.leaveBus(); return; }
       if (Game.nearInteract) Game.nearInteract.action();
@@ -665,6 +700,10 @@
     if (Game.state === 'playing') {
       const key = KT.Input.touch ? '' : '[E] ';
       if (P.mode === 'canoe') KT.UI.prompt(key + 'Get out of the canoe');
+      else if (P.mode === 'climb') {
+        const c = P.climb, E = KT.Entities;
+        KT.UI.prompt(c.tapT > 0 ? 'Collecting the toddy…' : P.climbTop() ? (E.palmReady(c.palm) ? key + 'Collect the toddy' : 'The pot is still filling • S to climb down') : 'W climb up • S climb down • ' + key + 'Get down');
+      }
       else if (P.mode === 'bus' && P.bus.stuckT > 1.5) KT.UI.prompt((KT.Input.touch ? '' : '[R] ') + 'Stuck? Get back on the road');
       else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
       else KT.UI.prompt(best ? key + best.label : null);
@@ -1136,6 +1175,8 @@
   const tmpV = new T.Vector3();
   function gameplay(dt) {
     const P = KT.Player, d = Game.data, E = KT.Entities;
+    // the pot of toddy at your waist (after loading a save, too)
+    if ((Game._potT = (Game._potT || 0) - dt) < 0) { Game._potT = 1; Game.showToddyPot(); }
     // interactions
     const best = pickInteract(E.interactables.concat(rideInteract(), streetRides()));
     Game.nearInteract = best;

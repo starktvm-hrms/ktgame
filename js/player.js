@@ -46,6 +46,7 @@
   const _next = new T.Vector3();
   P.update = function (dt, input, cam) {
     if (P.mode === 'canoe') return updateCanoe(dt, input, cam);
+    if (P.mode === 'climb') return updateClimb(dt, input);
     if (P.mode === 'bus') return updateBus(dt, input);
     const f = P.forward(cam.yaw);
     const r = { x: Math.cos(cam.yaw), z: -Math.sin(cam.yaw) };
@@ -170,6 +171,74 @@
       KT.Audio.play(wading ? 'splash' : 'step');
       if (state === 'run' && !wading) KT.FX.puff(P.pos, 1, 0.25);
     }
+  }
+
+  // -------------------------------------------------------- climbing palms
+  // Hand over hand up a coconut palm's trunk (W up, S down, E to get down
+  // or, at the top, to collect the toddy from the pot under the crown).
+  const U_BOTTOM = 0.02, U_TOP = 0.74, CLIMB_SPEED = 1.0;
+  const _cv = new T.Vector3(), _ct = new T.Vector3();
+  P.startClimb = function (palm) {
+    if (P.mode !== 'foot') return;
+    P.mode = 'climb';
+    P.gesture = null;
+    P.speed = 0;
+    P.climb = { palm, u: U_BOTTOM, auto: 0, tapT: 0 };
+    KT.UI.toast('W to climb, S to climb down. Collect the toddy at the top with E.', 'info');
+    placeOnTrunk(0);
+  };
+  P.climbTop = () => P.climb && P.climb.u >= U_TOP - 0.005;
+  function placeOnTrunk(dt) {
+    const c = P.climb, palm = c.palm;
+    palm.curve.getPointAt(c.u, _cv);
+    palm.curve.getTangentAt(c.u, _ct);
+    // stand off the trunk on the climber's side, facing it, body along the trunk
+    P.pos.set(_cv.x + palm.side.x * 0.42, _cv.y - 0.15, _cv.z + palm.side.z * 0.42);
+    P.heading = Math.atan2(-palm.side.x, -palm.side.z);
+    const tilt = Math.atan2(_ct.x * -palm.side.x + _ct.z * -palm.side.z, _ct.y);
+    P.obj.position.copy(P.pos);
+    P.obj.rotation.set(tilt, P.heading, 0, 'YXZ');
+  }
+  // E while climbing: collect at the top if the pot is full, else go down
+  P.climbAction = function () {
+    const c = P.climb;
+    if (!c || c.tapT > 0) return;
+    if (P.climbTop() && KT.Entities.palmReady(c.palm)) {
+      if (((KT.Game.data && KT.Game.data.toddy) || 0) >= KT.Entities.TODDY_CARRY) { KT.UI.toast('You can carry ' + KT.Entities.TODDY_CARRY + ' pots of toddy. Sell them at the toddy shop first.', 'warn'); return; }
+      c.tapT = 2.2;
+      return;
+    }
+    c.auto = -1;
+  };
+  P.leaveClimb = function () {
+    const c = P.climb;
+    P.mode = 'foot';
+    P.climb = null;
+    const b = c.palm.base;
+    P.pos.set(b.x + c.palm.side.x * 0.9, KT.L.groundY(b.x + c.palm.side.x * 0.9, b.z + c.palm.side.z * 0.9).y, b.z + c.palm.side.z * 0.9);
+    P.vy = 0; P.grounded = true;
+    P.obj.position.copy(P.pos);
+    P.obj.rotation.set(0, P.heading, 0);
+  };
+  function updateClimb(dt, input) {
+    const c = P.climb;
+    if (c.tapT > 0) {
+      // working the pot loose and pouring the toddy into your own pot
+      c.tapT -= dt;
+      KT.Models.animateCharacter(P.obj, 'tap', dt, 1);
+      P.state = 'tap';
+      if (c.tapT <= 0) KT.Game.collectToddy(c.palm);
+      return;
+    }
+    let dir = input.move.y > 0.1 ? 1 : input.move.y < -0.1 ? -1 : c.auto;
+    if (dir > 0) c.auto = 0;
+    const du = dir * CLIMB_SPEED * dt / c.palm.len;
+    c.u = KT.clamp(c.u + du, U_BOTTOM, U_TOP);
+    if (dir < 0 && c.u <= U_BOTTOM) { P.leaveClimb(); return; }
+    placeOnTrunk(dt);
+    const moving = dir !== 0 && c.u > U_BOTTOM && c.u < U_TOP;
+    KT.Models.animateCharacter(P.obj, 'climb', moving ? dt : dt * 0.15, 1);
+    P.state = 'climb';
   }
 
   // ---------------------------------------------------------- canoe mode

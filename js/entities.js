@@ -397,6 +397,67 @@
     });
   }
 
+  // ---------------------------------------------------- toddy tapping
+  // In the coconut grove of the Coir Village a few palms are tapped: a clay
+  // pot hangs under each crown. Climb one (E), collect the toddy at the top,
+  // and sell it at the toddy shop. A tapped palm's pot fills again after a
+  // few minutes.
+  const TODDY_PALMS = [[-208, 64], [-218, 84], [-236, 40], [-244, 74], [-226, 104], [-200, 98]];
+  E.TODDY_PRICE = 20; E.TODDY_CARRY = 4; E.TODDY_REFILL = 150;
+  E.toddyPalms = [];
+  function buildToddy() {
+    const shop = (World.sites.toddyShop || [])[0];
+    TODDY_PALMS.forEach(([x0, z0], i) => {
+      // a clear spot near the planned one
+      let x = x0, z = z0;
+      for (let k = 0; k < 12 && World.isBlocked(x, z, 1.2); k++) { x = x0 + Math.cos(k * 2.4) * (1 + k * 0.6); z = z0 + Math.sin(k * 2.4) * (1 + k * 0.6); }
+      const palm = Models.coconutPalm(40 + i * 7);
+      const rot = (i * 1.9) % (Math.PI * 2), sc = 1.0;
+      palm.scale.setScalar(sc);
+      World.place(palm, x, z, rot, { y: KT.Geo.height(x, z) - 0.05, colliders: false });
+      World.addCollider({ type: 'circle', x, z, r: 0.4 });
+      // the trunk in the world, for climbing it
+      palm.updateMatrixWorld(true);
+      const pts = palm.userData.trunk.map((a) => new T.Vector3().fromArray(a).applyMatrix4(palm.matrixWorld));
+      const curve = new T.CatmullRomCurve3(pts);
+      // climb on the upper side of the lean
+      const lean = new T.Vector3(pts[3].x - pts[0].x, 0, pts[3].z - pts[0].z).normalize();
+      // the pot, tied to the trunk under the crown on the climber's side
+      const pot = Models.toddyPot();
+      const pp = curve.getPointAt(0.9);
+      pot.position.set(pp.x - lean.x * 0.32, pp.y - 0.25, pp.z - lean.z * 0.32);
+      World.scene.add(pot);
+      const foam = new T.Mesh(KT.G.sph(0.1, 8, 6), KT.mat('toddyFoam', { color: 0xf6f2e6, roughness: 0.6 }));
+      foam.scale.set(1, 0.4, 1); foam.position.set(0, 0.44, 0);
+      pot.add(foam);
+      const p = { obj: palm, curve, len: curve.getLength(), side: lean.clone().negate(), base: pts[0], pot, foam, readyAt: 0 };
+      E.toddyPalms.push(p);
+      E.interactables.push({
+        id: 'toddy' + i, radius: 1.9, pos: () => p.base,
+        get label() { return E.palmReady(p) ? 'Climb the palm and collect the toddy' : 'Climb the palm (its pot is still filling)'; },
+        action: () => KT.Player.startClimb(p)
+      });
+    });
+    if (!shop) return;
+    // the shop's raised floor, and the man who runs it
+    World.addPlatform(shop.x, shop.z, 3.3, 2.9, shop.rot, KT.Geo.height(shop.x, shop.z) + 0.45);
+    const keeper = Models.character({ gender: 'male', outfit: 'mundu', hair: 'short', skin: 0x9a6440, mustache: true, lite: true, acc: {}, colors: { top: 0xd8d0b8 }, seed: 77 });
+    const c = Math.cos(shop.rot), s = Math.sin(shop.rot);
+    const kx = shop.x + 1.5 * c + (-0.8) * s, kz = shop.z - 1.5 * s + (-0.8) * c;
+    keeper.position.set(kx, KT.Geo.height(shop.x, shop.z) + 0.45, kz);
+    keeper.rotation.y = shop.rot;
+    World.scene.add(keeper);
+    E.toddyKeeper = keeper;
+    // (you deal with him from the doorway, across the counter)
+    const door = new T.Vector3(shop.x + 2.2 * s, keeper.position.y, shop.z + 2.2 * c);
+    E.interactables.push({
+      id: 'toddyShop', radius: 3.6, pos: () => door,
+      get label() { const n = (KT.Game.data && KT.Game.data.toddy) || 0; return n ? 'Sell your toddy (' + n + ' pot' + (n > 1 ? 's' : '') + ', ' + n * E.TODDY_PRICE + ' coins)' : 'Talk to the toddy shop keeper'; },
+      action: () => KT.Game.sellToddy()
+    });
+  }
+  E.palmReady = (p) => performance.now() / 1000 >= p.readyAt;
+
   // ------------------------------------------------------ collectibles
   function buildCoins() {
     const proto = Models.coin();
@@ -473,6 +534,7 @@
     World = world;
     buildBoats();
     buildCanoe();
+    buildToddy();
     buildNPCs();
     buildAnimals();
     buildFlocks();
@@ -515,6 +577,8 @@
   const _tan = new T.Vector3();
   E.update = function (dt, t, player, camera) {
     const pp = player.pos;
+    E.toddyPalms.forEach((p) => { p.foam.visible = E.palmReady(p); });
+    if (E.toddyKeeper && E.toddyKeeper.position.distanceTo(pp) < 60) Models.animateCharacter(E.toddyKeeper, 'idle', dt, 1);
     // boats
     E.boats.forEach((b) => {
       const o = b.obj;

@@ -178,6 +178,15 @@ stand, or a car or auto standing still in the traffic, and press E. (Scooters
 in the traffic have their riders on, so only parked scooters can be taken.)
 It becomes your ride, in its own colours, in place of the one you had.
 
+## Toddy tapping
+
+In the coconut grove of the Coir Village, six palms are tapped: a clay pot
+hangs under each crown, frothing white when it is full. Walk up to one and
+press E to climb it (W up, S down, E to come down), then press E at the top
+to collect the toddy. You carry it in a pot at your waist (up to four pots)
+and sell it at the toddy shop (kallu shappu) beside the village path for 20
+coins a pot. A tapped palm's pot fills again after a couple of minutes.
+
 ## Groups, chat and voice
 
 Every player picks a **username** (like `@anjali_nair`) when they register;

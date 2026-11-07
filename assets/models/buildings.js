@@ -178,6 +178,64 @@
     return Models.keralaHouse({ w: 8, d: 5.5, roofMat: M().roofGreen, baseMat: M().stoneGrey, roofH: 2.2 });
   };
 
+  // A clay toddy pot (kudam), as tied under a palm's crown to collect the sap.
+  Models.toddyPot = function () {
+    const g = new T.Group();
+    const clay = KT.mat('clayPot', { color: 0x9a5530, roughness: 0.9 });
+    const pts = [[0.02, 0], [0.14, 0.03], [0.21, 0.14], [0.2, 0.27], [0.12, 0.36], [0.09, 0.4], [0.11, 0.43], [0.09, 0.44]].map(([r, y]) => new T.Vector2(r, y));
+    part(g, new T.LatheGeometry(pts, 14), clay, 0, 0, 0);
+    part(g, G.torus(0.1, 0.012, 5, 12), KT.mat('potRope', { color: 0xb59a6a }), 0, 0.38, 0, Math.PI / 2);
+    return KT.bake(g);
+  };
+
+  // A village toddy shop (kallu shappu): white-washed walls on a stone
+  // plinth, woven bamboo panels, a thatched roof under a blue tarpaulin and
+  // the board over the door. Its front (+z) is open to the path.
+  Models.toddyShop = function () {
+    const g = new T.Group();
+    const white = KT.mat('shopWhite', { color: 0xe8e4d8, roughness: 0.95 }), stone = KT.mat('shopStone', { color: 0x8c8a82, roughness: 0.95 });
+    const post = M().woodDark, mat = M().bamboo, blue = KT.mat('tarpBlue', { color: 0x1f5fb0, roughness: 0.7, side: T.DoubleSide });
+    const W = 6, D = 5, H = 2.5;
+    part(g, G.box(W + 0.6, 0.45, D + 0.8), stone, 0, 0.22, 0.2);
+    part(g, G.box(1.6, 0.22, 0.6), stone, 0, 0.11, D / 2 + 0.85);                    // the step
+    part(g, G.box(W, H, 0.2), white, 0, 0.45 + H / 2, -D / 2);                       // back wall
+    [-1, 1].forEach((sd) => part(g, G.box(0.2, H, D), white, sd * W / 2, 0.45 + H / 2, 0));
+    // the front: woven bamboo panels either side of the open door, posts, a gable
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(1.9, 1.7, 0.08), mat, sd * 1.85, 0.45 + 0.85, D / 2);
+      part(g, G.box(0.14, H + 0.9, 0.14), post, sd * 0.95, 0.45 + (H + 0.9) / 2, D / 2 + 0.05);
+      part(g, G.box(0.14, H + 0.4, 0.14), post, sd * (W / 2 - 0.05), 0.45 + (H + 0.4) / 2, D / 2 + 0.05);
+    });
+    part(g, G.box(W, 0.12, 0.14), post, 0, 0.45 + H + 0.05, D / 2 + 0.05);
+    const gable = new T.Shape(); gable.moveTo(-W / 2, 0); gable.lineTo(W / 2, 0); gable.lineTo(0, 1.6); gable.lineTo(-W / 2, 0);
+    [D / 2 - 0.05, -D / 2 - 0.05].forEach((z) => { const m = new T.Mesh(new T.ExtrudeGeometry(gable, { depth: 0.1, bevelEnabled: false }), white); m.position.set(0, 0.45 + H, z); g.add(m); });
+    // thatched roof, its ridge along the depth, with the tarpaulin over the top
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(4.1, 0.25, D + 1.6), M().thatch, sd * 1.75, 0.45 + H + 0.8, 0.2, 0, 0, -sd * 0.5);
+      part(g, G.box(2.4, 0.06, D + 1.7), blue, sd * 1.0, 0.45 + H + 1.35, 0.2, 0, 0, -sd * 0.5);
+      for (let i = 0; i < 9; i++) part(g, G.box(0.04, 0.5, 0.04), M().thatch, sd * (3.4 - (i % 3) * 0.1), 0.45 + H - 0.05, -D / 2 + 0.6 + i * 0.6, 0.2, 0, sd * 0.4); // ragged eaves
+    });
+    // inside: a counter, a bench and table, clay pots
+    part(g, G.box(2.4, 0.9, 0.6), M().wood, 1.5, 0.9, -1.4);
+    part(g, G.box(2.2, 0.08, 0.9), M().wood, -1.4, 1.2, -0.6);
+    [-1.9, -0.9].forEach((x) => part(g, G.box(0.08, 0.75, 0.08), M().woodDark, x, 0.82, -0.6));
+    part(g, G.box(2.2, 0.08, 0.4), M().wood, -1.4, 0.85, 0.3);
+    for (let i = 0; i < 4; i++) { const p = Models.toddyPot(); p.position.set(0.7 + i * 0.5, 1.35, -1.4); g.add(p); }
+    // the board: Malayalam over English, as on the real shops
+    const tex = KT.textTexture([{ text: 'കള്ള് ഷാപ്പ്', size: 64 }, { text: 'TODDY SHOP', size: 56 }], { width: 512, height: 256, bg: '#f4f2ea', color: '#1a1a1a', borderColor: '#9a9a90' });
+    const board = new T.Mesh(G.box(1.9, 0.95, 0.06), [white, white, white, white, new T.MeshStandardMaterial({ map: tex, roughness: 0.7 }), white]);
+    board.position.set(1.85, 2.55, D / 2 + 0.12);
+    board.userData.noBake = true;
+    g.add(board);
+    // a bucket and a tin outside
+    part(g, G.cyl(0.24, 0.2, 0.36, 12), KT.mat('bucketRed', { color: 0xd84a2a, roughness: 0.6 }), -2.4, 0.18, D / 2 + 1.1);
+    part(g, G.cyl(0.16, 0.16, 0.38, 12), KT.mat('tinBlue', { color: 0x9ab0c8, roughness: 0.4, metalness: 0.4 }), -1.9, 0.19, D / 2 + 1.3);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -D / 2, hw: W / 2 + 0.2, hd: 0.2 }, { type: 'box', x: -W / 2, z: 0, hw: 0.2, hd: D / 2 }, { type: 'box', x: W / 2, z: 0, hw: 0.2, hd: D / 2 },
+      { type: 'box', x: -1.85, z: D / 2, hw: 0.95, hd: 0.12 }, { type: 'box', x: 1.85, z: D / 2, hw: 0.95, hd: 0.12 }, { type: 'box', x: 1.5, z: -1.4, hw: 1.2, hd: 0.35 }];
+    return baked;
+  };
+
   Models.thatchedHut = function () {
     const g = new T.Group();
     part(g, G.box(4.6, 0.4, 4.2), M().laterite, 0, 0.2, 0);

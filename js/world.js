@@ -211,6 +211,7 @@
     site('thatchedHut', -262, 70, -0.6, 4);
     site('thatchedHut', -214, 12, 1.2, 4);
     site('villageHouse', -270, 20, 0.8, 8);
+    site('toddyShop', -190, 78, HP, 7);
     // promenade arch
     site('entranceArch', PX(40), 40, 0, 0, 0, { lines: ['Alleppey Backwaters', 'Venice of the East'] });
   };
@@ -219,6 +220,7 @@
     let obj;
     switch (s.type) {
       case 'kiosk': obj = Models.infoKiosk(); break;
+      case 'toddyShop': obj = Models.toddyShop(); break;
       case 'stall': obj = Models.marketStall(s.seed); break;
       case 'teaCart': obj = Models.teaCart(); break;
       case 'keralaSign': {
