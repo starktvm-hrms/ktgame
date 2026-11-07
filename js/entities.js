@@ -465,6 +465,46 @@
   }
   E.palmReady = (p) => performance.now() / 1000 >= p.readyAt;
 
+  // Any coconut palm can be climbed (an ordinary one gives a tender coconut
+  // at the top). A palm placed by matrix m whose model's trunk line is
+  // `trunk` becomes a climbable record (kept, so it remembers being picked).
+  const plainPalms = new Map();
+  E.plainPalm = function (m, trunk) {
+    const e = m.elements, key = e[12].toFixed(1) + ',' + e[14].toFixed(1);
+    let p = plainPalms.get(key);
+    if (p) return p;
+    const pts = trunk.map((a) => new T.Vector3().fromArray(a).applyMatrix4(m));
+    const curve = new T.CatmullRomCurve3(pts);
+    const lean = new T.Vector3(pts[3].x - pts[0].x, 0, pts[3].z - pts[0].z);
+    if (lean.lengthSq() < 1e-6) lean.set(1, 0, 0);
+    lean.normalize();
+    p = { plain: true, curve, len: curve.getLength(), side: lean.clone().negate(), base: pts[0], readyAt: 0 };
+    plainPalms.set(key, p);
+    return p;
+  };
+  // the home map's palms, by 4 m cells
+  let homePalms = null;
+  E.palmNear = function (x, z, r) {
+    if (!homePalms) {
+      homePalms = new Map();
+      for (let v = 0; v < 3; v++) {
+        const trunk = Models.coconutPalm(v * 17 + 3).userData.trunk;
+        (World.inst.lists['coconutPalm' + v] || []).forEach((m) => {
+          const k = Math.floor(m.elements[12] / 4) + ',' + Math.floor(m.elements[14] / 4);
+          if (!homePalms.has(k)) homePalms.set(k, []);
+          homePalms.get(k).push({ m, trunk });
+        });
+      }
+    }
+    let best = null, bd = r;
+    const cx = Math.floor(x / 4), cz = Math.floor(z / 4);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) (homePalms.get((cx + i) + ',' + (cz + j)) || []).forEach((it) => {
+      const d = Math.hypot(it.m.elements[12] - x, it.m.elements[14] - z);
+      if (d < bd) { bd = d; best = it; }
+    });
+    return best ? E.plainPalm(best.m, best.trunk) : null;
+  };
+
   // ------------------------------------------------------ collectibles
   function buildCoins() {
     const proto = Models.coin();

@@ -488,6 +488,19 @@
     Game.showToddyPot();
     Game.save(true);
   };
+  Game.pickCoconut = function (palm) {
+    palm.readyAt = performance.now() / 1000 + 120;
+    Game.addCoins(3);
+    Game.addXP(2);
+    KT.UI.toast('\u{1F965} A tender coconut! +3 coins. (The palms with clay pots give toddy.)', 'info');
+  };
+  // any coconut palm right beside you can be climbed
+  function palmInteract() {
+    const P = KT.Player;
+    if (P.mode !== 'foot') return [];
+    const p = Game.level === 'home' ? KT.Entities.palmNear(P.pos.x, P.pos.z, 1.5) : Game.level === 'highway' ? KT.Highway.palmNear(P.pos.x, P.pos.z, 1.5) : null;
+    return p ? [{ label: 'Climb the coconut palm', radius: 1.6, pos: () => p.base, action: () => P.startClimb(p) }] : [];
+  }
   Game.sellToddy = function () {
     const d = Game.data, E = KT.Entities, n = d.toddy || 0;
     if (!n) {
@@ -702,7 +715,8 @@
       if (P.mode === 'canoe') KT.UI.prompt(key + 'Get out of the canoe');
       else if (P.mode === 'climb') {
         const c = P.climb, E = KT.Entities;
-        KT.UI.prompt(c.tapT > 0 ? 'Collecting the toddy…' : P.climbTop() ? (E.palmReady(c.palm) ? key + 'Collect the toddy' : 'The pot is still filling • S to climb down') : 'W climb up • S climb down • ' + key + 'Get down');
+        const plain = c.palm.plain;
+        KT.UI.prompt(c.tapT > 0 ? (plain ? 'Twisting off a coconut…' : 'Collecting the toddy…') : P.climbTop() ? (E.palmReady(c.palm) ? key + (plain ? 'Pick a tender coconut' : 'Collect the toddy') : (plain ? 'No ripe coconuts left' : 'The pot is still filling') + ' • S to climb down') : 'W climb up • S climb down • ' + key + 'Get down');
       }
       else if (P.mode === 'bus' && P.bus.stuckT > 1.5) KT.UI.prompt((KT.Input.touch ? '' : '[R] ') + 'Stuck? Get back on the road');
       else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
@@ -1134,7 +1148,7 @@
   let hwUiT = 0;
   function highwayGameplay(dt) {
     const P = KT.Player, Hw = KT.Highway, d = Game.data;
-    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract(), streetRides()));
+    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract(), streetRides(), palmInteract()));
     Game.nearInteract = best;
     showPrompt(best);
     trackDistance();
@@ -1178,7 +1192,7 @@
     // the pot of toddy at your waist (after loading a save, too)
     if ((Game._potT = (Game._potT || 0) - dt) < 0) { Game._potT = 1; Game.showToddyPot(); }
     // interactions
-    const best = pickInteract(E.interactables.concat(rideInteract(), streetRides()));
+    const best = pickInteract(E.interactables.concat(rideInteract(), streetRides(), palmInteract()));
     Game.nearInteract = best;
     showPrompt(best);
     $('speedo').classList.toggle('hidden', P.mode !== 'bus');

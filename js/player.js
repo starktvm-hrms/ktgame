@@ -184,7 +184,7 @@
     P.gesture = null;
     P.speed = 0;
     P.climb = { palm, u: U_BOTTOM, auto: 0, tapT: 0 };
-    KT.UI.toast('W to climb, S to climb down. Collect the toddy at the top with E.', 'info');
+    KT.UI.toast(palm.plain ? 'W to climb, S to climb down. Pick a tender coconut at the top with E.' : 'W to climb, S to climb down. Collect the toddy at the top with E.', 'info');
     placeOnTrunk(0);
   };
   P.climbTop = () => P.climb && P.climb.u >= U_TOP - 0.005;
@@ -204,7 +204,7 @@
     const c = P.climb;
     if (!c || c.tapT > 0) return;
     if (P.climbTop() && KT.Entities.palmReady(c.palm)) {
-      if (((KT.Game.data && KT.Game.data.toddy) || 0) >= KT.Entities.TODDY_CARRY) { KT.UI.toast('You can carry ' + KT.Entities.TODDY_CARRY + ' pots of toddy. Sell them at the toddy shop first.', 'warn'); return; }
+      if (!c.palm.plain && ((KT.Game.data && KT.Game.data.toddy) || 0) >= KT.Entities.TODDY_CARRY) { KT.UI.toast('You can carry ' + KT.Entities.TODDY_CARRY + ' pots of toddy. Sell them at the toddy shop first.', 'warn'); return; }
       c.tapT = 2.2;
       return;
     }
@@ -227,7 +227,7 @@
       c.tapT -= dt;
       KT.Models.animateCharacter(P.obj, 'tap', dt, 1);
       P.state = 'tap';
-      if (c.tapT <= 0) KT.Game.collectToddy(c.palm);
+      if (c.tapT <= 0) { if (c.palm.plain) KT.Game.pickCoconut(c.palm); else KT.Game.collectToddy(c.palm); }
       return;
     }
     let dir = input.move.y > 0.1 ? 1 : input.move.y < -0.1 ? -1 : c.auto;

@@ -186,6 +186,9 @@ press E to climb it (W up, S down, E to come down), then press E at the top
 to collect the toddy. You carry it in a pot at your waist (up to four pots)
 and sell it at the toddy shop (kallu shappu) beside the village path for 20
 coins a pot. A tapped palm's pot fills again after a couple of minutes.
+Any other coconut palm can be climbed too (E beside its trunk): at the top
+you can pick a tender coconut for 3 coins.
+
 Every other district town has its own toddy shop too, at the edge of town
 with four tapped palms beside it.
 
