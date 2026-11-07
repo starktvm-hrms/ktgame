@@ -1577,6 +1577,7 @@
     mergeHub(hub);
     KT.Townfolk.populate(hub);
     if (!d.home) buildToddyShop(hub);
+    KT.Entities.indexPalms(hub.group, Hw.palmIndex);
     hub.built = true;
   }
 
@@ -2409,16 +2410,22 @@
     }
   }
   // the coconut palm nearest (x, z) within r, as a climbable record
+  Hw.palmIndex = new Map(); // palms placed in towns and at sights
   let palmTrunk = null;
   Hw.palmNear = function (x, z, r) {
-    if (!palmTrunk) palmTrunk = Models.coconutPalm(3).userData.trunk; // (the palms' model, as in the pool)
+    if (!palmTrunk) palmTrunk = Models.coconutPalm(3).userData.palmTrunk; // (the palms' model, as in the pool)
     let best = null, bd = r;
     const consider = (m) => { const d = Math.hypot(m.elements[12] - x, m.elements[14] - z); if (d < bd) { bd = d; best = m; } };
     const gx0 = Math.floor((x - r) / GROVE), gx1 = Math.floor((x + r) / GROVE), gz0 = Math.floor((z - r) / GROVE), gz1 = Math.floor((z + r) / GROVE);
     for (let gx = gx0; gx <= gx1; gx++) for (let gz = gz0; gz <= gz1; gz++) { const g = groveCell(gx, gz); if (g && g.key === 'palm') consider(g.m); }
-    const t = Hw.tiles.get(Math.floor(x / TILE) + ',' + Math.floor(z / TILE));
-    if (t) t.items.forEach((it) => { if (it.key === 'palm') consider(it.m); });
-    return best ? KT.Entities.plainPalm(best, palmTrunk) : null;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const t = Hw.tiles.get((Math.floor(x / TILE) + i) + ',' + (Math.floor(z / TILE) + j));
+      if (t) t.items.forEach((it) => { if (it.key === 'palm') consider(it.m); });
+    }
+    let trunk = palmTrunk;
+    const ix = KT.Entities.nearestIndexed(Hw.palmIndex, x, z, bd);
+    if (ix) { best = ix.item.m; trunk = ix.item.trunk; }
+    return best ? KT.Entities.plainPalm(best, trunk) : null;
   };
   // the grove trees by a point (for bumping into them)
   function groveColliders(x, z, r, out) {

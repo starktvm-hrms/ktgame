@@ -409,11 +409,12 @@
   // the identity): its trunk for climbing, the pot and its froth.
   E.makeToddyPalm = function (parent, x, y, z, rot, seed) {
     const palm = Models.coconutPalm(seed);
+    palm.userData = Object.assign({}, palm.userData, { toddy: true });
     palm.position.set(x, y, z);
     palm.rotation.y = rot;
     parent.add(palm);
     palm.updateMatrixWorld(true);
-    const pts = palm.userData.trunk.map((a) => new T.Vector3().fromArray(a).applyMatrix4(palm.matrixWorld));
+    const pts = palm.userData.palmTrunk.map((a) => new T.Vector3().fromArray(a).applyMatrix4(palm.matrixWorld));
     const curve = new T.CatmullRomCurve3(pts);
     // climb on the upper side of the lean
     const lean = new T.Vector3(pts[3].x - pts[0].x, 0, pts[3].z - pts[0].z).normalize();
@@ -482,19 +483,45 @@
     plainPalms.set(key, p);
     return p;
   };
+  // Index the palms under root (whole ones, and those merged into baked
+  // meshes) into a map of 4 m cells, by world matrix
+  E.indexPalms = function (root, index) {
+    root.updateMatrixWorld(true);
+    const add = (m, trunk) => {
+      const k = Math.floor(m.elements[12] / 4) + ',' + Math.floor(m.elements[14] / 4);
+      const list = index.get(k) || [];
+      if (!list.some((it) => Math.abs(it.m.elements[12] - m.elements[12]) < 0.05 && Math.abs(it.m.elements[14] - m.elements[14]) < 0.05)) list.push({ m, trunk });
+      index.set(k, list);
+    };
+    root.traverse((o) => {
+      if (o.userData.palmTrunk && !o.userData.toddy && o.parent) add(o.matrixWorld.clone(), o.userData.palmTrunk);
+      (o.userData.palms || []).forEach((p) => add(o.matrixWorld.clone().multiply(p.m), p.trunk));
+    });
+  };
+  E.nearestIndexed = function (index, x, z, r) {
+    let best = null, bd = r;
+    const cx = Math.floor(x / 4), cz = Math.floor(z / 4);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) (index.get((cx + i) + ',' + (cz + j)) || []).forEach((it) => {
+      const d = Math.hypot(it.m.elements[12] - x, it.m.elements[14] - z);
+      if (d < bd) { bd = d; best = it; }
+    });
+    return best ? { item: best, d: bd } : null;
+  };
   // the home map's palms, by 4 m cells
   let homePalms = null;
   E.palmNear = function (x, z, r) {
     if (!homePalms) {
       homePalms = new Map();
       for (let v = 0; v < 3; v++) {
-        const trunk = Models.coconutPalm(v * 17 + 3).userData.trunk;
+        const trunk = Models.coconutPalm(v * 17 + 3).userData.palmTrunk;
         (World.inst.lists['coconutPalm' + v] || []).forEach((m) => {
           const k = Math.floor(m.elements[12] / 4) + ',' + Math.floor(m.elements[14] / 4);
           if (!homePalms.has(k)) homePalms.set(k, []);
           homePalms.get(k).push({ m, trunk });
         });
       }
+      // and the palms placed one by one (by houses, on the beach, in sights)
+      E.indexPalms(World.scene, homePalms);
     }
     let best = null, bd = r;
     const cx = Math.floor(x / 4), cz = Math.floor(z / 4);

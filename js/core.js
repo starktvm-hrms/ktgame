@@ -338,6 +338,15 @@ window.KT = window.KT || {};
       out.add(o);
     });
     out.userData = group.userData;
+    // remember where any coconut palms inside stood (so they can be climbed)
+    const palms = [];
+    group.traverse((o) => {
+      if (o === group) return;
+      const rel = new T.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      if (o.userData.palmTrunk && !o.userData.toddy) palms.push({ m: rel, trunk: o.userData.palmTrunk });
+      (o.userData.palms || []).forEach((p) => palms.push({ m: rel.clone().multiply(p.m), trunk: p.trunk }));
+    });
+    if (palms.length) out.userData = Object.assign({}, group.userData, { palms });
     return out;
   };
 

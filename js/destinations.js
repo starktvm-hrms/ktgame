@@ -1318,6 +1318,7 @@
     (BUILD[it.sg.kind] || BUILD.palace)(it);
     if (it.river) riverWater(it);
     it.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    KT.Entities.indexPalms(it.group, Hw.palmIndex);
     it.built = true;
   }
 
