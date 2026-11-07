@@ -45,12 +45,23 @@
 
   Models.canoe = function () {
     const g = new T.Group();
-    const L = 5.6;
-    part(g, hullGeometry(L, 0.9, 0.42, (t) => 0.3 + Math.pow(Math.abs(t * 2 - 1), 4) * 0.35), hullMat(), 0, 0, 0);
-    part(g, G.box(0.7, 0.04, 0.25), M().woodLight, 0, 0.12, -1.2);
-    part(g, G.box(0.75, 0.04, 0.25), M().woodLight, 0, 0.12, 1.2);
-    part(g, G.box(0.05, 0.05, L * 0.9), M().woodDark, 0.43, 0.3, 0);
-    part(g, G.box(0.05, 0.05, L * 0.9), M().woodDark, -0.43, 0.3, 0);
+    const L = 5.6, W = 0.9, sheer = (t) => 0.3 + Math.pow(Math.abs(t * 2 - 1), 4) * 0.35;
+    part(g, hullGeometry(L, W, 0.42, sheer), hullMat(), 0, 0, 0);
+    // the gunwales follow the hull's edge from end to end
+    const edge = (t, sd) => new T.Vector3(sd * W / 2 * Math.pow(Math.max(Math.sin(Math.PI * t), 0.0001), 0.55), sheer(t) + 0.01, (t - 0.5) * L);
+    const up = new T.Vector3(0, 1, 0);
+    [-1, 1].forEach((sd) => {
+      for (let i = 0; i < 16; i++) {
+        const a = edge(0.03 + i / 16 * 0.94, sd), b = edge(0.03 + (i + 1) / 16 * 0.94, sd), d = b.clone().sub(a);
+        const m = part(g, G.cyl(0.028, 0.028, d.length() + 0.02, 5), M().woodDark, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+        m.quaternion.setFromUnitVectors(up, d.normalize());
+      }
+    });
+    // a plank floor, ribs and two seats inside, so it reads as a hollow boat
+    part(g, G.box(0.46, 0.03, 3.6), M().woodLight, 0, -0.27, 0);
+    for (let i = -3; i <= 3; i++) part(g, G.box(0.62 - Math.abs(i) * 0.05, 0.04, 0.06), M().woodDark, 0, -0.24, i * 0.55);
+    part(g, G.box(0.64, 0.05, 0.3), M().woodLight, 0, 0.1, -1.25);
+    part(g, G.box(0.72, 0.05, 0.3), M().woodLight, 0, 0.1, 1.25);
     return KT.bake(g);
   };
 

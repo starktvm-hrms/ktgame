@@ -183,7 +183,7 @@
     P.obj.position.set(0, 0, 0);
     P.obj.rotation.set(0, 0, 0);
     c.obj.add(P.obj);
-    P.obj.position.set(0, 0.42, -0.4);
+    P.obj.position.set(0, -0.33, -1.2); // down inside the hull, on the rear seat
     KT.Audio.play('splash');
     KT.UI.toast('Paddle with W / S, steer with A / D. Press E near land to get out.');
     KT.Game.onEvent('boardCanoe');
@@ -247,10 +247,17 @@
     // paddle animation
     const paddling = Math.abs(input.move.y) > 0.1 || Math.abs(turn) > 0.1;
     KT.Models.animateCharacter(P.obj, paddling ? 'paddle' : 'sit', dt, 1.6);
+    // the paddle: strokes on alternate sides, or held upright, blade down,
+    // at the right-hand side while resting
     const ph = P.obj.userData.anim.phase;
-    const side = Math.sin(ph * 0.5) > 0 ? 1 : -1;
-    c.paddle.position.set(side * 0.55, 0.85, -0.2 + Math.sin(ph) * 0.35);
-    c.paddle.rotation.set(paddling ? -0.6 + Math.sin(ph) * 0.6 : -1.2, 0, side * 0.5);
+    const side = paddling ? (Math.sin(ph * 0.5) > 0 ? 1 : -1) : 1;
+    if (paddling) {
+      c.paddle.position.set(side * 0.52, 0.5, -0.75 + Math.sin(ph) * 0.3);
+      c.paddle.rotation.set(-0.15 + Math.sin(ph) * 0.55, 0, side * 0.32);
+    } else {
+      c.paddle.position.set(0.5, 0.42, -0.85);
+      c.paddle.rotation.set(-0.12, 0, 0.22);
+    }
     if (paddling) {
       c.stroke = (c.stroke || 0) - dt;
       if (c.stroke <= 0) { c.stroke = 1.0; KT.Audio.play('paddle'); }

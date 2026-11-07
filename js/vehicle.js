@@ -70,7 +70,7 @@
   V.TYPES.canoe = {
     name: 'canoe', make: () => KT.Models.canoe(), water: true,
     length: 4, width: 0.95, frontAxle: 1.3, rearAxle: -1.3, wheelR: 1,
-    seat: v3(0, 0.12, -0.4), eye: v3(0, 1.2, -0.2), pose: 'paddle',
+    seat: v3(0, -0.33, -1.2), eye: v3(0, 0.95, -1.0), pose: 'paddle',
     maxSpeed: 4.5, accel: 1.6, reverse: 1.2, brake: 2, cam: 1.2, camH: 1.8,
     hits: [-1.4, 0, 1.4], r: 0.6, exits: [[1.6, 0], [-1.6, 0], [0, 2.8], [0, -2.8], [2.6, 1], [-2.6, 1], [2.6, -1], [-2.6, -1]],
     horn: 'bell', engine: 0
