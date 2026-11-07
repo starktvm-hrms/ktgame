@@ -186,6 +186,13 @@ press E to climb it (W up, S down, E to come down), then press E at the top
 to collect the toddy. You carry it in a pot at your waist (up to four pots)
 and sell it at the toddy shop (kallu shappu) beside the village path for 20
 coins a pot. A tapped palm's pot fills again after a couple of minutes.
+Every other district town has its own toddy shop too, at the edge of town
+with four tapped palms beside it.
+
+Across the districts the countryside is as green as Alappuzha: thick
+coconut groves with areca and banana among the palms (forest trees up in
+the Ghats), open paddy fields between them, and palms, bananas, mangoes and
+areca palms planted behind the buildings in town.
 
 ## Groups, chat and voice
 

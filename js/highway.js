@@ -850,6 +850,7 @@
   Hw.resolve = function (pos, r, extra) {
     const list = Hw.nearbyColliders(pos.x, pos.z, r + 1);
     if (extra) extra.forEach((c) => list.push(c));
+    groveColliders(pos.x, pos.z, r + 1, list);
     const hit = KT.World.resolveList(pos, r, list);
     // an open world: the only limit is the edge of the map
     return Hw.clampToMap(pos) || hit;
@@ -1024,25 +1025,26 @@
     });
   };
   const pools = {};
+  Hw.pools = pools; // (for testing)
   function makePools(scene) {
-    pools.palm = new Pool(scene, Models.coconutPalm(3), 700, true);
-    pools.palmFar = new Pool(scene, Models.coconutPalmLow(20), 2600, false);
-    pools.banana = new Pool(scene, Models.bananaTree(), 600, true);
-    pools.mango = new Pool(scene, Models.mangoTree(), 200, true);
+    pools.palm = new Pool(scene, Models.coconutPalm(3), 1800, true);
+    pools.palmFar = new Pool(scene, Models.coconutPalmLow(20), 9000, false);
+    pools.banana = new Pool(scene, Models.bananaTree(), 1600, true);
+    pools.mango = new Pool(scene, Models.mangoTree(), 450, true);
     pools.house = new Pool(scene, Models.keralaHouse({}), 80, true);
     pools.house2 = new Pool(scene, Models.villageHouse(), 80, true);
     pools.hut = new Pool(scene, Models.thatchedHut(), 80, true);
-    pools.bush = new Pool(scene, Models.floweringBush(KT.M.flowerRed), 400, false);
+    pools.bush = new Pool(scene, Models.floweringBush(KT.M.flowerRed), 1200, false);
     pools.pole = new Pool(scene, Models.electricPole(), 400, true);
     pools.stone = new Pool(scene, Models.milestone(), 120, false);
-    pools.rock = new Pool(scene, Models.rock(5), 200, true);
+    pools.rock = new Pool(scene, Models.rock(5), 500, true);
     // near ground cover and more kinds of trees
     pools.tuft = new Pool(scene, Models.grassClump(), 4200, false);
     pools.flower = new Pool(scene, Models.flowerPatch(), 700, false);
     pools.fern = new Pool(scene, Models.fern(), 700, false);
-    pools.areca = new Pool(scene, Models.arecaPalm(), 400, true);
-    pools.jack = new Pool(scene, Models.jackfruitTree(), 160, true);
-    pools.forest = new Pool(scene, Models.forestTree(7), 400, true);
+    pools.areca = new Pool(scene, Models.arecaPalm(), 1200, true);
+    pools.jack = new Pool(scene, Models.jackfruitTree(), 260, true);
+    pools.forest = new Pool(scene, Models.forestTree(7), 1600, true);
     Models.SHOP_TYPES.forEach((t) => { pools['shop_' + t] = new Pool(scene, Models.shop(t), 40, true); });
   }
 
@@ -1144,17 +1146,18 @@
     const free = (x, z, pad) => {
       const p = Hw.nearestRoad(x, z, 900);
       if (p.d < ROAD_HALF + pad || !Hw.inMap(x, z)) return null;
-      if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 260)) return null;
+      if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 232)) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (p.d < 20 && nearShop(p.road, p.s, p.lat)) return null;
       return p;
     };
-    for (let i = 0; i < 26; i++) {
+    // (as green as the Alappuzha backwaters: groves all the way out)
+    for (let i = 0; i < 40; i++) {
       const x = x0 + rng() * TILE, z = z0 + rng() * TILE;
       const p = free(x, z, 6);
       if (!p) continue;
       const near = p.d < 60;
-      if (!near && rng() < 0.45) continue;
+      if (!near && rng() < 0.3) continue;
       const r = rng();
       if (p.d > 40 && rng() < 0.65 * Hw.ghats(x, z)) add('forest', x, z, rng() * 6.28, 0.8 + rng() * 0.5, { type: 'circle', r: 0.6 });
       else if (r < 0.5) add('palm', x, z, rng() * 6.28, 0.85 + rng() * 0.4, { type: 'circle', r: 0.4 });
@@ -1544,8 +1547,10 @@
       Hw.interactables.push({ label: 'Go to the Alleppey backwaters', radius: 5, pos: () => arch.position, action: () => KT.Game.goHome() });
     }
     buildTown(hub);
+    plantTown(hub);
     mergeHub(hub);
     KT.Townfolk.populate(hub);
+    if (!d.home) buildToddyShop(hub);
     hub.built = true;
   }
 
@@ -1817,6 +1822,77 @@
   // A Kerala market town: up to three rows of multi-storey buildings along
   // about 300 m of the main road and three side streets, wherever the
   // centre has room. All the buildings of a town are merged into one model.
+  // a free spot for something of radius r at (along, lat) of a hub: off the
+  // roads and lanes, out of the water, clear of everything already there
+  function hubFree(hub, along, lat, r) {
+    const q = Hw.at(hub.s + along, lat);
+    if (!Hw.inMap(q.x, q.z) || Hw.waterLevelAt(q.x, q.z) > Hw.height(q.x, q.z) - 0.6) return null;
+    const nr = Hw.nearestRoad(q.x, q.z, 60);
+    if (nr.d < (nr.road.half || ROAD_HALF) + r + 2) return null;
+    if (KT.World.resolveList(new T.Vector3(q.x, 0, q.z), r, Hw.nearbyColliders(q.x, q.z, r + 4))) return null;
+    if (PADS.some((P) => Math.hypot(q.x - P.x, q.z - P.z) < P.r + r)) return null;
+    return q;
+  }
+  // (a few models made once and copied)
+  const greenProtos = {};
+  function greenProto(key) {
+    if (!greenProtos[key]) greenProtos[key] = key.startsWith('palm') ? Models.coconutPalm(+key.slice(4) * 11 + 3) : key === 'banana' ? Models.bananaTree() : key === 'areca' ? Models.arecaPalm() : Models.mangoTree();
+    return greenProtos[key].clone();
+  }
+  // Greenery in town, as in Alappuzha: coconut palms, bananas, mangoes and
+  // areca palms behind the buildings and along the edges of town
+  function plantTown(hub) {
+    const rng = KT.makeRng(hub.index * 4421 + 9), green = new T.Group();
+    const STREETS = [-40, 100, -120];
+    let n = 0;
+    for (let i = 0; i < 260 && n < 70; i++) {
+      const along = -215 + rng() * 430, side = rng() < 0.5 ? -1 : 1, lat = side * (54 + rng() * 120);
+      if (STREETS.some((sa) => Math.abs(along - sa) < 8)) continue;
+      if (Math.hypot(along, lat) > 230) continue;
+      const q = hubFree(hub, along, lat, 1.2);
+      if (!q) continue;
+      const r = rng(), kind = r < 0.55 ? 'palm' : r < 0.72 ? 'banana' : r < 0.86 ? 'areca' : 'mango';
+      const obj = greenProto(kind === 'palm' ? 'palm' + Math.floor(rng() * 4) : kind);
+      obj.position.set(q.x, Hw.height(q.x, q.z) - 0.05, q.z);
+      obj.rotation.y = rng() * 6.28;
+      obj.scale.setScalar(0.9 + rng() * 0.3);
+      green.add(obj);
+      Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: kind === 'mango' ? 0.7 : 0.4 });
+      n++;
+    }
+    if (green.children.length) hub.group.add(KT.bake(green));
+  }
+  // A toddy shop at the edge of each district town, with tapped palms beside it
+  function buildToddyShop(hub) {
+    const E = KT.Entities, rng = KT.makeRng(hub.index * 977 + 5);
+    let spot = null;
+    const tries = [];
+    [-245, 245, -225, 225, -265, 265].forEach((a) => [1, -1].forEach((sd) => [32, 44, 56].forEach((l) => tries.push([a, sd * l]))));
+    for (let i = 0; i < tries.length && !spot; i++) if (hubFree(hub, tries[i][0], tries[i][1], 6)) spot = tries[i];
+    if (!spot) return;
+    const [along, lat] = spot, rot = Hw.frame(hub.s + along).heading + faceRoad(lat);
+    const shop = placeOnHub(hub, Models.toddyShop(), along, lat, 0, { absRot: rot });
+    const c = Math.cos(rot), s = Math.sin(rot), y = shop.position.y;
+    Hw.addPlatform(shop.position.x, shop.position.z, rot, 5, (lx, lz) => (Math.abs(lx) < 3.3 && Math.abs(lz - 0.2) < 2.9 ? y + 0.45 : null));
+    const keeper = E.toddyKeeperModel(hub.index);
+    keeper.position.set(shop.position.x + 1.5 * c - 0.8 * s, y + 0.45, shop.position.z - 1.5 * s - 0.8 * c);
+    keeper.rotation.y = rot;
+    hub.group.add(keeper);
+    hub.actors = (hub.actors || []).concat([{ obj: keeper, state: 'idle' }]);
+    const door = new T.Vector3(shop.position.x + 2.2 * s, y + 0.45, shop.position.z + 2.2 * c);
+    Hw.interactables.push(E.shopInteract(door, 'toddyShop' + hub.index));
+    // the tapped palms behind and beside it
+    hub.toddyPalms = [];
+    for (let k = 0; k < 40 && hub.toddyPalms.length < 4; k++) {
+      const a = along + (rng() - 0.5) * 34, l = lat + Math.sign(lat) * (6 + rng() * 22);
+      const q = hubFree(hub, a, l, 1.6);
+      if (!q) continue;
+      const p = E.makeToddyPalm(hub.group, q.x, Hw.height(q.x, q.z) - 0.05, q.z, rng() * 6.28, 60 + hub.index * 5 + k);
+      Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 0.4 });
+      hub.toddyPalms.push(p);
+      Hw.interactables.push(E.toddyInteract(p, 'toddy' + hub.index + '-' + k));
+    }
+  }
   function buildTown(hub) {
     const rng = KT.makeRng(hub.index * 577 + 3);
     const town = new T.Group();
@@ -2229,11 +2305,14 @@
     Hw.lastPos = { x: pos.x, z: pos.z };
     const lists = {};
     Object.keys(pools).forEach((k) => { lists[k] = []; });
+    // far away, the detailed trees give way to simple ones (or none)
     const push = (it) => {
       let key = it.key;
-      if (key === 'palm') {
+      if (key === 'palm' || key === 'mango' || key === 'jack' || key === 'banana' || key === 'bush') {
         const d = Math.hypot(it.x - pos.x, it.z - pos.z);
-        if (d > 150) key = 'palmFar';
+        if (key === 'palm') { if (d > NEAR_PALM) key = 'palmFar'; }
+        else if (key === 'mango' || key === 'jack') { if (d > 320) key = 'forest'; }
+        else if (d > 260) return;
       }
       lists[key].push(it.m);
     };
@@ -2242,8 +2321,75 @@
       push(it);
     }));
     Hw.segs.forEach((sg) => sg.items.forEach((it) => lists[it.key].push(it.m)));
+    grove(pos, lists);
     groundCover(pos, lists);
     Object.keys(pools).forEach((k) => pools[k].set(lists[k]));
+  }
+
+  // ------------------------------------------------------------- groves
+  // Coconut groves as thick as the Alappuzha backwaters: one tree to each
+  // 9 m cell of a jittered grid around the player, with gaps, open paddy
+  // fields, and areca, banana (and forest trees up in the Ghats) among the
+  // palms. Clear of the roads, towns, water and sights. The same trees always
+  // grow in the same places, and they are solid.
+  const GROVE = 9, GROVE_R = 380, NEAR_PALM = 110; // (detailed palms only this close)
+  const groveCache = new Map();
+  const ghash = (a, b, k) => { const h = Math.sin(a * 91.7 + b * 213.3 + k * 37.1) * 43758.5453; return h - Math.floor(h); };
+  function groveCell(gx, gz) {
+    const ck = gx * 100003 + gz;
+    let g = groveCache.get(ck);
+    if (g !== undefined) return g;
+    g = null;
+    const x = (gx + 0.2 + ghash(gx, gz, 2) * 0.6) * GROVE, z = (gz + 0.2 + ghash(gx, gz, 3) * 0.6) * GROVE;
+    // patchy: groves and clearings
+    const patch = KT.noise(x * 0.006 + 3, z * 0.006 - 7);
+    if (ghash(gx, gz, 1) < 0.62 + patch * 0.5 && Hw.inMap(x, z)) {
+      const nr = Hw.nearestRoad(x, z, 40);
+      const far = nr.d > (nr.road.half || ROAD_HALF) + 6;
+      const town = HUB_XZ.some((c) => Math.abs(x - c.x) < 232 && Math.abs(z - c.z) < 232 && Math.hypot(x - c.x, z - c.z) < 232);
+      if (far && !town) {
+        const h = Hw.height(x, z), E = x - Hw.coastX(z);
+        const paddy = KT.noise(x * 0.004 + 9, z * 0.004) > 0.25 && nr.d > 40 && nr.d < 260 && h < nr.road.y(nr.s) + 3;
+        const wet = Hw.waterLevelAt(x, z) > h - 0.6 || E < 60;
+        const sight = PADS.some((P) => Math.abs(x - P.x) < P.r + 20 && Math.hypot(x - P.x, z - P.z) < P.r + 20);
+        if (!paddy && !wet && !sight && !(nr.d < 20 && nearShop(nr.road, nr.s, nr.lat))) {
+          const r = ghash(gx, gz, 4), gh = Hw.ghats(x, z);
+          const key = gh > 0.5 && r < 0.7 * gh ? 'forest' : r < 0.78 ? 'palm' : r < 0.9 ? 'areca' : 'banana';
+          const sc = 0.85 + ghash(gx, gz, 5) * 0.45;
+          const m = new T.Matrix4().compose(new T.Vector3(x, h - 0.05, z), new T.Quaternion().setFromAxisAngle(_up, ghash(gx, gz, 6) * 6.28), new T.Vector3(sc, sc, sc));
+          g = { key, x, z, m, r: key === 'forest' ? 0.6 : 0.4 };
+        }
+      }
+    }
+    groveCache.set(ck, g);
+    return g;
+  }
+  function grove(pos, lists) {
+    if (groveCache.size > 40000) groveCache.forEach((v, k) => { if (v && Math.hypot(v.x - pos.x, v.z - pos.z) > GROVE_R + 80) groveCache.delete(k); });
+    const gx0 = Math.floor((pos.x - GROVE_R) / GROVE), gx1 = Math.floor((pos.x + GROVE_R) / GROVE);
+    const gz0 = Math.floor((pos.z - GROVE_R) / GROVE), gz1 = Math.floor((pos.z + GROVE_R) / GROVE);
+    for (let gx = gx0; gx <= gx1; gx++) {
+      for (let gz = gz0; gz <= gz1; gz++) {
+        const g = groveCell(gx, gz);
+        if (!g) continue;
+        const d = Math.hypot(g.x - pos.x, g.z - pos.z);
+        if (d > GROVE_R) continue;
+        let key = g.key;
+        if (key === 'palm' && d > NEAR_PALM) key = 'palmFar';
+        else if (key === 'banana' && d > 260) continue;
+        if (lists[key].length < pools[key].cap) lists[key].push(g.m);
+      }
+    }
+  }
+  // the grove trees by a point (for bumping into them)
+  function groveColliders(x, z, r, out) {
+    if (!Hw.built) return;
+    const gx0 = Math.floor((x - r - 1) / GROVE), gx1 = Math.floor((x + r + 1) / GROVE);
+    const gz0 = Math.floor((z - r - 1) / GROVE), gz1 = Math.floor((z + r + 1) / GROVE);
+    for (let gx = gx0; gx <= gx1; gx++) for (let gz = gz0; gz <= gz1; gz++) {
+      const g = groveCell(gx, gz);
+      if (g) out.push({ type: 'circle', x: g.x, z: g.z, r: g.r });
+    }
   }
 
   // Grass clumps, flowers and ferns on a fine jittered grid around the
@@ -2352,6 +2498,7 @@
       if (h.actors && Math.hypot(Hw.frame(h.s).x - pp.x, Hw.frame(h.s).z - pp.z) < 260) h.actors.forEach((a) => Models.animateCharacter(a.obj, a.state, dt, 1));
       (h.nets || []).forEach((n) => { n.obj.userData.arm.rotation.x = -0.35 + ((Math.sin(Hw.animTime * 0.35 + n.phase) + 1) / 2) * 0.6; });
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
+      (h.toddyPalms || []).forEach((t) => { t.foam.visible = KT.Entities.palmReady(t); });
     });
     KT.Townfolk.update(dt, player);
     if (KT.Dest) KT.Dest.update(dt, Hw.animTime, player.pos);
