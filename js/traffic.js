@@ -44,6 +44,8 @@
     v.kind = kind;
     v.obj.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     v.shadow = false;
+    // someone at the wheel (the cars' glass is dark; scooters have their riders)
+    if (kind === 'auto' || kind === 'bus') KT.Life.seatDriver(v.obj, kind, rng);
     return v;
   }
 
@@ -518,6 +520,7 @@
   };
   const takeRng = KT.makeRng(99);
   function replace(set, v) {
+    KT.Life.driverOut(v.obj, set.scene);
     set.scene.remove(v.obj);
     set.vehicles.splice(set.vehicles.indexOf(v), 1);
     const nv = makeVehicle(v.kind, takeRng), L = v.road.length;

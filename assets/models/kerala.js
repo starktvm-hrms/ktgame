@@ -34,6 +34,7 @@
     return KT.bake(g);
   };
 
+  KT.signMaterial = (lines, opts) => signMaterial(lines, opts);
   function signMaterial(lines, opts) {
     return new T.MeshStandardMaterial({ map: KT.textTexture(lines, opts), roughness: 0.6 });
   }

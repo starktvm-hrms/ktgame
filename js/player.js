@@ -200,7 +200,7 @@
     _cn.set(palm.side.x, 0, palm.side.z);
     _cn.addScaledVector(_ct, -_cn.dot(_ct)).normalize();
     const r = KT.lerp(0.3, 0.18, c.u) * (palm.scale || 1);
-    P.pos.copy(_cv).addScaledVector(_cn, r + 0.04).addScaledVector(_ct, -0.25);
+    P.pos.copy(_cv).addScaledVector(_cn, r - 0.06).addScaledVector(_ct, -0.25);
     // up along the trunk, facing it
     _cz.copy(_cn).negate();
     _cx.crossVectors(_ct, _cz).normalize();

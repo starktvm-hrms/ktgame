@@ -907,9 +907,9 @@
     climb: function (p) {
       const s = Math.sin(p), c = Math.cos(p);
       return {
-        shL: [-2.25 + s * 0.3, 0, 0.62], shR: [-2.25 - s * 0.3, 0, -0.62], elL: [-1.0 - Math.max(0, s) * 0.4, 0, 0], elR: [-1.0 - Math.max(0, -s) * 0.4, 0, 0],
-        hipL: [-1.55 + c * 0.3, 0, 0.62], hipR: [-1.55 - c * 0.3, 0, -0.62], kneeL: [1.85 - c * 0.25, 0, 0], kneeR: [1.85 + c * 0.25, 0, 0], ankleL: [0.25, 0, 0], ankleR: [0.25, 0, 0],
-        spine: [0.05, 0, 0], head: [-0.4, 0, 0], hips: [0, 0, 0], bob: -0.3
+        shL: [-1.85 + s * 0.3, 0, 0.8], shR: [-1.85 - s * 0.3, 0, -0.8], elL: [-1.2 - Math.max(0, s) * 0.3, 0, 0], elR: [-1.2 - Math.max(0, -s) * 0.3, 0, 0],
+        hipL: [-1.45 + c * 0.3, 0, 0.95], hipR: [-1.45 - c * 0.3, 0, -0.95], kneeL: [1.95 - c * 0.25, 0, 0], kneeR: [1.95 + c * 0.25, 0, 0], ankleL: [0.3, 0, 0], ankleR: [0.3, 0, 0],
+        spine: [0.2, 0, 0], head: [-0.45, 0, 0], hips: [0, 0, 0], bob: -0.3
       };
     },
     // at the top: one arm round the trunk, the other working the pot
@@ -920,6 +920,50 @@
         hipL: [-1.55, 0, 0.62], hipR: [-1.55, 0, -0.62], kneeL: [1.85, 0, 0], kneeR: [1.85, 0, 0], ankleL: [0.25, 0, 0], ankleR: [0.25, 0, 0],
         spine: [0.05, 0.25, 0], head: [-0.2, 0.4, 0], hips: [0, 0, 0], bob: -0.3
       };
+    },
+    // ---- people at work
+    // "pulling" tea: the jug held high, the glass low, a long frothy pour
+    pour: function (p, a) {
+      const w = Math.sin(a.t * 2.4);
+      return { shL: [-1.9 - w * 0.35, 0, 0.35], elL: [-0.7 - w * 0.3, 0, 0], shR: [-0.55 + w * 0.15, 0, -0.25], elR: [-1.25, 0, 0],
+        spine: [0.04, 0.1, 0], head: [0.15 + w * 0.08, 0.15, 0], bob: 0 };
+    },
+    // sweeping with a long coconut-leaf broom, swinging side to side
+    sweep: function (p, a) {
+      const s = Math.sin(a.t * 3.2);
+      return { spine: [0.42, s * 0.22, 0], shL: [-0.75 + s * 0.3, 0, 0.15], shR: [-0.95 - s * 0.3, 0, -0.1], elL: [-0.35, 0, 0], elR: [-0.5, 0, 0],
+        hipL: [-0.25, 0, 0.08], hipR: [-0.25, 0, -0.08], kneeL: [0.35, 0, 0], kneeR: [0.35, 0, 0], ankleL: [flat(-0.25, 0.35), 0, 0], ankleR: [flat(-0.25, 0.35), 0, 0],
+        head: [-0.25, 0, 0], bob: -0.05 };
+    },
+    // a traffic policeman: palm out to stop one way, waving the other on
+    direct: function (p, a) {
+      if (a.stop) return { shL: [-1.55, 0, 0.1], elL: [-0.05, 0, 0], shR: [0.05, 0, -0.1], elR: [-0.2, 0, 0], spine: [0, 0, 0], head: [0, -0.2, 0], bob: 0 };
+      const w = Math.sin(a.t * 3.5);
+      return { shR: [-0.15, 0, -1.45], elR: [-0.45 - w * 0.55, 0, 0], shL: [0.05, 0, 0.1], elL: [-0.2, 0, 0], spine: [0, -0.15, 0], head: [0, -0.45, 0], bob: 0 };
+    },
+    // handing something over a counter
+    serve: function (p, a) {
+      const w = Math.sin(a.t * 1.3);
+      return { shR: [-1.05 + w * 0.12, 0, -0.1], elR: [-0.55, 0, 0], shL: [-0.5 - w * 0.1, 0, 0.12], elL: [-0.9, 0, 0], spine: [0.12, 0, 0], head: [0.15, 0, 0], bob: 0 };
+    },
+    // a guide pointing out a sight
+    point: function (p, a) {
+      return { shR: [-1.45, 0, -0.55], elR: [-0.1, 0, 0], shL: [0.05, 0, 0.1], elL: [-0.25, 0, 0], spine: [0, 0.2, 0], head: [-0.05, 0.35, 0], bob: 0 };
+    },
+    // a glass of tea: now and then up to the lips
+    sip: function (p, a) {
+      const up = (a.t % 6) < 1.6;
+      return { shR: [up ? -0.65 : -0.3, 0, -0.25], elR: [up ? -2.15 : -1.5, 0, 0], shL: [0.05, 0, 0.1], elL: [-0.2, 0, 0], head: [up ? -0.15 : 0, Math.sin(a.t * 0.3) * 0.3, 0], spine: [0, 0, 0], bob: 0 };
+    },
+    sitTea: function (p, a) {
+      const q = POSES.sip(p, a), s = POSES.sit(p, a);
+      return Object.assign({}, s, { shR: q.shR, elR: q.elR, head: q.head });
+    },
+    // talking with the hands
+    chat: function (p, a) {
+      const b = POSES.idle(p, a), w = Math.sin(a.t * 2.1), on = Math.sin(a.t * 0.45) > -0.2;
+      if (!on) return b;
+      return Object.assign({}, b, { shR: [-0.55 + w * 0.2, 0, -0.2], elR: [-1.0 - w * 0.25, 0, 0], shL: [-0.25 - w * 0.1, 0, 0.15], elL: [-0.7, 0, 0], head: [0.05, Math.sin(a.t * 0.7) * 0.25, 0] });
     },
     dance: function (p, a) {
       const t = a.t;

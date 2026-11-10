@@ -8,7 +8,7 @@
     token: null, user: null, remember: false, ws: null, connected: false, online: 0, myId: 0,
     remotes: new Map(), levelCode: 0, wantWho: new Set(), sendT: 0, whoT: 0, retry: 0
   };
-  const ANIMS = ['idle', 'walk', 'run', 'jump', 'fall', 'namaskaram', 'wave', 'sit', 'paddle', 'drive', 'land', 'ride', 'cycle', 'cast', 'haul', 'climb', 'tap'];
+  const ANIMS = ['idle', 'walk', 'run', 'jump', 'fall', 'namaskaram', 'wave', 'sit', 'paddle', 'drive', 'land', 'ride', 'cycle', 'cast', 'haul', 'climb', 'tap', 'pour', 'sweep', 'direct', 'serve', 'point', 'sip', 'sitTea', 'chat'];
   Net.ANIMS = ANIMS;
 
   // ------------------------------------------------------------ server URL

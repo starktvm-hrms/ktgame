@@ -225,6 +225,7 @@
     STREETS.forEach(([SA, sd], k) => {
       ['auto', 'scooter', 'car'].slice(0, 2 + (k + hub.index) % 2).forEach((kind, i) => {
         const obj = vehicleModel(kind, rng, true);
+        if (kind === 'auto') KT.Life.seatDriver(obj, 'auto', rng);
         hub.group.add(obj);
         TF.vehicles.push({ hub, obj, kind, look: obj.userData.look, SA, side: sd, t: 14 + i * 30 + rng() * 10, dir: i % 2 ? -1 : 1, speed: kind === 'car' ? 6.5 : kind === 'auto' ? 5.5 : 7, v: 0, wait: rng() * 3, turn: 0, len: kind === 'car' ? 3.8 : kind === 'auto' ? 2.7 : 1.8 });
       });
@@ -383,6 +384,7 @@
     TF.vehicles.forEach((v) => {
       if (v.kind === 'scooter' || !v.obj.visible || v.v > 0.4 || v.turn > 0 || !near(v.obj.position)) return;
       out.push({ kind: v.kind, look: v.look, len: v.len, obj: v.obj, heading: v.obj.rotation.y, take: () => {
+        KT.Life.driverOut(v.obj, v.hub.group);
         TF.vehicles.splice(TF.vehicles.indexOf(v), 1);
         v.hub.group.remove(v.obj);
       } });

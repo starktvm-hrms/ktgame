@@ -197,6 +197,37 @@ coconut groves with areca and banana among the palms (forest trees up in
 the Ghats), open paddy fields between them, and palms, bananas, mangoes and
 areca palms planted behind the buildings in town.
 
+## Working people
+
+Every district town is busy with people doing their jobs, each to their own
+hours by the local clock:
+
+- **Shopkeepers** stand behind their counters and serve the shoppers who stop
+  in front. The tea shop's owner "pulls" tea, pouring it from a jug held high,
+  while regulars sit on the bench outside with a glass: one in the morning,
+  one at lunchtime, one in the evening. Shops keep their own hours (the tea
+  shop opens at half past five, the textile shop at half past nine), and now
+  and then a shopkeeper goes over to the tea shop for a quick tea.
+- **Fruit vendors** at the market stalls call out to people passing.
+- **Auto drivers** wait by their parked autos, chatting or resting in the
+  seat. If you take an auto, its driver shouts after you.
+- A **traffic policeman** in khaki stands at the zebra crossing (eight to
+  eight), holding up a palm to stop the vehicles or waving them on.
+- A **street sweeper** sweeps the footpath with a coconut-leaf broom every
+  morning until eleven.
+- At the bus stand the **KSRTC station master** is on duty, and people sit on
+  the benches waiting for their bus at different times of day.
+- **Shoppers** go from shop to shop along their side of the road.
+- Every attraction has a **ticket booth** with its clerk, a **security
+  guard** by day, a **night watchman** in a chair from six in the evening,
+  and a **guide** who walks round the sight and stops to point it out.
+- **Drivers** sit at the wheel of the autos and KSRTC buses on the roads.
+
+People walk to work from home, up the side streets, when their day starts
+and walk home again when it ends. A town looks different at seven in the
+morning, at noon and at ten at night. Walk up to anyone and press E: they
+tell you about their work and what they are doing right now.
+
 ## Groups, chat and voice
 
 Every player picks a **username** (like `@anjali_nair`) when they register;
@@ -362,7 +393,8 @@ js/                   game code (terrain, world, highway, vehicle, entities, pla
                       destinations = sights on their own roads (Thiruvananthapuram),
                       toon = cel-shaded lighting, ink outlines and colour grade,
                       radio = Malayalam internet radio,
-                      townfolk = people, tourists and street traffic in the district towns)
+                      townfolk = people, tourists and street traffic in the district towns,
+                      life = working people with daily routines, and the drivers in traffic)
 server/               Node.js game server (accounts, progress, profiles, real-time play)
 supabase/             Supabase backend: database migration and the `api` Edge Function
 lib/supabase.min.js   supabase-js 2.117.3 (MIT, vendored) for Supabase Realtime

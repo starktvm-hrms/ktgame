@@ -1507,6 +1507,7 @@
     hubPlace(hub, Models.districtGate(d), 190, 0, 0);
     // bus stand on the western (left) side
     const stand = hubPlace(hub, Models.busStand(d.name), 0, -15, faceRoad(-15));
+    hub.standObj = stand;
     hub.stop = Hw.at(hub.s + 10, -8); // bus bay beside the carriageway
     hub.stopHeading = Hw.frame(hub.s).heading;
     // info board
@@ -1523,6 +1524,7 @@
     [[-55, 26, 'stall'], [40, 26, 'stall'], [60, -26, 'house'], [-60, -28, 'village'], [95, 30, 'village'], [-95, 32, 'house']].forEach((p, i) => {
       const obj = p[2] === 'stall' ? Models.marketStall(i + hub.index) : p[2] === 'house' ? Models.keralaHouse({ cycle: i % 2 === 0 }) : Models.villageHouse();
       hubPlace(hub, obj, p[0], p[1], faceRoad(p[1]));
+      if (p[2] === 'stall') (hub.stalls = hub.stalls || []).push({ obj, along: p[0], lat: p[1] });
     });
     // lamp posts & palms
     for (let a = -140; a <= 140; a += 20) [-1, 1].forEach((sd) => { if (sd < 0 && (a === 0 || a === 20)) return; hubPlace(hub, Models.lampPost(), a, sd * 8.5, sd > 0 ? 0 : Math.PI); });
@@ -1541,8 +1543,13 @@
     // rows of shops facing the road
     const srng = KT.makeRng(hub.index * 131 + 5);
     const shopRow = (from, n, lat) => {
-      for (let i = 0; i < n; i++) hubPlace(hub, Models.shop(Models.SHOP_TYPES[Math.floor(srng() * Models.SHOP_TYPES.length)]), from + i * 4.8, lat, faceRoad(lat));
+      for (let i = 0; i < n; i++) {
+        const type = Models.SHOP_TYPES[Math.floor(srng() * Models.SHOP_TYPES.length)];
+        const obj = hubPlace(hub, Models.shop(type), from + i * 4.8, lat, faceRoad(lat));
+        hub.shops.push({ obj, type, along: from + i * 4.8, lat, side: Math.sign(lat), customers: 0 });
+      }
     };
+    hub.shops = [];
     shopRow(26, 4, -16.5);
     shopRow(-48, 4, 16.5);
     shopRow(14, 3, 16.5);
@@ -1577,6 +1584,7 @@
     mergeHub(hub);
     KT.Townfolk.populate(hub);
     if (!d.home) buildToddyShop(hub);
+    KT.Life.populate(hub);
     KT.Entities.indexPalms(hub.group, Hw.palmIndex);
     hub.built = true;
   }
@@ -2547,6 +2555,7 @@
       (h.toddyPalms || []).forEach((t) => { t.foam.visible = KT.Entities.palmReady(t); });
     });
     KT.Townfolk.update(dt, player);
+    KT.Life.update(dt, player);
     if (KT.Dest) KT.Dest.update(dt, Hw.animTime, player.pos);
     Hw.npcs.forEach((w) => {
       if (!w.obj.parent || !w.obj.parent.visible) return;
