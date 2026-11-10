@@ -2128,6 +2128,16 @@
         hubPlace(hub, KT.bake(cr), a + 4, l + side * 6, rot, { y: wyAt(a, l + side * 2) + 4.5, colliders: false });
         break;
       }
+      case 'calicut': {
+        // the paved promenade along the beach, with raised planters, and a
+        // slope of granite boulders down to the sand
+        const prom = new T.Group();
+        KT.part(prom, KT.G.box(56, 0.4, 6), KT.mat('calPave', { color: 0xa86a5a, roughness: 0.9 }), 0, 0.2, 0);
+        for (let x = -24; x <= 24; x += 12) { KT.part(prom, KT.G.box(3, 0.7, 2), KT.M.darkGrey, x, 0.55, -1.2); KT.part(prom, KT.G.box(2.7, 0.1, 1.7), KT.mat('calGrass', { color: 0x5a8a34 }), x, 0.95, -1.2); }
+        for (let i = 0; i < 40; i++) KT.part(prom, KT.blob(0.7 + (i % 3) * 0.25, 1, 0.3, 980 + i), KT.mat('calRock', { color: 0x7a7066, roughness: 0.95 }), -27 + i * 1.4, 0.2, 3.6 + (i % 2) * 0.8);
+        hubPlace(hub, KT.bake(prom), a, l - side * 22, rot);
+        break;
+      }
       case 'munnar':
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });

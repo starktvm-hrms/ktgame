@@ -132,7 +132,7 @@
     kkd: [
       { name: 'Kappad Beach', kind: 'main', icon: '\u{1F3D6}\uFE0F', facts: ['Vasco da Gama landed at Kappad on 20 May 1498. A small memorial marks the spot.'] },
       { name: 'Thusharagiri Waterfalls', kind: 'waterfall', model: 'thusharagiri', icon: '\u{1F4A7}', facts: ['Thusharagiri means "mist-capped mountain". Three waterfalls tumble through the forest here.'] },
-      { name: 'Kozhikode Beach', kind: 'beachLight', icon: '\u{1F305}', facts: ['Watch the sunset from Kozhikode beach with a plate of kallummakkaya (mussels) and a glass of sulaimani tea.', 'The old pier and lighthouse recall the city’s spice trade with the world.'] },
+      { name: 'Kozhikode Beach', kind: 'beachLight', model: 'calicut', icon: '\u{1F305}', facts: ['Watch the sunset from Kozhikode beach with a plate of kallummakkaya (mussels) and a glass of sulaimani tea.', 'The old pier and lighthouse recall the city’s spice trade with the world.'] },
       { name: "Mananchira Square", kind: 'garden', model: 'mananchira', icon: '\u{1F333}', facts: ["Mananchira Square is a park around an old royal tank in the heart of Kozhikode.", "It was built for the Zamorins, the rulers of Calicut."] },
       { name: "Tali Temple", kind: 'shrine', icon: '\u{1F6D5}', facts: ["The Tali Shiva temple was built by the Zamorins in the 14th century.", "It hosted the famous Revathi Pattathanam scholarly debates."] },
       { name: 'Beypore Port', kind: 'beypore', icon: '\u26F5', facts: ['For over 1,500 years Beypore has built the uru: huge wooden dhows, made by hand for Arab traders.', 'Its breakwater, the pulimuttu, runs 2 km out into the sea.'] },
