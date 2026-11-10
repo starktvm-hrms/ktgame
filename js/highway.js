@@ -2585,6 +2585,9 @@
           const w = waterDisc(hub, 36, side + 34, 16);
           [[30, 26, 3.2], [34, 30, 2.6], [38, 34, 2.2], [42, 37, 1.6]].forEach(([al, la, sc], i) => { const r = Models.rock(30 + i); r.scale.set(sc * 1.4, sc * 0.6, sc); hubPlace(hub, r, al, side + la, i, { y: w.position.y - 0.3, colliders: false }); });
           hubPlace(hub, Models.lampTower(3), 30, side + 26, rot, { y: w.position.y + 1.4, colliders: false });
+          // dark, rounded rocks scattered over the golden sand at the water's edge
+          for (let i = 0; i < 9; i++) { const r = Models.rock(50 + i); r.scale.set(1.6 + (i % 3) * 0.5, 0.5, 1.2 + (i % 2) * 0.4); hubPlace(hub, r, 4 + i * 4.5, side + 22 + (i % 3) * 3, i, { colliders: false }); }
+          hubPlace(hub, Models.vallam(4), 18, side + 40, 0, { absRot: Hw.frame(hub.s + 18).heading + 0.6, y: w.position.y + 0.05, colliders: false });
         }
         break;
       }
