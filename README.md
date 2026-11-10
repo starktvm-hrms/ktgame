@@ -130,19 +130,63 @@ town, each with an information board (press E to read about it):
 | District | Attractions |
 | --- | --- |
 | Thiruvananthapuram | Each on its own road (below) |
-| Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake, Palaruvi Waterfalls, Thenmala Eco-tourism |
+| Kollam | Thangassery Lighthouse, Jatayu Earth's Center, Ashtamudi Lake, Palaruvi Waterfalls, Thenmala Eco-tourism, Kollam Beach |
 | Pathanamthitta | Sabarimala, Aranmula Snake Boats, Gavi Forest, Konni Elephant Camp, Perunthenaruvi Waterfalls |
-| Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse, Ambalappuzha Temple, Pathiramanal Island, Arthunkal Basilica |
-| Kottayam | Thirunakkara Church, Kumarakom Bird Sanctuary, Vagamon Meadows, Ettumanoor Mahadeva Temple |
-| Idukki | Idukki Arch Dam, Munnar Tea Gardens, Thekkady Periyar Wildlife, Spice Plantations |
-| Ernakulam | Chinese Fishing Nets, Mattancherry Palace, Kathakali Centre, St. Francis Church, Paradesi Synagogue, Cherai Beach |
-| Thrissur | Vadakkunnathan Temple and elephants, Athirappilly Waterfalls, Guruvayur Temple, Kerala Kalamandalam, Punnathur Kotta |
-| Palakkad | Palakkad Fort, Malampuzha Dam & Gardens, Silent Valley National Park, Nelliyampathy Hills |
-| Malappuram | Malappuram Mosque, Kottakkal Arya Vaidya Sala, a football ground, Nilambur Teak Museum, Padinharekara Beach |
-| Kozhikode | Kappad Beach, Thusharagiri Waterfalls, Kozhikode Beach, Mananchira Square, Tali Temple |
-| Wayanad | Edakkal Caves, Banasura Sagar Dam, Chembra Peak, Soochipara Falls, Kuruva Island, Muthanga Wildlife Sanctuary |
-| Kannur | St. Angelo Fort, Theyyam, Muzhappilangad Drive-in Beach, Arakkal Museum, Payyambalam Beach |
+| Alappuzha | Backwaters and houseboats, Alappuzha Beach & Lighthouse, Ambalappuzha Temple, Pathiramanal Island, Arthunkal Basilica, Kuttanad, Marari Beach |
+| Kottayam | Thirunakkara Church, Kumarakom Bird Sanctuary, Vagamon Meadows, Ettumanoor Mahadeva Temple, Vembanad Lake, Illikkal Kallu |
+| Idukki | Idukki Arch Dam, Munnar Tea Gardens, Thekkady Periyar Wildlife, Spice Plantations, Eravikulam National Park, Marayoor |
+| Ernakulam | Chinese Fishing Nets, Mattancherry Palace, Kathakali Centre, St. Francis Church, Paradesi Synagogue, Cherai Beach, Marine Drive, Mangalavanam Bird Sanctuary |
+| Thrissur | Vadakkunnathan Temple and elephants, Athirappilly Waterfalls, Guruvayur Temple, Kerala Kalamandalam, Punnathur Kotta, Thrissur Zoo & Museum |
+| Palakkad | Palakkad Fort, Malampuzha Dam & Gardens, Silent Valley National Park, Nelliyampathy Hills, Parambikulam Tiger Reserve |
+| Malappuram | Malappuram Mosque, Kottakkal Arya Vaidya Sala, a football ground, Nilambur Teak Museum, Padinharekara Beach, Kottakkunnu, Adyanpara Waterfalls |
+| Kozhikode | Kappad Beach, Thusharagiri Waterfalls, Kozhikode Beach, Mananchira Square, Tali Temple, Beypore Port, Kadalundi Bird Sanctuary |
+| Wayanad | Edakkal Caves, Banasura Sagar Dam, Chembra Peak, Soochipara Falls, Kuruva Island, Wayanad Wildlife Sanctuary |
+| Kannur | St. Angelo Fort, Theyyam, Muzhappilangad Drive-in Beach, Arakkal Museum, Payyambalam Beach, Parassinikkadavu Snake Park |
 | Kasaragod | Bekal Fort, Ananthapura Lake Temple, Chandragiri Fort, Ranipuram Hills, Kappil Beach |
+
+Each place is modelled on what it really looks like:
+
+- **Waterfalls:** each has its own shape. Athirappilly is a broad curtain with
+  spray rising, Palaruvi a tall, narrow "stream of milk", Perunthenaruvi and
+  Adyanpara low and wide over flat rocks, and Soochipara tall.
+- **Beaches:**
+  - Kollam has Gandhi Park with the statue and the tetrapod breakwater.
+  - At Marari, fishing boats are pulled up on the sand.
+  - Muzhappilangad has cars driving on the sand.
+  - Payyambalam has Kanayi's "Amma" sculpture.
+  - Kappil has a cliff behind it.
+  - Cherai and Ashtamudi have Chinese fishing nets.
+  - Padinharekara is at a river mouth.
+- **Backwaters:** Kuttanad's paddy lies below the canal between palm-lined
+  bunds, with a pump house and a church. Vembanad has houseboats and a sandy
+  island.
+- **Hills:**
+  - Illikkal Kallu has the umbrella rock, the hunchback rock and the
+    Narakapalam ledge in the mist.
+  - At Eravikulam, Nilgiri tahr graze below the Rajamala rock face among
+    neelakurinji.
+  - Chembra has its heart-shaped lake.
+- **Forests:**
+  - Marayoor has sandalwood forest, dolmens and a jaggery shed.
+  - Parambikulam has the giant Kannimara teak, a tree house and a bamboo
+    raft.
+  - Thenmala has a hanging canopy bridge.
+  - Gavi has a lake with kayaks.
+  - Thekkady's lake has its dead tree stumps and a tour boat.
+  - Silent Valley has lion-tailed macaques.
+- **Kochi:** Marine Drive has the Rainbow Bridge, high-rises and the boat
+  jetty. Mangalavanam's mangroves are ringed by the city.
+- **Kozhikode:** Beypore has a wooden uru (dhow) on its props in scaffolding
+  and the long breakwater with its light. Kadalundi has a railway bridge
+  across the estuary. Mananchira is an old royal tank in a park.
+- **Others:**
+  - Malampuzha has the reclining Yakshi and the ropeway.
+  - Banasura has islands in its reservoir.
+  - Thrissur has the zoo's aviary, deer paddock and museum.
+  - Parassinikkadavu has its snake pits, cobra house and crocodile pond.
+
+Every attraction is edged with flower beds, flowering bushes, benches facing
+the sight, lamps and dustbins.
 
 Reaching an attraction for the first time discovers it (+10 coins). They
 appear on the minimap, and on the big map when you zoom in.

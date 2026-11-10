@@ -1594,7 +1594,7 @@
   // centre (along the road, lateral); the main one is the landmark.
   const SIGHT_SLOTS = [{ along: -70, lat: 80 }, { along: 60, lat: -84 }, { along: 120, lat: 86 }, { along: -98, lat: -82 }, { along: -178, lat: 72 }, { along: 178, lat: -80 }, { along: -190, lat: -90 }];
   const MAIN_SPOT = { along: 20, lat: 72 };
-  const SIGHT_R = { church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
+  const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
   const DEST_R = { gopuramTemple: 30, palace: 20, fortGate: 16, clockTower: 10, secretariat: 34, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
@@ -1758,7 +1758,14 @@
         }
         case 'tea': hubPlace(hub, Models.teaHill(), a, l, rot); break;
         case 'waterfall': {
-          const fall = hubPlace(hub, Models.waterfall(16), a, l + side * 6, rot);
+          // each fall has its own shape: wide, tall and narrow, low over slabs
+          const FALLS = { athirappilly: [1.55, 1.25, 20], palaruvi: [0.55, 1.9, 16], perunthenaruvi: [1.5, 0.55, 16], soochipara: [0.85, 1.55, 16], thusharagiri: [1.1, 1.15, 16], adyanpara: [1.35, 0.6, 16] };
+          const fv = FALLS[def.model] || [1, 1, 16];
+          const fm = Models.waterfall(fv[2]);
+          fm.scale.set(fv[0], fv[1], 1);
+          fm.userData.colliders = (fm.userData.colliders || []).map((c) => Object.assign({}, c, { x: c.x * fv[0], hw: c.hw * fv[0] }));
+          const fall = hubPlace(hub, fm, a, l + side * 6, rot);
+          if (def.model === 'athirappilly' || def.model === 'thusharagiri' || def.model === 'palaruvi') fall.add(Models.mistCloud ? Models.mistCloud() : new T.Group());
           hub.flows = (hub.flows || []).concat([fall.userData.flow]);
           waterDisc(hub, a, l - side * 0.5, 9);
           break;
@@ -1774,6 +1781,7 @@
           break;
         }
         case 'garden':
+          if (def.model === 'mananchira') { hubPlace(hub, Models.mananchira(), a, l, rot); break; }
           hubPlace(hub, Models.garden(), a, l, rot);
           hubPlace(hub, Models.earthDam(), a, l + side * 30, 0, { absRot: heading });
           break;
@@ -1783,6 +1791,18 @@
           const w = waterDisc(hub, a, l + side * 22, 16);
           w.position.y += 6;
           [[-5, 2], [6, -3]].forEach(([x, z]) => { const r = Models.rock(3); r.scale.setScalar(1.6); hubPlace(hub, r, a + x, l + side * (22 + z), 0, { y: w.position.y - 0.5, colliders: false }); });
+          if (def.model === 'banasura') {
+            // the little green islands in the reservoir, and a boat
+            [[-8, -4, 3], [7, 5, 2.4], [0, 9, 1.8]].forEach(([x, z, r], i) => {
+              const isl = new T.Mesh(new T.SphereGeometry(r, 14, 8), mats.islandGreen || (mats.islandGreen = KT.mat('islandGreen', { color: 0x4f8a36, roughness: 0.95 })));
+              isl.scale.set(1, 0.45, 1);
+              const q = Hw.at(hub.s + a + x, l + side * (22 + z));
+              isl.position.set(q.x, w.position.y - 0.2, q.z);
+              hub.group.add(isl);
+              hubPlace(hub, Models.forestTree(60 + i), a + x, l + side * (22 + z), i, { y: w.position.y + r * 0.35, colliders: false });
+            });
+            if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 4, l + side * 16, 0, { absRot: heading + 0.8, y: w.position.y + 0.02, colliders: false });
+          }
           break;
         }
         case 'theyyam': hubPlace(hub, Models.theyyam(), a, l, rot); break;
@@ -1848,9 +1868,173 @@
           for (let i = 0; i < 3; i++) Hw.addCollider({ type: 'circle', x: Hw.at(hub.s + a - 6 + i * 6, l + side * 2).x, z: Hw.at(hub.s + a - 6 + i * 6, l + side * 2).z, r: 2.2 });
           break;
         }
+        case 'kollamBeach':
+          sand(hub, a, l, 28);
+          hubPlace(hub, Models.beachSet(4), a + 10, l + side * 8, rot, { colliders: false });
+          hubPlace(hub, Models.kollamPark(), a - 2, l - side * 2, rot);
+          break;
+        case 'kuttanad': hubPlace(hub, Models.kuttanad(), a, l, rot); break;
+        case 'marari': sand(hub, a, l, 28); hubPlace(hub, Models.marari(), a, l, rot); break;
+        case 'vembanad': {
+          const w = waterDisc(hub, a, l, 27);
+          [[-10, -6, 0.3], [6, 4, 1.4], [12, -12, 2.2]].forEach(([x, z, r]) => hubPlace(hub, Models.houseboat(), a + x, l + side * z, 0, { absRot: heading + r, y: w.position.y + 0.05, colliders: false }));
+          [[-4, 12], [14, 8], [-16, 6]].forEach(([x, z], i) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading + i, y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
+          // a sandy island with palms (like Pathiramanal) out in the lake
+          const iq = Hw.at(hub.s + a - 12, l + side * 10);
+          const isl = new T.Mesh(new T.CircleGeometry(5.5, 24), mats.sand);
+          isl.rotation.x = -Math.PI / 2;
+          isl.position.set(iq.x, w.position.y + 0.08, iq.z);
+          hub.group.add(isl);
+          [[-1.5, -1], [1.8, 0.5], [0, 2]].forEach(([x, z], i) => hubPlace(hub, Models.coconutPalm(90 + i), a - 12 + x, l + side * (10 + z), i, { y: w.position.y + 0.1, colliders: false }));
+          for (let k = 0; k < 4; k++) hubPlace(hub, Models.jettySection(), a + 4, l - side * (24 - k * 3), 0, { absRot: heading + Math.PI / 2, y: w.position.y + 0.3, colliders: false });
+          break;
+        }
+        case 'illikkal': hubPlace(hub, Models.illikkal(), a, l, rot); break;
+        case 'eravikulam': hubPlace(hub, Models.eravikulam(), a, l, rot); break;
+        case 'marayoor': hubPlace(hub, Models.marayoor(), a, l, rot); break;
+        case 'marineDrive': hubPlace(hub, Models.marineDrive(), a, l, rot); break;
+        case 'thrissurZoo': {
+          hubPlace(hub, Models.heritageHall(def.colors), a - 7, l + side * 6, rot);
+          hubPlace(hub, Models.aviary(), a + 12, l + side * 4, rot);
+          hubPlace(hub, Models.entranceArch(['Thrissur Zoo & Museum', 'Chembukkavu • since 1885']), a, l - side * 15, rot);
+          // the deer paddock
+          const fence = Models.woodenFence ? Models.woodenFence(14) : null;
+          if (fence) { hubPlace(hub, fence, a + 12, l - side * 6, rot, { colliders: false }); }
+          if (Models.deer) [[9, -9], [13, -7], [15, -10]].forEach(([x, z], i) => hubPlace(hub, Models.deer(i > 0), a + x, l - side * -z, rot + i, { colliders: false }));
+          break;
+        }
+        case 'parambikulam': {
+          const w = waterDisc(hub, a + side * 1, l - side * 7, 7.5);
+          hubPlace(hub, Models.parambikulam(), a, l + side * 4, rot);
+          for (let i = 0; i < 9; i++) hubPlace(hub, Models.forestTree(i + 40), a - 18 + (i % 5) * 9, l + side * (16 + (i % 2) * 6), i);
+          hubPlace(hub, Models.buffalo ? Models.buffalo() : Models.cow(), a + 14, l - side * 2, rot + 1, { colliders: false });
+          void w;
+          break;
+        }
+        case 'kottakkunnu': hubPlace(hub, Models.kottakkunnu(), a, l, rot); break;
+        case 'beypore': {
+          const w = waterDisc(hub, a - 4 - side * 25.5, l + side * 14, 9.5); // (model x = -side along, z = -side lat)
+          hubPlace(hub, Models.beypore(), a - 4, l + side * 2, rot);
+          void w;
+          break;
+        }
+        case 'kadalundi': {
+          const w = waterDisc(hub, a, l, 22);
+          // sand bars, mangroves, birds and the railway bridge across the mouth
+          [[-6, 4, 4], [8, -5, 3.2]].forEach(([x, z, r]) => {
+            const q = Hw.at(hub.s + a + x, l + side * z);
+            const bar = new T.Mesh(new T.CircleGeometry(r, 18), mats.sand);
+            bar.rotation.x = -Math.PI / 2; bar.scale.set(1.6, 1, 1);
+            bar.position.set(q.x, w.position.y + 0.06, q.z);
+            hub.group.add(bar);
+          });
+          for (let i = 0; i < 9; i++) { const ang = (i / 9) * Math.PI * 2; if (Math.sin(ang) * side < -0.5) continue; hubPlace(hub, Models.mangrove(), a + Math.cos(ang) * 24, l + Math.sin(ang) * 24, ang); }
+          for (let i = 0; i < 12; i++) {
+            const x = (i % 2 ? 8 : -6) + (i % 4) - 2, z = (i % 2 ? -5 : 4) + ((i * 7) % 5) - 2;
+            const bird = i % 4 === 0 && Models.cormorant ? Models.cormorant() : i % 4 === 1 && Models.kingfisher ? Models.kingfisher() : Models.egret();
+            hubPlace(hub, bird, a + x, l + side * z, i, { y: w.position.y + 0.06, colliders: false });
+          }
+          hubPlace(hub, Models.railBridge(52), a + 14, l, 0, { absRot: heading + Math.PI / 2 + 0.2, colliders: false });
+          hubPlace(hub, Models.watchTower(), a - 18, l - side * 18, rot);
+          break;
+        }
+        case 'snakePark': hubPlace(hub, Models.snakePark(), a, l, rot); break;
         default: break;
       }
+      sightExtras(hub, sg, def, a, l, side, rot, heading);
+      dressSight(hub, sg);
     });
+  }
+
+  // Signature details that make a place itself (on top of its kind's model)
+  function sightExtras(hub, sg, def, a, l, side, rot, heading) {
+    const m = def.model;
+    if (!m) return;
+    const C = Hw.at(hub.s + a, l), cx = C.x, cz = C.z;
+    const faceCentre = (al, la) => { const q = Hw.at(hub.s + al, la); return Math.atan2(cx - q.x, cz - q.z); };
+    const wyAt = (al, la) => { const q = Hw.at(hub.s + al, la); return Hw.groundY(q.x, q.z).y; };
+    switch (m) {
+      case 'ashtamudi':
+      case 'cherai':
+        // Chinese fishing nets on the shore
+        [0.4, 1.1, -0.4].slice(0, m === 'cherai' ? 2 : 3).forEach((ang) => {
+          const al = a + Math.cos(Math.PI / 2 * side + ang + Math.PI) * (m === 'cherai' ? 22 : 24), la = l + Math.sin(Math.PI / 2 * side + ang + Math.PI) * (m === 'cherai' ? 22 : 24);
+          hubPlace(hub, Models.chineseNet(), al, la, 0, { absRot: faceCentre(al, la), colliders: false });
+        });
+        if (m === 'cherai') waterDisc(hub, a, l + side * 30, 8);
+        break;
+      case 'kumarakom': hubPlace(hub, Models.houseboat(), a + 4, l + side * 2, 0, { absRot: heading + 0.6, y: wyAt(a, l) + 0.06, colliders: false }); break;
+      case 'thenmala':
+        // the canopy walk: a hanging bridge high over the pool
+        hubPlace(hub, Models.hangingBridge(24), a, l + side * 6, 0, { absRot: heading + Math.PI / 2, y: wyAt(a, l) + 2.5, colliders: false });
+        break;
+      case 'gavi': {
+        // Gavi lake, with kayaks, in front of the forest
+        const w = waterDisc(hub, a + 12, l - side * 12, 9);
+        [[9, -10], [14, -14], [12, -9]].forEach(([x, z], i) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading + i * 1.3, y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
+        break;
+      }
+      case 'thekkady': {
+        hubPlace(hub, Models.stumps(), a, l + side * 6, 0, { absRot: heading, colliders: false });
+        if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 2, l + side * 7, 0, { absRot: heading + 0.4, y: wyAt(a, l + side * 6) + 0.08, colliders: false });
+        break;
+      }
+      case 'silentValley':
+        [[-8, 4, 2.6], [-12, 8, 1.4], [6, 10, 2.2]].forEach(([x, z, y], i) => hubPlace(hub, Models.lionTailedMacaque(), a + x, l + side * z, i, { y: wyAt(a + x, l + side * z) + y * (i ? 0 : 1), colliders: false }));
+        break;
+      case 'muthanga':
+        if (Models.car) hubPlace(hub, Models.car(0x8a7a4a, 'suv'), a - 4, l - side * 18, 0, { absRot: heading - 0.4 });
+        break;
+      case 'malampuzha':
+        hubPlace(hub, Models.yakshi(), a - 14, l - side * 6, rot);
+        hubPlace(hub, Models.ropeway(30), a, l + side * 14, 0, { absRot: heading, colliders: false });
+        break;
+      case 'chembra': hubPlace(hub, Models.heartLake(), a + 15, l - side * 4, rot, { y: wyAt(a + 15, l - side * 4) + 0.08, colliders: false }); break;
+      case 'ranipuram':
+        for (let i = 0; i < 8; i++) hubPlace(hub, Models.flowerBush(i), a - 14 + i * 4, l - side * (10 + (i % 2) * 3), i, { colliders: false });
+        break;
+      case 'driveIn':
+        // cars driving along the firm sand
+        if (Models.car) [[-14, 4, 0x2c5fa8, 'suv'], [-4, -2, 0xd8203a, 'hatch'], [8, 6, 0xf3f3f0, 'sedan'], [16, 0, 0x1d1d1f, 'suv']].forEach(([x, z, c, st]) => hubPlace(hub, Models.car(c, st), a + x, l + side * z, 0, { absRot: heading + (x > 0 ? 0 : Math.PI) }));
+        hubPlace(hub, Models.scooter(0xb3261e, 0x2c5fa8, 0x111111), a + 2, l + side * 10, 0, { absRot: heading, colliders: false });
+        break;
+      case 'payyambalam':
+        hubPlace(hub, Models.ammaSculpture(), a - 14, l - side * 10, rot);
+        for (let i = 0; i < 4; i++) hubPlace(hub, Models.flowerBed(i), a - 20 + i * 4, l - side * 18, 0);
+        break;
+      case 'kappil': hubPlace(hub, Models.cliff(), a, l + side * 22, rot); break;
+      case 'estuary': {
+        const w = waterDisc(hub, a + 22, l + side * 4, 11);
+        [[18, 2], [24, 6]].forEach(([x, z], i) => hubPlace(hub, Models.vallam(i + 7), a + x, l + side * z, 0, { absRot: heading + i, y: w.position.y + 0.02, colliders: false }));
+        break;
+      }
+      case 'city':
+        // the city round the mangroves
+        [[-26, 18], [-14, 26], [14, 26], [26, 18]].forEach(([x, z], i) => hubPlace(hub, Models.townBuilding(i + 3), a + x, l + side * z, rot));
+        break;
+      default: break;
+    }
+  }
+
+  // Every attraction gets a dressed edge: flower beds, flowering bushes,
+  // benches facing the sight, lamps and dustbins, wherever there is room.
+  const DRESS = ['flowerBed', 'bench', 'flowerBush', 'lampPost', 'flowerBush', 'dustbin', 'flowerBed', 'bench', 'lampPost', 'flowerBush', 'bench', 'flowerBush'];
+  function dressSight(hub, sg) {
+    if (!Models.flowerBed) return;
+    const R = sg.r + 6.5, n = DRESS.length;
+    const C = Hw.at(hub.s + sg.along, sg.lat), cx = C.x, cz = C.z;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + sg.along * 0.01;
+      const al = sg.along + Math.cos(ang) * R, la = sg.lat + Math.sin(ang) * R;
+      if (Math.abs(la) < 24) continue;
+      const kind = DRESS[i], r = kind === 'flowerBed' ? 1.8 : kind === 'bench' ? 1.1 : 0.6;
+      const q = hubFree(hub, al, la, r);
+      if (!q) continue;
+      const obj = kind === 'flowerBed' ? Models.flowerBed(i) : kind === 'flowerBush' ? Models.flowerBush(i + hub.index) : kind === 'dustbin' ? Models.dustbin() : Models[kind]();
+      const face = Math.atan2(cx - q.x, cz - q.z);
+      placeOnHub(hub, obj, al, la, 0, { absRot: face, colliders: kind !== 'flowerBush' });
+      if (kind === 'flowerBush' || kind === 'lampPost') Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: kind === 'lampPost' ? 0.2 : 0.7 });
+    }
   }
 
   // --------------------------------------------------------- the town
