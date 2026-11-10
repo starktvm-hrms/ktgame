@@ -193,6 +193,32 @@ Each place is modelled on what it really looks like:
   - Thrissur has the zoo's aviary, deer paddock and museum.
   - Parassinikkadavu has its snake pits, cobra house and crocodile pond.
 
+The places were reworked against reference photos (openly licensed, via
+Openverse) and written descriptions. Some of the changes:
+- golden-brown beach sand;
+- Ashtamudi's nets out in the lake;
+- Jatayu in grey stone;
+- Thangassery's barber-pole bands;
+- Konni's log kraal;
+- Munnar's contour hedges;
+- Thekkady's tour boats and dead trees;
+- St Francis Church's Dutch gables;
+- Mattancherry's arch gate;
+- Paradesi Synagogue's clock tower;
+- Palakkad's granite fort and moat;
+- Bekal's keyhole fort and St Angelo's triangular fort;
+- Kadalundi's concrete bridge;
+- Mananchira's red walk and brick pillars;
+- Marine Drive's red benches and cranes;
+- Kuruva's bamboo rafts;
+- Ananthapura's square tank;
+- Ranipuram's summit rock.
+
+The land fits the waterfalls and dams. The ground behind each fall rises to
+the height of its lip and falls away in long green slopes, with an open
+valley in front. Each dam holds its reservoir at crest level in a basin of
+hills, its ends set into hillsides.
+
 Every attraction is edged with flower beds, flowering bushes, benches facing
 the sight, lamps and dustbins.
 
