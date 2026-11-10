@@ -280,7 +280,7 @@
   // bastions with gun loops look out over the sea on three sides
   Models.bekalFort = function () {
     const g = new T.Group();
-    const lat = KT.mat('pl_bekalLat', { map: KT.tex('laterite', 2, 1), color: 0xd08a5a }, 0.2), grass = mt('bekalGrass', 0x7aa04a, 1), path = mt('bekalPath', 0xa86a44, 0.95);
+    const lat = KT.mat('pl_bekalLat', { map: KT.tex('laterite', 2, 1), color: 0x9a5a3e }, 0.2), grass = mt('bekalGrass', 0x7aa04a, 1), path = mt('bekalPath', 0xa86a44, 0.95);
     const H = 7, R = 22;
     part(g, G.cyl(R - 1, R - 1, 0.1, 40), grass, 0, 0.05, -6);
     // the round head of the keyhole (open at the front)
@@ -304,9 +304,13 @@
       for (let k = 0; k < 4; k++) part(g, G.box(0.5, 0.35, 0.3), M().windowDark, x + Math.sin(a + Math.PI + (k - 1.5) * 0.4) * 3.4, H - 1.5, z + Math.cos(a + Math.PI + (k - 1.5) * 0.4) * 3.4);
     });
     // the observation tower in the middle, a ramp winding up it
-    part(g, G.cyl(4.5, 5, 10, 24), lat, 0, 5, -8);
-    for (let k = 0; k < 14; k++) { const a = k * 0.45; part(g, G.box(2.2, 0.3, 1.6), path, Math.cos(a) * 5.6, 0.6 + k * 0.68, -8 + Math.sin(a) * 5.6, 0, -a, 0); }
-    for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; part(g, G.box(0.9, 0.8, 0.9), lat, Math.cos(a) * 4.4, 10.4, -8 + Math.sin(a) * 4.4); }
+    // the observation tower: wide at the base and tapering, reached by one
+    // long straight ramp on its own walls
+    part(g, G.cyl(4.2, 6.6, 10, 24), lat, 0, 5, -8);
+    for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; part(g, G.box(0.9, 0.8, 0.9), lat, Math.cos(a) * 4.1, 10.4, -8 + Math.sin(a) * 4.1); }
+    const rampLen = 17, rampAng = Math.atan2(10, rampLen);
+    part(g, G.box(2.4, 0.5, Math.hypot(rampLen, 10)), lat, -5.2, 5, -8 + rampLen / 2 + 2, rampAng, 0, 0);
+    part(g, G.box(2.4, 10, 1), lat, -5.2, 5, -8 + 4.5, 0, 0, 0);
     // a path in from the gate
     part(g, G.box(3, 0.08, 20), path, 0, 0.1, 6);
     const baked = KT.bake(g);
