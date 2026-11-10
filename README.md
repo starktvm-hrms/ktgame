@@ -223,6 +223,19 @@ hours by the local clock:
   and a **guide** who walks round the sight and stops to point it out.
 - **Drivers** sit at the wheel of the autos and KSRTC buses on the roads.
 
+The Alleppey home map has its own working people too: fruit vendors at the
+promenade stalls, the tea cart's owner with regulars sipping tea beside it,
+the temple priest at the shrine (morning and evening poojas) and a jasmine
+seller at the gate, ticket counters at Krishnapuram Palace and the
+lighthouse, a lifeguard on the beach by day, a peanut seller there in the
+evening, and a sweeper on the promenade in the morning.
+
+At the Thiruvananthapuram Zoo, three keepers go round the enclosures with
+their buckets at feeding time, the mahout stays with the old tusker, a
+sweeper keeps the main path clean, a snack cart in the forecourt sells tea
+and ice cream, and the ticket booth at the gate has a clerk, a guard and a
+night watchman. A guide walks visitors round, stopping at each enclosure.
+
 People walk to work from home, up the side streets, when their day starts
 and walk home again when it ends. A town looks different at seven in the
 morning, at noon and at ten at night. Walk up to anyone and press E: they

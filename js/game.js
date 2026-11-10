@@ -570,7 +570,7 @@
       else if (st === 'fishing') KT.Fishing.update(dt, input);
       else if (st === 'dialog') {
         if (input.consume('interact') || input.consume('confirm') || input.consume('jump')) { if (KT.UI.dialogNext) KT.UI.dialogNext(); }
-        if (input.consume('pause')) { KT.UI.closeDialog(); KT.Entities.npcs.concat(KT.Highway.npcs).forEach((w) => { w.talking = false; }); Game.setState('playing'); }
+        if (input.consume('pause')) { KT.UI.closeDialog(); KT.Entities.npcs.concat(KT.Highway.npcs, KT.Life.workers).forEach((w) => { w.talking = false; }); Game.setState('playing'); }
       } else if (st === 'photo') {
         if (input.consume('photo') || input.consume('jump') || input.consume('confirm')) Game.takePhoto();
         if (input.consume('pause')) Game.setState('playing');
@@ -582,6 +582,7 @@
       if (Game.level === 'home') {
         KT.World.update(dt, KT.Player, Game.camera);
         KT.Traffic.updateHome(dt, Game.camera.position);
+        KT.Life.update(dt, KT.Player);
         KT.World.followSun(KT.Player.pos);
       } else if (Game.level === 'lighthouse') {
         KT.Lighthouse.update(dt, KT.Player);

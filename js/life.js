@@ -45,7 +45,9 @@
     const c = Math.cos(obj.rotation.y), s = Math.sin(obj.rotation.y);
     return { x: obj.position.x + lx * c + lz * s, z: obj.position.z - lx * s + lz * c, y };
   };
-  const inShift = (h, sh) => (sh[0] <= sh[1] ? h >= sh[0] && h < sh[1] : h >= sh[0] || h < sh[1]);
+  // a shift is [from, to] (it may run past midnight), or a list of them
+  const inOne = (h, sh) => (sh[0] <= sh[1] ? h >= sh[0] && h < sh[1] : h >= sh[0] || h < sh[1]);
+  const inShift = (h, sh) => (Array.isArray(sh[0]) ? sh.some((x) => inOne(h, x)) : inOne(h, sh));
   const fmt = (h) => {
     const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
     const ap = hh >= 12 && hh < 24 ? 'pm' : 'am', h12 = ((hh + 11) % 12) + 1;
@@ -94,6 +96,27 @@
     m.position.set(0, -0.33, 0.06);
     r.elL.add(m);
   }
+  function addBucket(ch) {
+    const r = ch.userData.rig;
+    if (!r || !r.elR) return;
+    const b = new T.Mesh(KT.G.cyl(0.13, 0.1, 0.24, 10), pm('bucket', { color: 0x8a9096, metalness: 0.5, roughness: 0.5 }));
+    b.position.set(0, -0.42, 0.02);
+    r.elR.add(b);
+  }
+  // a flat basket of jasmine garlands and marigolds
+  function addBasket(ch) {
+    const r = ch.userData.rig;
+    if (!r || !r.elL) return;
+    const g = new T.Group();
+    g.add(new T.Mesh(KT.G.cyl(0.2, 0.15, 0.08, 12), pm('basket', { color: 0xb08a50, roughness: 0.9 })));
+    for (let i = 0; i < 6; i++) {
+      const f = new T.Mesh(KT.G.sph(0.05, 6, 4), pm(i % 2 ? 'jasmineW' : 'marigold', { color: i % 2 ? 0xfafaf2 : 0xf2a020, roughness: 0.8 }));
+      f.position.set(Math.cos(i) * 0.11, 0.05, Math.sin(i) * 0.11);
+      g.add(f);
+    }
+    g.position.set(0, -0.32, 0.12);
+    r.elL.add(g);
+  }
   // a ticket booth with an open window and a plastic chair beside it
   let boothProto = null;
   function ticketBooth() {
@@ -135,6 +158,8 @@
     if (w.prop === 'broom') addBroom(ch);
     if (w.prop === 'tea') { addJug(ch); addGlass(ch, 'R', 0.1); }
     if (w.prop === 'glass') addGlass(ch, 'R');
+    if (w.prop === 'bucket') addBucket(ch);
+    if (w.prop === 'basket') addBasket(ch);
     return ch;
   }
   function lookFor(rng, kind, female) {
@@ -155,6 +180,11 @@
       case 'clerk': return Object.assign(base, { outfit: female ? 'saree' : 'formal', colors: female ? undefined : { top: 0xf3efe6 } });
       case 'sweeper': return Object.assign(base, { gender: 'female', outfit: 'saree', hair: 'bun', colors: { top: 0xe07a1f } });
       case 'tea': return Object.assign(base, { gender: 'male', outfit: 'mundu', colors: { top: 0xf3efe6 } });
+      case 'keeper': return Object.assign(base, { outfit: 'formal', colors: { top: 0x4f6b3a, bottom: KHAKI_DARK }, acc: { hat: rng() < 0.5 } });
+      case 'mahout': return Object.assign(base, { gender: 'male', outfit: 'mundu', colors: { top: 0x2c5fa8 }, mustache: true });
+      case 'lifeguard': return Object.assign(base, { gender: 'male', outfit: 'tee', colors: { top: 0xd8203a, bottom: 0xf2c230 }, acc: { hat: true, sunglasses: true } });
+      case 'priest': return Object.assign(base, { gender: 'male', outfit: 'mundu', colors: { top: 0xf3efe6 }, hair: 'short', beard: false });
+      case 'flower': return Object.assign(base, { gender: 'female', outfit: 'saree', jasmine: true, hair: 'bun' });
       case 'shopper': return Object.assign(base, { outfit: female ? pick(['saree', 'churidar']) : pick(['mundu', 'formal', 'tee']), carry: rng() < 0.6 ? 'shopping' : null, jasmine: female && rng() < 0.4 });
       default: return Object.assign(base, { outfit: female ? pick(['saree', 'churidar']) : pick(['mundu', 'mundu', 'formal', 'tee']) });
     }
@@ -180,7 +210,7 @@
     w.x = w.post.x; w.z = w.post.z;
     L.workers.push(w);
     (hub.workers = hub.workers || []).push(w);
-    KT.Highway.interactables.push({
+    (hub.inter || KT.Highway.interactables).push({
       label: 'Talk to ' + w.name, radius: 2.4,
       pos: () => (w.obj ? w.obj.position : _far),
       enabled: () => !!(w.obj && w.obj.visible && w.where !== 'home'),
@@ -231,6 +261,13 @@
       w.queue.push(go(path, { speed: 0.8 }));
       w.queue.push(doing('point', 6 + w.rng() * 6, { at: ring[k], face: w.centre, status: 'This way please! Let me tell you about ' + w.sight.name + '.' }));
     },
+    // a round of stops: walk to each in turn and work there a while
+    round(w) {
+      w.k = ((w.k === undefined ? -1 : w.k) + 1) % w.stops.length;
+      const st = w.stops[w.k];
+      w.queue.push(go((st.via || []).concat([st.at]), { speed: st.speed, anim: st.walk, status: st.going }));
+      w.queue.push(doing(st.act || 'idle', (st.dur || 10) * (0.7 + w.rng() * 0.6), { at: st.at, face: st.face, status: st.status }));
+    },
     // the sweeper works slowly along the footpath
     sweep(w) {
       const a0 = w.beat[0] + w.rng() * (w.beat[1] - w.beat[0]);
@@ -257,6 +294,7 @@
     if (hub.lifeDone || !hub.shops) return;
     hub.lifeDone = true;
     hub.lifeRng = KT.makeRng(hub.index * 7919 + 11);
+    hub.active = onHighway;
     const rng = hub.lifeRng, d = hub.district;
     // shopkeepers (the tea shop has a tea maker and its regulars)
     hub.shops.forEach((s) => {
@@ -430,7 +468,7 @@
   }
 
   // ------------------------------------------------------------ update
-  const _ground = (x, z) => KT.Highway.groundY(x, z).y;
+  const groundOf = (w, x, z) => (w.hub.ground ? w.hub.ground(x, z) : KT.Highway.groundY(x, z).y);
   function nextTask(w, near) {
     w.goingHome = w.goingToWork = false;
     const h = hours(), on = inShift(h, w.shift) && !w.lost;
@@ -457,7 +495,7 @@
     }
     if (!w.queue.length) {
       // not at the post (just arrived, or back from somewhere)
-      if (w.where !== 'work' && w.plan !== 'guide' && w.plan !== 'sweep' && w.plan !== 'shopper') { w.queue.push(go([w.post])); w.where = 'work'; }
+      if (w.where !== 'work' && w.plan !== 'guide' && w.plan !== 'sweep' && w.plan !== 'shopper' && w.plan !== 'round') { w.queue.push(go([w.post])); w.where = 'work'; }
       else { w.where = 'work'; PLANS[w.plan](w); }
     }
     w.task = w.queue.shift() || { type: 'off', dur: 5 };
@@ -467,7 +505,7 @@
     const pp = player.pos, h = hours();
     for (let i = 0; i < L.workers.length; i++) {
       const w = L.workers[i], g = w.hub.group;
-      if (!g || !g.visible) { if (w.obj) w.obj.visible = false; continue; }
+      if (!g || !g.visible || (w.hub.active && !w.hub.active())) { if (w.obj) w.obj.visible = false; continue; }
       const d = Math.hypot(w.x - pp.x, w.z - pp.z), near = d < SHOW;
       if (!w.init) {
         // on arrival everyone is already where their day has them
@@ -488,7 +526,7 @@
       if (!w.obj) { w.obj = makePerson(w); g.add(w.obj); }
       const o = w.obj;
       o.visible = true;
-      o.position.set(w.x, w.y !== undefined ? w.y : _ground(w.x, w.z), w.z);
+      o.position.set(w.x, w.y !== undefined ? w.y : groundOf(w, w.x, w.z), w.z);
       let face = w.heading;
       if (w.talking) face = Math.atan2(pp.x - w.x, pp.z - w.z);
       o.rotation.y = KT.angleLerp(o.rotation.y, face, 1 - Math.exp(-dt * 6));
@@ -543,7 +581,7 @@
         w.x += dx * k; w.z += dz * k;
         // steps up and down from a raised floor are eased in
         if (p.y !== undefined || t.y0 !== undefined) {
-          const gy = _ground(w.x, w.z);
+          const gy = groundOf(w, w.x, w.z);
           const ty = p.y !== undefined ? p.y : gy, fy = w.y !== undefined ? w.y : gy;
           w.y = KT.lerp(fy, ty, Math.min(1, k * 2));
           if (dd - left < 0.05) w.y = ty;
@@ -613,6 +651,185 @@
       KT.Models.animateCharacter(o, act, dt, 1);
     }
   }
+
+
+  // ---------------------------------------------- other places: helpers
+  const onHighway = () => KT.Game.level === 'highway';
+  // a ticket booth at a spot (with its colliders), facing `rot`
+  function placeBooth(site, x, z, rot, addCollider) {
+    const booth = ticketBooth();
+    booth.position.set(x, site.ground(x, z), z);
+    booth.rotation.y = rot;
+    site.group.add(booth);
+    const cs = Math.cos(rot), sn = Math.sin(rot);
+    booth.userData.colliders.forEach((c) => addCollider({ type: 'box', x: x + c.x * cs + c.z * sn, z: z - c.x * sn + c.z * cs, hw: c.hw, hd: c.hd, rot }));
+    return booth;
+  }
+  // clerk, day guard and night watchman at a booth
+  function boothStaff(site, booth, place, opts) {
+    const y = booth.position.y + 0.12, rng = site.lifeRng;
+    const away = opts.away || (() => []);
+    const clerk = addWorker(site, {
+      job: 'clerk', plan: 'post', lookKind: 'clerk', title: opts.clerkTitle || 'ticket counter', post: local(booth, 0, 0.15, y), face: local(booth, 0, 5),
+      shift: opts.hours, act: () => (Math.sin(KT.Highway.animTime * 0.25 + booth.position.x) > 0.5 ? 'serve' : 'idle'),
+      exit: () => [local(booth, 0, 1.0, y), local(booth, 1.2, 1.4)].concat(away()), approach: () => []
+    });
+    clerk.about = opts.ticket || ('Tickets for ' + place + ': thirty rupees for adults, ten for children. The counter is open from ' + fmt(opts.hours[0]) + ' to ' + fmt(opts.hours[1]) + '.');
+    if (opts.guard === false) return;
+    const guard = addWorker(site, {
+      job: 'guard', plan: 'post', lookKind: 'guard', female: false, title: 'security guard', post: local(booth, -1.6, 0.9), face: local(booth, -1.6, 6),
+      shift: [6 + rng() * 0.3, 18 + rng() * 0.3], act: 'idle', exit: away, approach: () => []
+    });
+    guard.about = 'I guard ' + place + ' through the day, six to six. Then the watchman takes over for the night.';
+    const watch = addWorker(site, {
+      job: 'watchman', plan: 'post', lookKind: 'guard', female: false, title: 'night watchman', post: local(booth, 1.55, 0.66, booth.position.y), face: local(booth, 1.55, 6),
+      shift: [18 + rng() * 0.3, 6], act: 'sit', exit: away, approach: () => []
+    });
+    watch.about = 'Night watchman at ' + place + '. I sit here with my torch from six in the evening till the sun comes up.';
+  }
+
+  // ------------------------------------------------------------- the zoo
+  // Keepers on their feeding rounds with buckets, the mahout with the
+  // tusker, a sweeper on the main path, the snack cart in the forecourt,
+  // the ticket booth at the gate with its guard and watchman, and a guide.
+  // (Zoo model space: the gate is at z = +56, paths along x = 0 and z = ±20.)
+  L.zoo = function (it, root) {
+    const Hw = KT.Highway;
+    const site = { group: it.group, index: 300 + (it.sg.hub || 0), lifeRng: KT.makeRng(1857), ground: (x, z) => Hw.groundY(x, z).y, inter: Hw.interactables, shops: [], parked: [], active: onHighway };
+    const P = (x, z) => local(root, x, z);
+    const rng = site.lifeRng, HOURS = [8.5, 17.5];
+    const out = (x) => [P(x, 56), P(x, 66), P(x + 14, 78)];
+    // the ticket booth and the gate staff
+    const booth = placeBooth(site, P(9, 64).x, P(9, 64).z, root.rotation.y, (c) => Hw.addCollider(c));
+    boothStaff(site, booth, 'the zoo', { hours: HOURS, away: () => [P(14, 74), P(24, 80)], ticket: 'Zoo tickets: forty rupees for adults, ten for children, and a camera ticket for fifty. We are open from half past eight to half past five, every day except Monday.' });
+    // the snack cart in the forecourt
+    const cart = KT.Models.teaCart(), cp = P(-9, 66);
+    cart.position.set(cp.x, site.ground(cp.x, cp.z), cp.z);
+    cart.rotation.y = root.rotation.y;
+    it.group.add(cart);
+    const cs = Math.cos(cart.rotation.y), sn = Math.sin(cart.rotation.y);
+    (cart.userData.colliders || []).forEach((c) => Hw.addCollider({ type: 'box', x: cp.x + c.x * cs + c.z * sn, z: cp.z - c.x * sn + c.z * cs, hw: c.hw, hd: c.hd, rot: cart.rotation.y }));
+    const snack = addWorker(site, {
+      job: 'vendor', plan: 'post', lookKind: 'tea', title: 'snack cart', post: local(cart, 0, -1.05), face: local(cart, 0, 4), prop: 'tea',
+      shift: [9, 18.5], act: () => (Math.sin(KT.Highway.animTime * 0.2) > 0.3 ? 'pour' : 'serve'),
+      exit: () => [P(-14, 74), P(-24, 80)], approach: () => []
+    });
+    snack.about = 'Tea, lime soda, ice cream and peanuts for the zoo visitors. On a hot day the children buy all my ice cream by noon!';
+    // the keepers' feeding rounds, each along its own path
+    const ROUNDS = [
+      { z: 22.5, face: 30, name: 'the zebras, the storks and the elephants', pens: [[-39, 'zebras', 'Fresh grass and bran for the zebras.'], [-15, 'storks', 'Fish for the adjutant storks: they swallow them whole!'], [30, 'elephants', 'Palm leaves and a bucket of rice balls for the elephants.']] },
+      { z: 17.5, face: 10, name: 'the big cats and the apes', pens: [[-41, 'lions', 'Meat for the lions. They hear my bucket from far away.'], [-17, 'leopards', 'The leopards like to eat up on their platform.'], [18, 'orangutans', 'Bananas, papaya and boiled eggs for the orangutans.'], [42, 'macaques', 'Fruit and nuts for the lion-tailed macaques.']] },
+      { z: -22.5, face: -30, name: 'the tigers, the bears and the deer', pens: [[-30, 'tigers', 'Meat for the tigers, thrown over the moat.'], [18, 'bears', 'Honey, fruit and termite mounds for the sloth bears.'], [42, 'deer', 'Grass and gram for the spotted deer.']] }
+    ];
+    ROUNDS.forEach((R, k) => {
+      const stops = R.pens.map(([x, animal, line]) => ({ at: P(x, R.z), face: P(x, R.face), act: 'serve', dur: 16, status: line, going: 'Next, the ' + animal + '. They know it is feeding time!' }));
+      const w = addWorker(site, {
+        job: 'keeper', plan: 'round', lookKind: 'keeper', title: 'zookeeper', stops, prop: 'bucket', post: stops[0].at,
+        shift: [[7.5 + rng() * 0.5, 12.5], [13.5, 17.5 + rng() * 0.5]], exit: () => [P(0, R.z)].concat(out(2 + k)), approach: () => []
+      });
+      w.about = 'I am a keeper here. I look after ' + R.name + ': I feed them, clean their enclosures and watch that they are well. Feeding is at ten and at three.';
+    });
+    // the mahout with the tusker
+    const mh = addWorker(site, {
+      job: 'mahout', plan: 'round', lookKind: 'mahout', female: false, title: 'mahout',
+      stops: [{ at: P(21.5, 31.6), face: P(24, 34), act: 'chat', dur: 30, status: 'Talking to the old tusker. He understands every word, you know.' },
+        { at: P(26.5, 31), face: P(26.5, 32), act: 'serve', dur: 20, status: 'Giving him his palm leaves.' }],
+      post: P(21.5, 31.6), shift: [6, 18], exit: () => [P(26, 23), P(0, 23)].concat(out(6)), approach: () => []
+    });
+    mh.about = 'I am his mahout. Twenty years together: he knows my voice better than my own children do.';
+    // a sweeper on the main path
+    const sw = addWorker(site, {
+      job: 'sweeper', plan: 'round', lookKind: 'sweeper', female: true, title: 'sweeper', prop: 'broom',
+      stops: [-46, -20, 6, 30, 52, 30, 6, -20].map((z) => ({ at: P(1.6, z), act: 'sweep', walk: 'sweep', speed: 0.35, dur: 8, status: 'Keeping the paths clean. Please use the dustbins: plastic can kill the animals.' })),
+      post: P(1.6, 52), shift: [7, 12], exit: () => out(-2), approach: () => []
+    });
+    sw.about = 'I sweep the zoo paths every morning before the visitors come.';
+    // a guide showing visitors round
+    const G = [[0, 40, 0, 'Asian elephants'], [-15, 22.5, 30, 'adjutant storks'], [-39, 22.5, 30, 'zebras'], [-41, 17.5, 10, 'lions'], [-17, 17.5, 10, 'leopards'], [18, 17.5, 10, 'orangutans'], [-30, -22.5, -30, 'Bengal tigers'], [18, -22.5, -30, 'sloth bears']];
+    const gd = addWorker(site, {
+      job: 'guide', plan: 'round', lookKind: 'guide', title: 'zoo guide',
+      stops: G.map(([x, z, fz, n]) => ({ at: P(x, z), face: P(x, fz || z), act: 'point', dur: 9, speed: 0.8, status: 'And here are our ' + n + '. Shall I tell you about them?' })),
+      post: P(0, 40), shift: [9, 17], exit: () => out(-4), approach: () => []
+    });
+    gd.about = 'I am a guide at the zoo. It opened in 1857, one of the oldest in India, and the gardens around it are older still.';
+  };
+
+  // -------------------------------------------------------- the home map
+  // Alleppey: fruit vendors at the promenade stalls, the tea cart and its
+  // regulars, the temple priest and the jasmine seller, the palace and the
+  // lighthouse ticket counters, a lifeguard and a peanut seller on the
+  // beach, and the morning sweeper on the promenade.
+  L.home = function () {
+    const W = KT.World, E = KT.Entities;
+    if (!W || !W.sites || L.homeDone) return;
+    L.homeDone = true;
+    const site = { group: new T.Group(), index: 900, lifeRng: KT.makeRng(424242), ground: (x, z) => W.groundY(x, z).y, inter: E.interactables, shops: [], parked: [], active: () => KT.Game.level === 'home' };
+    W.scene.add(site.group);
+    const rng = site.lifeRng;
+    const pt = (x, z) => ({ x, z });
+    // the way home: to the nearest house's front door (or out of sight)
+    const HOUSES = ['keralaHouse', 'villageHouse', 'coastalHouse', 'thatchedHut', 'modernHouse'];
+    const homeFrom = (p) => {
+      let best = null, bd = 95;
+      HOUSES.forEach((k) => (W.sites[k] || []).forEach((s) => { const d = Math.hypot(s.x - p.x, s.z - p.z); if (d < bd) { bd = d; best = s; } }));
+      return best ? () => [local(best.object, 0, 7), local(best.object, 0, 2.5)] : () => [];
+    };
+    // fruit vendors
+    (W.sites.stall || []).forEach((s) => {
+      const o = s.object, post = local(o, 0.4, -0.55);
+      const w = addWorker(site, { job: 'vendor', plan: 'post', lookKind: 'vendor', title: 'fruit vendor', post, face: local(o, 0, 5), shift: [6.5 + rng(), 19 + rng()],
+        act: () => (Math.sin(KT.World.animTime * 0.3 + s.z) > 0.7 ? 'wave' : 'idle'), exit: homeFrom(post), approach: () => [] });
+      w.about = 'Bananas, pineapples and mangoes from the farms upriver. The boats bring them in every morning.';
+    });
+    // the tea cart and its regulars
+    (W.sites.teaCart || []).forEach((s) => {
+      const o = s.object, post = local(o, 0, -1.05);
+      const t = addWorker(site, { job: 'vendor', plan: 'post', lookKind: 'tea', title: 'tea cart', post, face: local(o, 0, 4), prop: 'tea', shift: [5.5, 21], act: 'pour', exit: homeFrom(post), approach: () => [] });
+      t.about = 'Chaya for ten rupees, and the best view of the backwaters with it. Boatmen, tourists, everyone stops at my cart.';
+      [[-0.9, [[6, 9], [16.5, 19]]], [0.9, [[7.5, 11], [15, 18]]]].forEach(([x, sh], k) => {
+        const at = local(o, x, 1.8);
+        const r = addWorker(site, { job: 'regular', plan: 'post', lookKind: 'regular', title: 'having tea', post: at, face: local(o, x, 0), prop: 'glass', shift: sh, act: 'sip', exit: homeFrom(at), approach: () => [] });
+        r.about = ['A tea at this cart before I take my boat out, and another when I get back.', 'I come here every day to watch the houseboats go past with a glass of tea.'][k];
+      });
+    });
+    // the temple: the priest at the shrine, the jasmine seller outside
+    (W.sites.temple || []).forEach((s) => {
+      const o = s.object;
+      const pr = addWorker(site, { job: 'priest', plan: 'post', lookKind: 'priest', female: false, title: 'temple priest', post: local(o, 1.6, 1.2), face: local(o, 0, -6),
+        shift: [[4.5, 11.5], [17, 20.5]], act: () => (Math.sin(KT.World.animTime * 0.2) > 0 ? 'namaskaram' : 'idle'), exit: () => [], approach: () => [] });
+      pr.about = 'I am the priest here. The temple opens at half past four in the morning for the first pooja, closes at noon and opens again in the evening. The palpayasam here is famous: rice cooked in milk and offered to Krishna.';
+      const fl = addWorker(site, { job: 'vendor', plan: 'post', lookKind: 'flower', female: true, title: 'flower seller', post: local(o, -8, 25), face: local(o, -8, 35), prop: 'basket',
+        shift: [5, 12], act: () => (Math.sin(KT.World.animTime * 0.25) > 0.6 ? 'serve' : 'idle'), exit: homeFrom(local(o, -8, 25)), approach: () => [] });
+      fl.about = 'Jasmine garlands for the hair and marigolds for the offering. Ten rupees a string, fresh every morning.';
+    });
+    // ticket counters at the palace and the lighthouse
+    const arch = (W.sites.entranceArch || []).find((s) => (s.lines || [])[0] === 'Krishnapuram Palace');
+    if (arch) {
+      const p = local(arch.object, 5.5, 2.5);
+      const b = placeBooth(site, p.x, p.z, arch.rot, (c) => W.addCollider ? W.addCollider(c) : null);
+      boothStaff(site, b, 'Krishnapuram Palace', { hours: [9, 17], away: homeFrom(p), ticket: 'Tickets for Krishnapuram Palace: twenty rupees. Inside is the Gajendra Moksham mural, one of the biggest in Kerala. Open nine to five, closed Mondays.' });
+    }
+    (W.sites.lighthouse || []).forEach((s) => {
+      const p = local(s.object, 6, 9);
+      const b = placeBooth(site, p.x, p.z, s.rot, (c) => W.addCollider ? W.addCollider(c) : null);
+      boothStaff(site, b, 'the lighthouse', { hours: [10, 17.5], guard: false, away: homeFrom(p), ticket: 'Twenty rupees to climb the lighthouse. Built in 1862, the first on the Kerala coast. Open from ten till half past five.' });
+    });
+    // the beach: lifeguard and the peanut seller
+    const lg = addWorker(site, { job: 'lifeguard', plan: 'round', lookKind: 'lifeguard', female: false, title: 'lifeguard',
+      stops: [[-60, 0.2], [20, -0.4], [80, 0.3]].map(([x, h]) => ({ at: pt(x, 226), face: pt(x + h * 40, 260), act: 'idle', dur: 40, status: 'Watching the swimmers. Don\'t go past the red flags: the currents are strong here.' })),
+      post: pt(20, 226), shift: [7, 18.5], exit: homeFrom(pt(20, 226)), approach: () => [] });
+    lg.about = 'Lifeguard on Alappuzha beach. When the sea is rough I blow the whistle and call everybody out of the water.';
+    const pn = addWorker(site, { job: 'vendor', plan: 'round', lookKind: 'regular', title: 'peanut seller', prop: 'basket',
+      stops: [-120, -60, 0, 60, 120, 60, 0, -60].map((x) => ({ at: pt(x, 219), face: pt(x, 200), act: 'serve', dur: 8, speed: 0.8, status: '"Kappalandi! Hot roasted peanuts!"' })),
+      post: pt(0, 219), shift: [15.5, 21], exit: homeFrom(pt(0, 219)), approach: () => [] });
+    pn.about = 'Roasted peanuts in paper cones, ten rupees. Every evening the beach is full of families watching the sunset.';
+    // the morning sweeper on the promenade
+    const zs = [110, 70, 30, -10, -50, -90, -50, -10, 30, 70];
+    const sw = addWorker(site, { job: 'sweeper', plan: 'round', lookKind: 'sweeper', female: true, title: 'sweeper', prop: 'broom',
+      stops: zs.map((z) => ({ at: pt(KT.Geo.promenadeX(z) - 1.5, z), act: 'sweep', walk: 'sweep', speed: 0.35, dur: 8, status: 'Sweeping the promenade before the tourists come.' })),
+      post: pt(KT.Geo.promenadeX(30) - 1.5, 30), shift: [6, 10], exit: homeFrom(pt(KT.Geo.promenadeX(30), 30)), approach: () => [] });
+    sw.about = 'I sweep the promenade every morning, six to ten. Thank you for picking up plastic: it keeps the backwaters clean!';
+  };
 
   // for the tests and the README
   L.count = () => L.workers.length;

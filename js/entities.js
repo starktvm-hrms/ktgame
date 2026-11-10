@@ -616,6 +616,7 @@
     buildPlastics();
     E.beacon = Models.beacon();
     scene.add(E.beacon);
+    KT.Life.home();
   };
 
   // People and animals near the player act as solid obstacles.

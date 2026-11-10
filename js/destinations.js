@@ -1271,7 +1271,7 @@
       place(it, secretariat(), 0, 6);
       [-20, 20].forEach((x) => place(it, Models.lampPost(), x, -9));
     },
-    zoo(it) { place(it, zoo(it), 0, 0); },
+    zoo(it) { const root = place(it, zoo(it), 0, 0); KT.Life.zoo(it, root); },
     mermaidBeach(it) {
       place(it, mermaid(), -10, 0, HP);
       place(it, Models.beachSet(6), 16, 6, 0, { colliders: false });
