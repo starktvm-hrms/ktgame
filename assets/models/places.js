@@ -784,6 +784,17 @@
       part(g, G.box(0.06, 4.2, 0.06), fw, 15 + Math.cos(a) * 2.1, ty + 5.6 + Math.sin(a) * 2.1, -6, 0, 0, a + Math.PI / 2);
       part(g, KT.roundBox(0.8, 0.7, 1.0, 0.12), fw2, 15 + Math.cos(a) * 4.2, ty + 5.1 + Math.sin(a) * 4.2, -6);
     }
+    // the long straight stairway up the hill, lined with double-globe lamps
+    const stepM = mt('kkStep', 0xc9785a, 0.85), globe = mt('kkGlobe', 0xfff6e0, 0.3, { emissive: 0xffe8b0, emissiveIntensity: 0.4 });
+    for (let i = 0; i < 26; i++) {
+      const z = 26 - i * 0.75, y = Math.max(0, ty - 0.2 - (25 - i) * (ty / 25));
+      part(g, G.box(3.2, 0.3, 0.8), stepM, -2, y + 0.15, z);
+      if (i % 4 === 0) [-1, 1].forEach((sd) => {
+        part(g, G.cyl(0.06, 0.08, 3, 6), M().darkGrey, -2 + sd * 2.1, y + 1.5, z);
+        [-0.3, 0.3].forEach((dx) => part(g, G.sph(0.2, 8, 6), globe, -2 + sd * 2.1 + dx, y + 3.0, z));
+        part(g, G.box(0.7, 0.05, 0.05), M().darkGrey, -2 + sd * 2.1, y + 2.85, z);
+      });
+    }
     // sunset viewpoint railing
     rail(g, -6, 8, 6, 8, ty - 0.5, 1, mt('rail', 0x3a3a3a, 0.6));
     const baked = KT.bake(g);
