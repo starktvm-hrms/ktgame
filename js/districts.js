@@ -80,7 +80,7 @@
       { name: 'Marari Beach', kind: 'marari', icon: '\u{1F3D6}\uFE0F', facts: ['Marari Beach at Mararikulam is a quiet fishing-village beach fringed with coconut palms.', 'Every morning the fishermen haul their long wooden boats up the sand and spread their nets to dry.'] }
     ],
     ktm: [
-      { name: 'Thirunakkara Church', kind: 'main', icon: '\u26EA', facts: ['Kottayam is a centre of Kerala’s ancient Syrian Christian churches.', 'Kottayam was the first town in India to achieve 100% literacy.'] },
+      { name: 'Kottayam Valiyapally', kind: 'main', icon: '\u26EA', facts: ['Kottayam Valiyapally (St. Mary’s Church), built in 1550, is famous for its two ancient Persian crosses. Kottayam is a centre of Kerala’s ancient Syrian Christian churches.', 'Kottayam was the first town in India to achieve 100% literacy.'] },
       { name: 'Kumarakom Bird Sanctuary', kind: 'birds', model: 'kumarakom', icon: '\u{1F426}', facts: ['On the banks of Vembanad lake, Kumarakom bird sanctuary is home to egrets, herons, cormorants and kingfishers.', 'Migratory birds from Siberia visit in winter.'] },
       { name: "Vagamon Meadows", kind: 'hillview', icon: '\u26F0\uFE0F', facts: ["Vagamon's rolling green meadows, pine forests and tea gardens sit 1,100 m up.", "It is a favourite spot for paragliding."] },
       { name: "Ettumanoor Mahadeva Temple", kind: 'shrine', icon: '\u{1F6D5}', facts: ["The Ettumanoor temple is famous for its 16th-century murals.", "Its golden flagstaff and the Ezharaponnana festival of seven and a half golden elephants are famous."] },

@@ -320,6 +320,21 @@
     for (let i = 0; i < 8; i++) { const a = i * 0.8, r = 9 + (i % 3) * 3; part(g, KT.blob(1 + (i % 3) * 0.5, 1, 0.3, 420 + i), i % 2 ? rock : rock2, Math.cos(a) * r, hy(Math.cos(a) * r, Math.sin(a) * r - 4) + 0.3, Math.sin(a) * r - 4); }
     for (let i = 0; i < 22; i++) { const t = i / 21, z = 15 - t * 15, x = 3 + Math.sin(t * 5) * 2; part(g, G.box(1.5, 0.25, 0.7), M().stoneGrey, x, hy(x, z) + 0.12, z); }
     rail(g, -6, 2, 6, 2, ty - 0.3, 1, mt('rail', 0x3a3a3a, 0.6));
+    // tall golden-green grass all over the ridge, and the narrow road up
+    // with its metal crash barrier
+    const tall = mt('illTallGrass', 0xb5b25a, 0.95), tall2 = mt('illTallGrass2', 0x8fa04a, 0.95);
+    const grng = KT.makeRng(77);
+    for (let i = 0; i < 160; i++) {
+      const a = grng() * Math.PI * 2, r = 5 + grng() * 13, x = Math.cos(a) * r, z = Math.sin(a) * r - 4;
+      const y = hy(x, z);
+      for (let k = 0; k < 4; k++) part(g, G.cone(0.07, 1.1 + grng() * 0.6, 3), k % 2 ? tall : tall2, x + Math.cos(k * 1.6) * 0.15, y + 0.5, z + Math.sin(k * 1.6) * 0.15, Math.cos(k * 1.6) * 0.3, 0, Math.sin(k * 1.6) * 0.3);
+    }
+    const road = mt('illRoad', 0x4a4a4a, 0.9), barrier = mt('barrier', 0xb8bcc0, 0.4, { metalness: 0.6 });
+    for (let i = 0; i < 18; i++) {
+      const t = i / 17, x = 15 - t * 9, z = 16 - t * 14, y = hy(x, z);
+      part(g, G.box(2.4, 0.12, 2.0), road, x, y + 0.06, z, 0, 0.55, 0);
+      if (i % 2 === 0) { part(g, G.box(0.1, 0.7, 0.1), barrier, x + 1.4, y + 0.35, z + 0.6); part(g, G.box(0.06, 0.25, 2.3), barrier, x + 1.4, y + 0.6, z + 0.6, 0, 0.55, 0); }
+    }
     const baked = KT.bake(g);
     for (let i = 0; i < 6; i++) mist(baked, -14 + i * 6, ty + 2 + (i % 3) * 3, -6 + (i % 2) * 6, 14, 0.35);
     baked.userData.colliders = [{ type: 'circle', x: 0, z: -4, r: 14 }];
