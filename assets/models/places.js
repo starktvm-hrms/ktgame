@@ -141,6 +141,13 @@
     for (let i = 0; i < 6; i++) part(g, G.cone(0.05, 0.1, 4), m, 0, 0.38, 0.6 - i * 0.25);
     return KT.bake(g);
   };
+  // a mesh sack stuffed with tea leaf
+  Models.teaSack = function (k) {
+    const g = new T.Group(), cols = [0xd8742a, 0xc95a2a, 0xe0903a, 0x8a4a6a, 0x3f7f6a];
+    part(g, KT.blob(0.5, 1, 0.18, 30 + (k || 0)), mt('sack' + ((k || 0) % 5), cols[(k || 0) % 5], 0.95), 0, 0.45, 0, 0, 0, 0, 1, 1.0, 0.85);
+    part(g, G.cone(0.18, 0.3, 6), mt('sack' + ((k || 0) % 5), cols[(k || 0) % 5], 0.95), 0, 1.0, 0);
+    return KT.bake(g);
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);

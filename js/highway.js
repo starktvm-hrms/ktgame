@@ -2068,6 +2068,10 @@
         });
         if (m === 'cherai') waterDisc(hub, a, l + side * 30, 8);
         break;
+      case 'munnar':
+        // the day's leaf in orange mesh sacks by the path, waiting for the lorry
+        for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });
+        break;
       case 'kumarakom': hubPlace(hub, Models.houseboat(), a + 4, l + side * 2, 0, { absRot: heading + 0.6, y: wyAt(a, l) + 0.06, colliders: false }); break;
       case 'thenmala':
         // the canopy walk: an elevated wooden walkway with green railings
@@ -2388,7 +2392,16 @@
       case 'church': hubPlace(hub, Models.church(), 20, side, rot); break;
       case 'dam': {
         hubPlace(hub, Models.archDam(), 30, side + 8, rot);
-        if (Hw.archReservoir) reservoirWater(hub, Hw.archReservoir);
+        if (Hw.archReservoir) {
+          const R = Hw.archReservoir, w = reservoirWater(hub, R);
+          // a forested headland reaching into the deep blue water, and a boat
+          const hq = Hw.at(hub.s + 44, side + 46);
+          const head = new T.Mesh(new T.SphereGeometry(9, 16, 8), mats.islandGreen || (mats.islandGreen = KT.mat('islandGreen', { color: 0x4f8a36, roughness: 0.95 })));
+          head.scale.set(1.6, 0.35, 1); head.position.set(hq.x, R.water - 0.8, hq.z); hub.group.add(head);
+          [[40, 44], [46, 48], [50, 43]].forEach(([al, la], i) => hubPlace(hub, Models.forestTree(80 + i), al, side + la, i, { y: R.water + 1.6, colliders: false }));
+          if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), 22, side + 40, rot + 1.2, { y: R.water + 0.02, colliders: false });
+          void w;
+        }
         else waterDisc(hub, 30, side + 35, 34);
         break;
       }

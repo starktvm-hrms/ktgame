@@ -89,7 +89,7 @@
     ],
     idk: [
       { name: 'Idukki Arch Dam', kind: 'main', icon: '\u{1F30A}', facts: ['Built in 1973 between the Kuravan and Kurathi hills, it is one of Asia’s highest arch dams.'] },
-      { name: 'Munnar Tea Gardens', kind: 'tea', icon: '\u{1F375}', facts: ['Munnar’s rolling hills are carpeted with tea gardens at 1,600 m.', 'The rare Neelakurinji flowers turn the hills blue once every 12 years.', 'Eravikulam National Park nearby protects the Nilgiri tahr.'] },
+      { name: 'Munnar Tea Gardens', kind: 'tea', model: 'munnar', icon: '\u{1F375}', facts: ['Munnar’s rolling hills are carpeted with tea gardens at 1,600 m.', 'The rare Neelakurinji flowers turn the hills blue once every 12 years.', 'Eravikulam National Park nearby protects the Nilgiri tahr.'] },
       { name: "Thekkady Periyar Wildlife", kind: 'wildlife', model: 'thekkady', icon: '\u{1F418}', facts: ["In Periyar Tiger Reserve, boats glide on the lake while elephants come down to drink.", "Bamboo rafting and jungle walks are run by local tribal guides."] },
       { name: "Spice Plantations", kind: 'spice', icon: '\u{1F336}\uFE0F', facts: ["Idukki grows cardamom, pepper, cinnamon, clove and nutmeg on its hills.", "Kerala's pepper, the \"black gold\", brought traders from across the world."] },
       { name: 'Eravikulam National Park', kind: 'eravikulam', icon: '\u{1F410}', facts: ['Eravikulam near Munnar protects the endangered Nilgiri tahr: about half of all the tahr in the world live here.', 'Anamudi, the highest peak in South India at 2,695 m, rises in the park, and neelakurinji turns the slopes blue once every 12 years.'] },
