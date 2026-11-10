@@ -1764,6 +1764,17 @@
         case 'jatayu': hubPlace(hub, Models.jatayu(), a, l + side * 3, rot); break;
         case 'lake': {
           const w = waterDisc(hub, a, l, 24);
+          if (def.model === 'kuruva') {
+            // the Kabini's forested river islands, crossed on bamboo rafts
+            [[-8, 4, 6], [9, 8, 5], [2, -6, 4]].forEach(([x, z, r], i) => {
+              const q = Hw.at(hub.s + a + x, l + side * z);
+              const isl = new T.Mesh(new T.CircleGeometry(r, 20), mats.islandGreen || (mats.islandGreen = KT.mat('islandGreen', { color: 0x4f8a36, roughness: 0.95 })));
+              isl.rotation.x = -Math.PI / 2; isl.position.set(q.x, w.position.y + 0.1, q.z); hub.group.add(isl);
+              for (let k = 0; k < 4; k++) hubPlace(hub, Models.forestTree(90 + i * 4 + k), a + x + Math.cos(k * 1.7) * r * 0.5, l + side * (z + Math.sin(k * 1.7) * r * 0.5), k, { y: w.position.y + 0.1, colliders: false });
+            });
+            [[-2, -14], [6, -12]].forEach(([x, z], i) => hubPlace(hub, Models.bambooRaft(), a + x, l + side * z, 0, { absRot: heading + i * 0.6, y: w.position.y + 0.05, colliders: false }));
+            break;
+          }
           hubPlace(hub, Models.houseboat(), a - 4, l + side * 4, 0, { absRot: heading + 0.4, y: w.position.y + 0.05 });
           [[-8, -12], [10, -6]].forEach(([x, z]) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading - 0.6, y: w.position.y + Models.CANOE_FLOAT }));
           if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 9, l + side * 8, 0, { absRot: heading + 1.2, y: w.position.y + 0.02, colliders: false });
@@ -1893,7 +1904,7 @@
           break;
         }
         case 'spice': hubPlace(hub, Models.spiceGarden(), a, l, rot); break;
-        case 'hillview': hubPlace(hub, Models.hillView(), a, l + side * 2, rot); break;
+        case 'hillview': hubPlace(hub, def.model === 'chembra' || def.model === 'ranipuram' ? Models.grassRidge(def.model === 'ranipuram') : Models.hillView(), a, l + side * 2, rot); break;
         case 'elephantCamp': {
           if (def.model === 'konni') hubPlace(hub, Models.kraal(), a - 16, l + side * 6, rot);
           if (def.model === 'punnathur') {
@@ -2125,6 +2136,7 @@
         [[-8, 4, 2.6], [-12, 8, 1.4], [6, 10, 2.2]].forEach(([x, z, y], i) => hubPlace(hub, Models.lionTailedMacaque(), a + x, l + side * z, i, { y: wyAt(a + x, l + side * z) + y * (i ? 0 : 1), colliders: false }));
         break;
       case 'muthanga':
+        for (let i = 0; i < 6; i++) hubPlace(hub, Models.bambooClump(i), a - 16 + i * 6, l + side * (14 + (i % 2) * 5), i, { colliders: false });
         if (Models.car) hubPlace(hub, Models.car(0x8a7a4a, 'suv'), a - 4, l - side * 18, 0, { absRot: heading - 0.4 });
         break;
       case 'malampuzha':

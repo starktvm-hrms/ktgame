@@ -221,6 +221,42 @@
     }
     return KT.bake(g);
   };
+  // a raft of bamboo poles lashed together, with a pole for punting
+  Models.bambooRaft = function () {
+    const g = new T.Group(), bam = mt('bamboo', 0xb9a45a, 0.7);
+    for (let i = 0; i < 10; i++) part(g, G.cyl(0.12, 0.12, 5, 6), bam, -1.2 + i * 0.26, 0.12, 0, Math.PI / 2, 0, 0);
+    [-1.8, 1.8].forEach((z) => part(g, G.box(2.8, 0.08, 0.12), mt('lashing', 0x6b4a2e, 0.9), 0, 0.26, z));
+    part(g, G.cyl(0.04, 0.04, 4.5, 5), bam, 0.6, 1.4, 0.4, 0.3, 0, 0.2);
+    return KT.bake(g);
+  };
+  // a clump of bamboo
+  Models.bambooClump = function (k) {
+    const g = new T.Group(), cane = mt('bambooCane', 0x6f8a3a, 0.7), leaf = mt('bambooLeaf', 0x5a8a34, 0.9);
+    const rng = KT.makeRng(500 + (k || 0));
+    for (let i = 0; i < 14; i++) {
+      const a = rng() * 6.28, lean = 0.1 + rng() * 0.25, h = 7 + rng() * 4;
+      part(g, G.cyl(0.07, 0.09, h, 5), cane, Math.cos(a) * 0.5 + Math.cos(a) * lean * h / 2, h / 2, Math.sin(a) * 0.5 + Math.sin(a) * lean * h / 2, Math.sin(a) * lean, 0, -Math.cos(a) * lean);
+      part(g, KT.blob(0.9, 1, 0.4, 900 + i), leaf, Math.cos(a) * (0.5 + lean * h), h - 0.4, Math.sin(a) * (0.5 + lean * h), 0, 0, 0, 1.2, 0.6, 1.2);
+    }
+    return KT.bake(g);
+  };
+  // Chembra and Ranipuram: long bare grassy ridges with a narrow trekking
+  // trail up the spine, a few trekkers' marks and clouds drifting below
+  Models.grassRidge = function (shola) {
+    const g = new T.Group();
+    const grass = mt('ridgeGrass', 0x8db84a, 0.95), grass2 = mt('ridgeGrass2', 0x7aa646, 0.95), trail = mt('ridgeTrail', 0x8a6a46, 1);
+    [[0, -4, 16, 9], [-14, 6, 10, 6], [14, 4, 11, 6.5]].forEach(([x, z, r, h], i) => part(g, G.sph(r, 28, 14), i ? grass2 : grass, x, -r + h, z, 0, i * 0.5, 0, 1.4, 1, 0.8));
+    const hy = (x, z) => { let y = 0; [[0, -4, 16, 9], [-14, 6, 10, 6], [14, 4, 11, 6.5]].forEach(([cx, cz, r, h]) => { const dx = (x - cx) / 1.4, dz = (z - cz) / 0.8, d = Math.sqrt(dx * dx + dz * dz); if (d < r) y = Math.max(y, Math.sqrt(r * r - d * d) - r + h); }); return y; };
+    for (let i = 0; i < 40; i++) { const t = i / 39, x = -20 + t * 26, z = 12 - t * 15 + Math.sin(t * 6) * 2; part(g, G.box(0.9, 0.06, 1.2), trail, x, hy(x, z) + 0.04, z, 0, -0.5, 0); }
+    // tufts of tall grass
+    const rng = KT.makeRng(31);
+    for (let i = 0; i < 120; i++) { const x = (rng() - 0.5) * 44, z = (rng() - 0.5) * 24; part(g, G.cone(0.08, 0.9, 3), rng() < 0.5 ? grass : grass2, x, hy(x, z) + 0.4, z); }
+    if (shola) for (let i = 0; i < 6; i++) part(g, KT.blob(2 + rng(), 1, 0.3, 940 + i), mt('shola', 0x2f5a2a, 0.9), -18 + i * 7, 1.5, 10 + (i % 2) * 2);
+    const baked = KT.bake(g);
+    for (let i = 0; i < 3; i++) mist(baked, -24 + i * 22, 1.2, 22, 16, 0.25); // clouds below, in the valley
+    baked.userData.colliders = [{ type: 'circle', x: 0, z: -4, r: 14 }];
+    return baked;
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);

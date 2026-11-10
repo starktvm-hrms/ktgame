@@ -143,7 +143,7 @@
       { name: 'Banasura Sagar Dam', kind: 'dam', model: 'banasura', icon: '\u{1F30A}', facts: ['Banasura Sagar is India’s largest earth dam, with little islands in its lake.', 'Boats take visitors around the islands below the Banasura hills.'] },
       { name: "Chembra Peak", kind: 'hillview', model: 'chembra', icon: '\u26F0\uFE0F', facts: ["Chembra is Wayanad's highest peak at 2,100 m.", "On the way up lies a heart-shaped lake that never dries."] },
       { name: "Soochipara Falls", kind: 'waterfall', model: 'soochipara', icon: '\u{1F4A7}', facts: ["Soochipara, the \"needle rock\" falls, drop in three tiers through the forest.", "You can swim in the pool at the bottom."] },
-      { name: "Kuruva Island", kind: 'lake', icon: '\u{1F3DD}\uFE0F', facts: ["Kuruva is a cluster of forested river islands on the Kabini.", "Visitors cross on bamboo rafts."] },
+      { name: "Kuruva Island", kind: 'lake', model: 'kuruva', icon: '\u{1F3DD}\uFE0F', facts: ["Kuruva is a cluster of forested river islands on the Kabini.", "Visitors cross on bamboo rafts."] },
       { name: "Wayanad Wildlife Sanctuary", kind: 'wildlife', model: 'muthanga', icon: '\u{1F418}', facts: ["The sanctuary at Muthanga and Tholpetty is part of the Nilgiri Biosphere Reserve, where elephants, gaur and tigers roam.", "Jeep safaris run early in the morning."] }
     ],
     knr: [

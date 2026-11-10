@@ -96,7 +96,7 @@
     palaruvi: { H: 38, w: 8, streams: 1, tiers: 3, rock: 0x3d3833 }, // a milky stream stepping down a dark rock face
     perunthenaruvi: { H: 14, w: 30, streams: 6, tiers: 3, rock: 0x2f2d2a }, // ~30 m wide, slanting down over honeycombed black rock
     adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
-    soochipara: { H: 34, w: 9, streams: 1, tiers: 3 }, // "needle rock" falls in three tiers
+    soochipara: { H: 32, w: 7, streams: 1, rock: 0x2e2c2a }, // one tall white stream down black rock
     thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 },
     meenmutty: { H: 26, w: 12, streams: 2, tiers: 2 },
     plain: { H: 24, w: 14, streams: 2 }
