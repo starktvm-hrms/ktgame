@@ -2173,6 +2173,13 @@
         break;
       case 'malampuzha': {
         hubPlace(hub, Models.yakshi(), a - 14, l - side * 6, rot);
+        // the rocky, conical Ghats peaks rising behind the reservoir
+        [[-30, 105, 1], [10, 112, 1.3]].forEach(([x, z, k], i) => {
+          const pk = new T.Mesh(new T.ConeGeometry(26 * k, 38 * k, 9), KT.mat('ghatPeak', { color: 0x6a6a52, roughness: 0.95 }));
+          const q = Hw.at(hub.s + a + x, l + side * z);
+          pk.position.set(q.x, Hw.groundY(q.x, q.z).y + 17 * k, q.z); pk.rotation.y = i;
+          hub.group.add(pk);
+        });
         // the canal through the garden and its hanging bridges
         const cq = Hw.at(hub.s + a, l + side * 2);
         const canal = new T.Mesh(new T.PlaneGeometry(3.5, 40), mats.water);
