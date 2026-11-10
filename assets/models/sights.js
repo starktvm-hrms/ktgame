@@ -339,61 +339,7 @@
     });
     return sprayTex;
   }
-  Models.waterfall = function (height) {
-    const H = height || 16;
-    const g = new T.Group();
-    const rock = KT.mat('fallRock', { color: 0x58534c, roughness: 0.95 });
-    const rock2 = KT.mat('fallRock2', { color: 0x6b655c, roughness: 0.95 });
-    const moss = KT.mat('fallMoss', { color: 0x4a6b34, roughness: 0.95 });
-    // back wall of stacked ledges, side walls of the gorge
-    for (let t = 0; t < 4; t++) for (let i = -4; i <= 4; i++) {
-      const y = t * (H / 4) + H / 8;
-      part(g, KT.blob(3.2, 1, 0.28, 40 + i * 7 + t), (i + t) % 3 === 0 ? moss : (i + t) % 2 ? rock : rock2, i * 4.2, y, -7 - Math.abs(i) * 0.6 + (t % 2) * 0.6, 0, i, 0, 1.4, 1.1, 1);
-    }
-    [-1, 1].forEach((sd) => {
-      for (let t = 0; t < 4; t++) part(g, KT.blob(4, 1, 0.25, 70 + t + sd), t % 2 ? rock : moss, sd * 19, t * (H / 4) + 2, -1 + t, 0, t, 0, 1, 1.2, 1.6);
-    });
-    // a ledge in the middle the water breaks on
-    part(g, G.box(9, 0.8, 2.4), rock2, 0, H * 0.45, -3.6);
-    // forest and ferns
-    const top = new T.Group();
-    for (let i = 0; i < 8; i++) addProto(top, Models.forestTree ? Models.forestTree(i + 3) : Models.mangoTree(), -17 + i * 5, H + 0.5, -10 - (i % 2) * 3, i, 0.8);
-    for (let i = 0; i < 14; i++) {
-      const x = -16 + i * 2.4, y = 0.3 + (i % 4) * (H / 5), z = -4.5 + (i % 3);
-      for (let f = 0; f < 5; f++) part(g, G.cone(0.12, 1.3, 4), M().leafLight, x + Math.cos(f) * 0.3, y + 0.5, z + Math.sin(f) * 0.3, Math.cos(f) * 0.7, 0, Math.sin(f) * 0.7);
-    }
-    // boulders round the pool and a viewing deck with railing
-    for (let i = 0; i < 9; i++) { const a = Math.PI * (0.05 + i * 0.11); part(g, KT.blob(1.2 + (i % 3) * 0.4, 1, 0.3, 90 + i), i % 2 ? rock : rock2, Math.cos(a) * 10.5, 0.4, 1.5 + Math.sin(a) * 6.5); }
-    part(g, G.box(8, 0.25, 3), M().wood, 9, 1.1, 9);
-    for (let x = 5.2; x <= 12.8; x += 1.9) part(g, G.box(0.18, 1.1, 0.18), M().woodDark, x, 0.55, 7.6);
-    railing(g, 5.1, 7.6, 12.9, 7.6, 1.2, 1, M().woodDark);
-    const baked = KT.bake(g);
-    baked.add(KT.bake(top));
-    // flowing water (one moving texture for every stream)
-    const tex = canvasTex(64, 256, (c, w, h) => {
-      c.fillStyle = '#d5ecf2'; c.fillRect(0, 0, w, h);
-      for (let i = 0; i < 120; i++) {
-        c.fillStyle = 'rgba(' + (140 + Math.random() * 70) + ',' + (185 + Math.random() * 45) + ',215,0.75)';
-        c.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 4, 12 + Math.random() * 50);
-      }
-    });
-    tex.wrapS = tex.wrapT = T.RepeatWrapping;
-    tex.repeat.set(3, 2);
-    const waterMat = new T.MeshStandardMaterial({ map: tex, transparent: true, opacity: 0.9, roughness: 0.15, emissive: 0x9fc6d0, emissiveIntensity: 0.3, side: T.DoubleSide });
-    const sheet = (w, h, x, y, z, tilt) => { const m = new T.Mesh(G.plane(w, h), waterMat); m.position.set(x, y, z); m.rotation.x = tilt || -0.06; baked.add(m); };
-    sheet(10, H * 0.55, 0, H * 0.72, -4.6);           // upper fall
-    sheet(12, H * 0.45, 0, H * 0.23, -2.2, -0.12);    // lower fall off the ledge
-    sheet(2.4, H * 0.8, -9, H * 0.42, -5.6);           // side streams
-    sheet(1.8, H * 0.6, 8.5, H * 0.32, -5.4);
-    // foam and spray
-    const foam = new T.Mesh(new T.RingGeometry(1.5, 6.5, 28), new T.MeshStandardMaterial({ color: 0xf2f8f8, transparent: true, opacity: 0.55, roughness: 0.3 }));
-    foam.rotation.x = -Math.PI / 2; foam.position.set(0, 0.25, 0); baked.add(foam);
-    const sm = new T.SpriteMaterial({ map: spray(), transparent: true, depthWrite: false, opacity: 0.55 });
-    for (let i = 0; i < 7; i++) { const s = new T.Sprite(sm); s.position.set(-5 + i * 1.7, 1.6 + (i % 3) * 1.1, -0.8 + (i % 2)); s.scale.set(5, 4, 1); baked.add(s); }
-    baked.userData.flow = tex;
-    baked.userData.colliders = [{ type: 'box', x: 0, z: -7, hw: 22, hd: 5 }, { type: 'box', x: 19, z: 2, hw: 4, hd: 6 }, { type: 'box', x: -19, z: 2, hw: 4, hd: 6 }];
-    return baked;
-  };
+  // (the waterfall is in waterfall.js)
 
   // ----------------------------------------------------- Varkala cliff
   // Layered red laterite cliffs above the beach: grassy cliff top with

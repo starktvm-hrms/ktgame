@@ -146,9 +146,17 @@ town, each with an information board (press E to read about it):
 
 Each place is modelled on what it really looks like:
 
-- **Waterfalls:** each has its own shape. Athirappilly is a broad curtain with
-  spray rising, Palaruvi a tall, narrow "stream of milk", Perunthenaruvi and
-  Adyanpara low and wide over flat rocks, and Soochipara tall.
+- **Waterfalls:** each pours from a curved gorge of layered, wet, mossy rock
+  with creepers and forest on the rim. A river runs to the lip, and the water
+  curves out and spreads as it falls. White water breaks on the ledges,
+  foam churns in the pool and spray clouds rise. A stream runs out past
+  boulders, and there is a railed viewing deck. Each fall has its own shape:
+  - Athirappilly is a broad curtain 26 m high.
+  - Palaruvi is a 38 m "stream of milk", tall and narrow.
+  - Perunthenaruvi is low and wide over black rock.
+  - Adyanpara cascades over slabs.
+  - Soochipara drops in three tiers.
+  - Thusharagiri and Kallar Meenmutty fall in two.
 - **Beaches:**
   - Kollam has Gandhi Park with the statue and the tetrapod breakwater.
   - At Marari, fishing boats are pulled up on the sand.

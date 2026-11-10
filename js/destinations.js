@@ -1290,10 +1290,8 @@
       place(it, Models.garden(), 24, -8, 0, { colliders: false });
     },
     waterfall(it) {
-      const fall = place(it, Models.waterfall(18), 0, 10);
-      if (fall.userData.flow) it.flows.push(fall.userData.flow);
-      const pool = { x: it.sg.x - it.out.x * 2, z: it.sg.z - it.out.z * 2, r: 9, y: it.y - 0.6 };
-      waterOf(it, pool);
+      const fall = place(it, Models.waterfall({ H: 26, w: 12, streams: 2, tiers: 2 }), 0, 10);
+      it.anim.push(fall.userData.tick);
       for (let k = 0; k < 8; k++) {
         const a = (k / 8) * Math.PI * 2;
         place(it, Models.forestTree(k), Math.cos(a) * 24, 6 + Math.sin(a) * 18, a);

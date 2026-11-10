@@ -1594,7 +1594,7 @@
   // centre (along the road, lateral); the main one is the landmark.
   const SIGHT_SLOTS = [{ along: -70, lat: 80 }, { along: 60, lat: -84 }, { along: 120, lat: 86 }, { along: -98, lat: -82 }, { along: -178, lat: 72 }, { along: 178, lat: -80 }, { along: -190, lat: -90 }];
   const MAIN_SPOT = { along: 20, lat: 72 };
-  const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 22, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
+  const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 30, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
   const DEST_R = { gopuramTemple: 30, palace: 20, fortGate: 16, clockTower: 10, secretariat: 34, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
@@ -1759,15 +1759,16 @@
         case 'tea': hubPlace(hub, Models.teaHill(), a, l, rot); break;
         case 'waterfall': {
           // each fall has its own shape: wide, tall and narrow, low over slabs
-          const FALLS = { athirappilly: [1.55, 1.25, 20], palaruvi: [0.55, 1.9, 16], perunthenaruvi: [1.5, 0.55, 16], soochipara: [0.85, 1.55, 16], thusharagiri: [1.1, 1.15, 16], adyanpara: [1.35, 0.6, 16] };
-          const fv = FALLS[def.model] || [1, 1, 16];
-          const fm = Models.waterfall(fv[2]);
-          fm.scale.set(fv[0], fv[1], 1);
-          fm.userData.colliders = (fm.userData.colliders || []).map((c) => Object.assign({}, c, { x: c.x * fv[0], hw: c.hw * fv[0] }));
-          const fall = hubPlace(hub, fm, a, l + side * 6, rot);
-          if (def.model === 'athirappilly' || def.model === 'thusharagiri' || def.model === 'palaruvi') fall.add(Models.mistCloud ? Models.mistCloud() : new T.Group());
-          hub.flows = (hub.flows || []).concat([fall.userData.flow]);
-          waterDisc(hub, a, l - side * 0.5, 9);
+          const FALLS = {
+            athirappilly: { H: 26, w: 30, streams: 4 },        // a broad curtain in three parts
+            palaruvi: { H: 38, w: 6, streams: 1 },             // tall and narrow, "a stream of milk"
+            perunthenaruvi: { H: 11, w: 26, streams: 5, tiers: 2, rock: 0x2f2d2a }, // low, wide, over black rock
+            adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
+            soochipara: { H: 34, w: 9, streams: 1, tiers: 3 }, // "needle rock" falls in three tiers
+            thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 }
+          };
+          const fall = hubPlace(hub, Models.waterfall(FALLS[def.model] || { H: 24, w: 14, streams: 2 }), a, l + side * 6, rot);
+          hub.ticks = (hub.ticks || []).concat([fall.userData.tick]);
           break;
         }
         case 'shrine': {
@@ -2733,6 +2734,7 @@
       if (h.beam) h.beam.rotation.y += dt * 0.9;
       (h.beams || []).forEach((b) => { b.rotation.y += dt * 0.9; });
       (h.flows || []).forEach((t) => { t.offset.y += dt * 0.9; });
+      (h.ticks || []).forEach((f) => f(Hw.animTime));
       if (h.actors && Math.hypot(Hw.frame(h.s).x - pp.x, Hw.frame(h.s).z - pp.z) < 260) h.actors.forEach((a) => Models.animateCharacter(a.obj, a.state, dt, 1));
       (h.nets || []).forEach((n) => { n.obj.userData.arm.rotation.x = -0.35 + ((Math.sin(Hw.animTime * 0.35 + n.phase) + 1) / 2) * 0.6; });
       (h.elephants || []).forEach((e) => e.userData.animate(Hw.animTime + e.id, false));
