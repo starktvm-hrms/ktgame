@@ -723,6 +723,44 @@
   // lakes: { x, z, r, y, island: { x, z, r } } and level pads for buildings
   // { x, z, r, y }, both added by the destinations (KT.Dest)
   const LAKES = Hw.LAKES = [], PADS = Hw.PADS = [];
+  // Landforms in a model's own frame (origin x, z; turned by ry, as a model
+  // placed there would be): fn(h, lx, lz) returns the new height
+  const SHAPES = Hw.SHAPES = [];
+  const ss = (a, b, x) => KT.smoothstep(a, b, x);
+  Hw.addLandform = function (x, z, ry, reach, fn) { SHAPES.push({ x, z, c: Math.cos(ry), s: Math.sin(ry), reach, fn }); };
+  // a waterfall's gorge: the land behind and beside it is a plateau at the
+  // height of the lip; inside the gorge and in front it stays low
+  Hw.gorgeLandform = function (x, z, ry, base, opts) {
+    const g = Models.waterfallShape(opts), top = base + g.H + 1.15;
+    // (the slopes fall away over about twice the drop, so they stay green)
+    const fall = Math.max(40, g.H * 2.2);
+    Hw.addLandform(x, z, ry, g.Rc + 30 + fall, (h, lx, lz) => {
+      const d = Math.hypot(lx, lz - g.z0);
+      if (d < g.Rc + 1.5) return h;
+      const k = ss(g.Rc + 1.5, g.Rc + 6.5, d) * (1 - ss(g.Rc + 26, g.Rc + 26 + fall, d)) * (1 - ss(g.zEnd - 2, g.zEnd + fall * 0.8, lz));
+      return k > 0 ? KT.lerp(h, Math.max(h, top), k) : h;
+    });
+  };
+  // an earth dam (half length L, crest height crest above base) holding a
+  // reservoir behind it (-z) at level water; hills round the basin and at
+  // both ends of the dam
+  Hw.damLandform = function (x, z, ry, base, o) {
+    const L = o.L || 35, crest = o.crest || 8, water = o.water || crest - 1.4, Rx = o.Rx || L - 2, Rz = o.Rz || 30, Dz = o.Dz || Rz + 4;
+    const hill = base + crest + (o.hill || 3), bed = base + water - 2.6;
+    Hw.addLandform(x, z, ry, Math.max(Rx, Rz) * 2.6 + 40, (h, lx, lz) => {
+      let t = h, w = 0;
+      if (lz < -6) {
+        const e = Math.hypot(lx / Rx, (lz + Dz) / Rz);
+        t = e < 1 ? bed : KT.lerp(bed, hill, ss(1, 1.22, e));
+        w = (1 - ss(1.55, 2.3, e)) * ss(-6, -11, lz);
+      }
+      // the abutments, the dam's ends dug into hillsides
+      const ab = ss(L - 4, L + 1, Math.abs(lx)) * (1 - ss(L + 30, L + 70, Math.abs(lx))) * (1 - ss(6, o.gorge ? 40 : 24, lz));
+      if (ab > w) { t = hill; w = ab; }
+      return w > 0 ? KT.lerp(h, t, w) : h;
+    });
+    return { bed, water: base + water, Rx, Rz, Dz };
+  };
   const inRiver = (r, x, z, pad) => Math.abs(x - r.cx) <= RIVER_HALF + pad && Math.abs(z - r.cz) <= RIVER_HALF + pad;
 
   // ------------------------------------------------------------- terrain
@@ -766,6 +804,12 @@
     for (let i = 0; i < PADS.length; i++) {
       const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
       if (d < P.r + 18) h = KT.lerp(h, P.y, 1 - KT.smoothstep(P.r, P.r + 18, d));
+    }
+    // landforms: the plateau behind a waterfall, a dam's abutments and basin
+    for (let i = 0; i < SHAPES.length; i++) {
+      const S = SHAPES[i], dx = x - S.x, dz = z - S.z;
+      if (dx * dx + dz * dz > S.reach * S.reach) continue;
+      h = S.fn(h, S.c * dx - S.s * dz, S.s * dx + S.c * dz);
     }
     // lakes (and their islands)
     for (let i = 0; i < LAKES.length; i++) {
@@ -1759,15 +1803,7 @@
         case 'tea': hubPlace(hub, Models.teaHill(), a, l, rot); break;
         case 'waterfall': {
           // each fall has its own shape: wide, tall and narrow, low over slabs
-          const FALLS = {
-            athirappilly: { H: 26, w: 30, streams: 4 },        // a broad curtain in three parts
-            palaruvi: { H: 38, w: 6, streams: 1 },             // tall and narrow, "a stream of milk"
-            perunthenaruvi: { H: 11, w: 26, streams: 5, tiers: 2, rock: 0x2f2d2a }, // low, wide, over black rock
-            adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
-            soochipara: { H: 34, w: 9, streams: 1, tiers: 3 }, // "needle rock" falls in three tiers
-            thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 }
-          };
-          const fall = hubPlace(hub, Models.waterfall(FALLS[def.model] || { H: 24, w: 14, streams: 2 }), a, l + side * 6, rot);
+          const fall = hubPlace(hub, Models.waterfall(KT.FALLS[def.model] || KT.FALLS.plain), a, l + side * 6, rot);
           hub.ticks = (hub.ticks || []).concat([fall.userData.tick]);
           break;
         }
@@ -1784,13 +1820,13 @@
         case 'garden':
           if (def.model === 'mananchira') { hubPlace(hub, Models.mananchira(), a, l, rot); break; }
           hubPlace(hub, Models.garden(), a, l, rot);
-          hubPlace(hub, Models.earthDam(), a, l + side * 30, 0, { absRot: heading });
+          hubPlace(hub, Models.earthDam(), a, l + side * 30, rot);
+          if (sg.reservoir) reservoirWater(hub, sg.reservoir);
           break;
         case 'football': hubPlace(hub, Models.footballGround(), a, l, 0, { absRot: heading }); break;
         case 'dam': {
-          hubPlace(hub, Models.earthDam(), a, l, 0, { absRot: heading });
-          const w = waterDisc(hub, a, l + side * 22, 16);
-          w.position.y += 6;
+          hubPlace(hub, Models.earthDam(), a, l, rot);
+          const w = reservoirWater(hub, sg.reservoir);
           [[-5, 2], [6, -3]].forEach(([x, z]) => { const r = Models.rock(3); r.scale.setScalar(1.6); hubPlace(hub, r, a + x, l + side * (22 + z), 0, { y: w.position.y - 0.5, colliders: false }); });
           if (def.model === 'banasura') {
             // the little green islands in the reservoir, and a boat
@@ -1945,6 +1981,55 @@
       sightExtras(hub, sg, def, a, l, side, rot, heading);
       dressSight(hub, sg);
     });
+  }
+
+  // The land round the waterfalls and dams of the district towns, laid out
+  // before any terrain is built (each sight's frame is the one its model
+  // is placed with)
+  const sightFrame = (sg, dLat) => {
+    const side = Math.sign(sg.lat), s = Hw.hubS(sg.hub) + sg.along, q = Hw.at(s, sg.lat + side * (dLat || 0));
+    return { x: q.x, z: q.z, ry: Hw.frame(s).heading + faceRoad(sg.lat), base: roadY(Hw.hubS(sg.hub)) - 0.2, side };
+  };
+  const sightDef = (sg) => sg.district.sights.find((x) => x.name === sg.name) || {};
+  function prepareLandforms() {
+    Hw.sightList().forEach((sg) => {
+      if (sg.dest) return;
+      const def = sightDef(sg);
+      if (sg.kind === 'waterfall') {
+        const f = sightFrame(sg, 6);
+        Hw.gorgeLandform(f.x, f.z, f.ry, f.base, KT.FALLS[def.model] || KT.FALLS.plain);
+      } else if (sg.kind === 'dam') {
+        const f = sightFrame(sg, 0);
+        sg.reservoir = Object.assign(Hw.damLandform(f.x, f.z, f.ry, f.base, { L: 35, crest: 8 }), f);
+      } else if (sg.kind === 'garden' && def.model !== 'mananchira') {
+        const f = sightFrame(sg, 30);
+        sg.reservoir = Object.assign(Hw.damLandform(f.x, f.z, f.ry, f.base, { L: 35, crest: 8, Rz: 26 }), f);
+      }
+    });
+    // Idukki: the arch dam between its granite hills (the district landmark)
+    KT.DISTRICTS.forEach((d, i) => {
+      if (d.landmark !== 'dam') return;
+      const s = Hw.hubS(i) + 30, q = Hw.at(s, 68);
+      const ry = Hw.frame(s).heading + faceRoad(68), base = roadY(Hw.hubS(i)) - 0.2;
+      Hw.archReservoir = Object.assign(Hw.damLandform(q.x, q.z, ry, base, { L: 27, crest: 16.4, water: 15, Rx: 34, Rz: 34, Dz: 30, hill: 10, gorge: true }), { x: q.x, z: q.z, ry, base, hub: i });
+    });
+  }
+  // a reservoir's water: an ellipse at its level behind the dam
+  function reservoirWater(hub, R) {
+    const m = new T.Mesh(new T.CircleGeometry(1, 48), mats.water);
+    m.rotation.x = -Math.PI / 2;
+    m.scale.set(R.Rx + 1.5, R.Rz + 1.5, 1);
+    const c = Math.cos(R.ry), s = Math.sin(R.ry);
+    const cx = R.x + (-R.Dz) * s, cz = R.z + (-R.Dz) * c;
+    m.position.set(cx, R.water, cz);
+    m.rotation.z = R.ry;
+    hub.group.add(m);
+    // the water's edge stops the player (circles along the ellipse's long axis)
+    for (let k = -2; k <= 2; k++) {
+      const lx = k * R.Rx * 0.35;
+      Hw.addCollider({ type: 'circle', x: cx + lx * c, z: cz - lx * s, r: Math.min(R.Rz, R.Rx * 0.45) - 1, noCamera: true });
+    }
+    return m;
   }
 
   // Signature details that make a place itself (on top of its kind's model)
@@ -2278,8 +2363,9 @@
       }
       case 'church': hubPlace(hub, Models.church(), 20, side, rot); break;
       case 'dam': {
-        waterDisc(hub, 30, side + 35, 34);
         hubPlace(hub, Models.archDam(), 30, side + 8, rot);
+        if (Hw.archReservoir) reservoirWater(hub, Hw.archReservoir);
+        else waterDisc(hub, 30, side + 35, 34);
         break;
       }
       case 'nets': {
@@ -2376,6 +2462,7 @@
     makePools(scene);
     scene.add(buildSea());
     if (KT.Dest) KT.Dest.prepare();
+    prepareLandforms();
     relevelLanes();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     Hw.built = true;

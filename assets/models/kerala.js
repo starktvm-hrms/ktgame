@@ -153,8 +153,12 @@
     const R = 55, H = 20, arc = 1.1;
     const wall = new T.CylinderGeometry(R, R + 3, H, 40, 1, true, Math.PI - arc / 2, arc);
     part(g, wall, conc, 0, H / 2 - 4, R + 6);
-    const top = new T.CylinderGeometry(R + 0.2, R + 0.2, 0.8, 40, 1, false, Math.PI - arc / 2, arc);
-    part(g, top, KT.mat('damTop', { color: 0x9e9a90 }), 0, H - 3.6, R + 6);
+    // the crest: a road along the top of the arch (a band, not a solid slice)
+    const top = new T.RingGeometry(R - 3.2, R + 0.4, 40, 1, Math.PI / 2 - arc / 2, arc);
+    top.rotateX(-Math.PI / 2);
+    part(g, top, KT.mat('damTop', { color: 0x9e9a90, side: T.DoubleSide }), 0, H - 3.6, R + 6);
+    const lip = new T.CylinderGeometry(R - 3.2, R - 3.2, 1.2, 40, 1, true, Math.PI - arc / 2, arc);
+    part(g, lip, conc, 0, H - 4.0, R + 6);
     for (let i = 0; i <= 12; i++) {
       const a = Math.PI - arc / 2 + (i / 12) * arc;
       part(g, G.box(0.15, 1.1, 0.15), M().white, Math.sin(a) * (R - 0.3), H - 2.6, R + 6 + Math.cos(a) * (R - 0.3));

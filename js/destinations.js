@@ -43,10 +43,15 @@
       } else if (k === 'islandTemple') {
         it.lake = { x: sg.x, z: sg.z, r: 46, y: it.y - 1.3, island: { x: sg.x + it.out.x * 6, z: sg.z + it.out.z * 6, r: 15 } };
       } else if (k === 'reservoir') {
-        it.lake = { x: sg.x + it.out.x * 46, z: sg.z + it.out.z * 46, r: 34, y: it.y - 0.8 };
+        // the reservoir held up by the dam, in a basin of hills at its level
+        const dx = sg.x + it.out.x * 8, dz = sg.z + it.out.z * 8;
+        const R = Hw.damLandform(dx, dz, it.rot, it.y, { L: 35, crest: 8, Rx: 34, Rz: 34, Dz: 38 });
+        it.lake = { x: sg.x + it.out.x * 46, z: sg.z + it.out.z * 46, r: 34, y: R.water, edge: 4 };
         pads.push({ x: sg.x, z: sg.z, r: 18, y: it.y });
       } else if (k === 'waterfall') {
         pads.push({ x: sg.x - it.out.x * 10, z: sg.z - it.out.z * 10, r: 14, y: it.y });
+        // the plateau the river falls from
+        Hw.gorgeLandform(sg.x + it.out.x * 10, sg.z + it.out.z * 10, it.rot, it.y, KT.FALLS.meenmutty);
       } else {
         // (the zoo compound is square: its corners need the extra room)
         pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' });
@@ -1290,7 +1295,7 @@
       place(it, Models.garden(), 24, -8, 0, { colliders: false });
     },
     waterfall(it) {
-      const fall = place(it, Models.waterfall({ H: 26, w: 12, streams: 2, tiers: 2 }), 0, 10);
+      const fall = place(it, Models.waterfall(KT.FALLS.meenmutty), 0, 10);
       it.anim.push(fall.userData.tick);
       for (let k = 0; k < 8; k++) {
         const a = (k / 8) * Math.PI * 2;

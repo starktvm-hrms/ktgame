@@ -89,15 +89,36 @@
     return new T.Mesh(geo, mat);
   }
 
+  // each named fall's size and shape (shared with the terrain, which rises
+  // to the lip behind it)
+  KT.FALLS = {
+    athirappilly: { H: 26, w: 30, streams: 4 },        // a broad curtain in parts
+    palaruvi: { H: 38, w: 6, streams: 1 },             // tall and narrow, "a stream of milk"
+    perunthenaruvi: { H: 11, w: 26, streams: 5, tiers: 2, rock: 0x2f2d2a }, // low and wide over black rock
+    adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
+    soochipara: { H: 34, w: 9, streams: 1, tiers: 3 }, // "needle rock" falls in three tiers
+    thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 },
+    meenmutty: { H: 26, w: 12, streams: 2, tiers: 2 },
+    plain: { H: 24, w: 14, streams: 2 }
+  };
+  const ARC = 2.7;
+  // the gorge's plan: its radius, the lip, the arc's centre and where its
+  // two ends reach (model space, +z towards the viewer)
+  Models.waterfallShape = function (opts) {
+    const H = opts.H || 24, W = opts.w || 14;
+    const Rc = Math.max(16, W * 0.75 + 9);
+    const backZ = -Math.max(9, W * 0.35 + 6);
+    const z0 = backZ + Rc;
+    return { H, W, Rc, backZ, z0, zEnd: z0 - Rc * Math.cos(ARC / 2), arc: ARC };
+  };
+
   Models.waterfall = function (opts) {
     if (typeof opts !== 'object' || !opts) opts = { H: opts ? Math.max(opts, 20) : 24 };
     const H = opts.H || 24, W = opts.w || 14, streams = opts.streams || 2, tiers = Math.max(1, Math.min(3, opts.tiers || 1));
     const rng = KT.makeRng(Math.round(H * 7 + W * 13 + streams));
     const g = new T.Group(), top = new T.Group();
-    const Rc = Math.max(16, W * 0.75 + 9);          // radius of the gorge
-    const backZ = -Math.max(9, W * 0.35 + 6);          // the lip, behind the pool
-    const z0 = backZ + Rc;                              // centre of the gorge's arc
-    const ARC = 2.7;
+    const shp = Models.waterfallShape(opts);
+    const Rc = shp.Rc, backZ = shp.backZ, z0 = shp.z0;   // gorge radius, the lip, the arc's centre
     const rockCol = new T.Color(opts.rock || 0x5d5850), wet = rockCol.clone().multiplyScalar(0.55), moss = new T.Color(0x4f7034), moss2 = new T.Color(0x6b8a3c);
 
     // ---- the gorge: an arc of rock wall, stratified, wet where the water runs
@@ -128,7 +149,7 @@
     wall.castShadow = wall.receiveShadow = true;
     g.add(wall);
     // the forest floor on top of the gorge, and the river to the lip
-    const capR = Rc + 26;
+    const capR = Rc + 12;
     const cap = new T.Mesh(new T.RingGeometry(Rc - 0.8, capR, 48, 1, Math.PI / 2 - ARC / 2, ARC), KT.mat('fallTop', { color: 0x4f7a32, roughness: 0.95 }));
     cap.rotation.x = -Math.PI / 2;
     cap.position.set(0, H + 1.4, z0);
