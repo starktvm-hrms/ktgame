@@ -2157,6 +2157,14 @@
         break;
       }
       case 'silentValley':
+        // strobilanthes in bloom: violet-blue flowers in the forest undergrowth
+        for (let i = 0; i < 14; i++) {
+          const ang = i * 2.4, rr = 8 + (i % 4) * 3;
+          const bush = new T.Group();
+          KT.part(bush, KT.G.sph(0.8, 7, 5), KT.mat('svLeaf', { color: 0x3f6b2a, roughness: 0.9 }), 0, 0.6, 0, 0, 0, 0, 1, 0.8, 1);
+          for (let k = 0; k < 8; k++) KT.part(bush, KT.G.sph(0.16, 5, 4), KT.mat('svFlower', { color: 0x8a7ad8, roughness: 0.7 }), Math.cos(k) * 0.6, 0.9 + (k % 3) * 0.15, Math.sin(k) * 0.6);
+          hubPlace(hub, KT.bake(bush), a + Math.cos(ang) * rr, l + side * 6 + Math.sin(ang) * rr, i, { colliders: false });
+        }
         [[-8, 4, 2.6], [-12, 8, 1.4], [6, 10, 2.2]].forEach(([x, z, y], i) => hubPlace(hub, Models.lionTailedMacaque(), a + x, l + side * z, i, { y: wyAt(a + x, l + side * z) + y * (i ? 0 : 1), colliders: false }));
         break;
       case 'muthanga':
