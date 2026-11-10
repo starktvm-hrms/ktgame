@@ -634,11 +634,11 @@
     }
     // the rock outcrop with dolmens
     part(g, KT.blob(7, 1, 0.2, 610), rock, 10, -2.6, 0, 0, 0, 0, 1, 0.5, 1);
-    [[8, -2], [12, 1], [9, 3]].forEach(([x, z], k) => {
+    // the dolmens: a thick, flat capstone on two or three rough boulders
+    [[8, -2], [12, 1], [9, 3.5]].forEach(([x, z], k) => {
       const y = 0.8;
-      [[-0.7, 0], [0.7, 0]].forEach(([dx]) => part(g, G.box(0.18, 1.1, 1.4), slab, x + dx, y + 0.55, z, 0, k * 0.4, 0));
-      part(g, G.box(1.4, 1.1, 0.18), slab, x, y + 0.55, z - 0.7, 0, k * 0.4, 0);
-      part(g, G.box(2.2, 0.22, 2.0), slab, x, y + 1.2, z, 0.05, k * 0.4, 0.04);
+      [[-0.75, -0.2], [0.75, 0.1], [0, -0.75]].slice(0, k === 1 ? 2 : 3).forEach(([dx, dz], j) => part(g, KT.blob(0.65, 1, 0.25, 620 + k * 3 + j), rock, x + dx, y + 0.55, z + dz, 0, j, 0, 0.9, 1.0, 1.1));
+      part(g, G.box(2.6, 0.38, 2.2), slab, x, y + 1.35, z, 0.04, k * 0.4, 0.05);
     });
     // jaggery shed with pans
     const shed = mt('shedPost', 0x5a4030, 0.9);
@@ -669,7 +669,7 @@
       c.fillStyle = '#d9d6cc'; c.fillRect(0, 0, w, h);
       for (let y = 4; y < h; y += 12) for (let x = 4; x < w; x += 12) { c.fillStyle = (x * y) % 7 ? '#5d7a8a' : '#2f4a5a'; c.fillRect(x, y, 7, 7); }
     }, 1, 1);
-    const pave = mt('mdPave', 0xc9b8a0, 0.9), stone = mt('mdEdge', 0x8a8478, 0.9), steel = mt('mdRail', 0xd8d8d8, 0.4, { metalness: 0.6 });
+    const pave = mt('mdPave', 0xb5654a, 0.9), stone = mt('mdEdge', 0x8a8478, 0.9), steel = mt('mdRail', 0xd8d8d8, 0.4, { metalness: 0.6 });
     // walkway along x at z = 0, water behind it
     part(g, G.box(48, 0.3, 6), pave, 0, 0.15, 0);
     part(g, G.box(48, 0.6, 0.4), stone, 0, 0.0, -3.1);
@@ -693,7 +693,22 @@
     part(g, G.box(3, 0.25, 8), M().wood, 14, 0.45, -6.5);
     const baked = KT.bake(g);
     [-20, -12, 12, 20].forEach((x) => add(top, Models.lampPost(), x, 0.3, 2.4));
-    [-16, -6, 6, 16].forEach((x) => add(top, Models.bench(), x, 0.3, -1.6, 0));
+    // rows of red benches facing each other along the walk
+    const redBench = mt('mdBench', 0xb02a24, 0.6);
+    for (let x = -22; x <= 22; x += 3) [-1, 1].forEach((sd) => {
+      if (Math.abs(x) < 3) return;
+      part(top, G.box(1.6, 0.08, 0.5), redBench, x, 0.75, sd * 2.2);
+      part(top, G.box(1.6, 0.5, 0.08), redBench, x, 1.05, sd * 2.45);
+      [-0.7, 0.7].forEach((dx) => part(top, G.box(0.06, 0.45, 0.45), M().darkGrey, x + dx, 0.52, sd * 2.25));
+    });
+    // the container cranes of Vallarpadam across the water
+    const crane = mt('mdCrane', 0x3f6ab0, 0.6);
+    [-14, -6, 2].forEach((x) => {
+      [-1.6, 1.6].forEach((dz) => part(top, G.box(0.5, 16, 0.5), crane, x, 8, -34 + dz));
+      part(top, G.box(1.0, 1.0, 16), crane, x, 16, -36);
+      part(top, G.box(0.4, 6, 0.4), crane, x, 19, -34, 0, 0, 0.0);
+    });
+    part(top, G.box(30, 0.6, 6), mt('mdQuay', 0x8a8478, 0.9), -6, 0.3, -34);
     if (Models.motorBoat) add(top, Models.motorBoat(), 17, 0.1, -9, 0.4);
     add(top, Models.houseboat(), -12, 0.12, -14, Math.PI / 2 + 0.2, 0.9);
     baked.add(KT.bake(top));
