@@ -321,7 +321,7 @@
   // on the land side, bastions at the corners and cannons on the ramparts
   Models.angeloFort = function () {
     const g = new T.Group();
-    const lat = KT.mat('pl_angeloLat', { map: KT.tex('laterite', 2, 1), color: 0xc4784a }, 0.2), grass = mt('angGrass', 0x7aa04a, 1);
+    const lat = KT.mat('pl_angeloLat', { map: KT.tex('laterite', 2, 1), color: 0x8f6448 }, 0.2), grass = mt('angGrass', 0x7aa04a, 1);
     const H = 6, P = [[-20, 12], [20, 12], [0, -22]];
     part(g, new T.ShapeGeometry(new T.Shape(P.map(([x, z]) => new T.Vector2(x, -z)))).rotateX(-Math.PI / 2), grass, 0, 0.06, 0);
     const C = [];
@@ -344,6 +344,20 @@
     }
     // gate arch
     part(g, G.box(5.4, 1.2, 2.2), lat, 0, H - 0.4, 12);
+    // the tall gabled stone building inside, its walls hung with creepers
+    part(g, G.box(7, 7, 6), lat, 0, 3.5, -4);
+    const gab = new T.Shape(); gab.moveTo(-3.6, 0); gab.lineTo(3.6, 0); gab.lineTo(0, 2.6); gab.lineTo(-3.6, 0);
+    part(g, new T.ExtrudeGeometry(gab, { depth: 6, bevelEnabled: false }), lat, 0, 7, -7);
+    part(g, G.box(1.0, 1.0, 0.2), M().windowDark, 0, 8.0, -0.95);
+    part(g, G.box(1.2, 2.2, 0.2), M().windowDark, 1.2, 1.1, -0.95);
+    for (let i = 0; i < 10; i++) part(g, KT.blob(0.6, 1, 0.35, 990 + i), mt('creeper', 0x3f7a32, 0.9), -3.2 + (i % 5) * 0.4, 1 + i * 0.5, -0.9 + (i % 2) * 0.1, 0, 0, 0, 1, 1.4, 0.4);
+    C.push({ type: 'box', x: 0, z: -4, hw: 3.6, hd: 3.1 });
+    // casuarinas along the sea side
+    const cas = mt('casuarina', 0x2f4a2a, 0.9);
+    [[-12, -16], [-6, -22], [6, -22], [12, -16]].forEach(([x, z], i) => {
+      part(g, G.cyl(0.18, 0.3, 9, 6), M().woodDark, x, 4.5, z);
+      for (let k = 0; k < 4; k++) part(g, KT.blob(1.5 - k * 0.15, 1, 0.4, 1000 + i * 4 + k), cas, x + (k % 2 ? 0.6 : -0.6), 6 + k * 1.3, z, 0, 0, 0, 1.2, 0.8, 1.2);
+    });
     const baked = KT.bake(g);
     baked.userData.colliders = C;
     return baked;
