@@ -613,7 +613,7 @@
   // with a walkway and a small lighthouse at its end.
   Models.beypore = function () {
     const g = new T.Group();
-    const wood = mt('uruWood', 0x8a5a32, 0.85), wood2 = mt('uruWood2', 0x6b4426, 0.9), scaf = mt('scaffold', 0x9a8a6a, 0.9), rock = mt('bwRock', 0x6b6a66, 0.95);
+    const wood = mt('uruWood', 0xb06a34, 0.8), wood2 = mt('uruWood2', 0x8f5228, 0.85), scaf = mt('scaffold', 0x9a8a6a, 0.9), rock = mt('bwRock', 0x6b6a66, 0.95);
     // the hull: slices along its length
     const L = 22;
     for (let i = 0; i < 24; i++) {
@@ -645,17 +645,20 @@
   // ------------------------------------------------- railway bridge
   // a girder bridge on stone piers (Kadalundi river mouth)
   Models.railBridge = function (len) {
-    const g = new T.Group(), steel = mt('girder', 0x5a6a7a, 0.5, { metalness: 0.5 }), stone = mt('pier', 0x8a8478, 0.9);
+    // a low concrete bridge on round piers with railings (Kadalundi's)
+    const g = new T.Group(), conc = mt('bridgeConc', 0xb9b4aa, 0.9), dark = mt('bridgeConcDark', 0x8a857c, 0.9), rail = mt('bridgeRail', 0x6a6a6a, 0.6);
     const n = Math.round(len / 8);
-    for (let i = 0; i <= n; i++) part(g, G.box(2.6, 4, 1.4), stone, 0, 1.2, -len / 2 + i * len / n);
-    part(g, G.box(3, 0.4, len), steel, 0, 3.4, 0);
+    for (let i = 0; i <= n; i++) [-1.2, 1.2].forEach((x) => part(g, G.cyl(0.45, 0.5, 4.5, 10), dark, x, 1.3, -len / 2 + i * len / n));
+    part(g, G.box(4.4, 0.7, len), conc, 0, 3.6, 0);
+    part(g, G.box(4.0, 0.08, len), mt('bridgeRoad', 0x5a5a5a, 0.9), 0, 3.99, 0);
     [-1, 1].forEach((s) => {
-      part(g, G.box(0.2, 0.2, len), steel, s * 1.4, 5.4, 0);
-      for (let i = 0; i < n * 2; i++) part(g, G.box(0.14, 2.6, 0.14), steel, s * 1.4, 4.6, -len / 2 + (i + 0.5) * len / (n * 2), (i % 2 ? 1 : -1) * 0.6, 0, 0);
-      part(g, G.box(0.12, 0.12, len), mt('railSteel', 0x9a9a9a, 0.4, { metalness: 0.6 }), s * 0.5, 3.7, 0);
+      part(g, G.box(0.25, 0.25, len), conc, s * 2.1, 4.05, 0);
+      part(g, G.box(0.08, 0.08, len), rail, s * 2.1, 4.9, 0);
+      for (let t = -len / 2; t <= len / 2; t += 1.5) part(g, G.box(0.1, 0.9, 0.1), rail, s * 2.1, 4.45, t);
     });
     return KT.bake(g);
   };
+
 
   // ------------------------------------- Parassinikkadavu snake park
   // Round snake pits, a glass-fronted cobra house, a crocodile pond and
@@ -858,21 +861,34 @@
 
   // ------------------------------------------------ Mananchira tank
   Models.mananchira = function () {
-    const g = new T.Group(), stone = mt('tankStone', 0x9a8f80, 0.9), lawn = mt('mnLawn', 0x6aa043, 1);
-    part(g, G.box(36, 0.1, 28), lawn, 0, 0.05, 0);
-    for (let i = 0; i < 4; i++) part(g, G.box(24 - i * 1.4, 0.35, 16 - i * 1.4), stone, 0, 0.18 - i * 0.35, 0);
-    waterPlane(g, 18, 10, 0, 0.37, 0);
-    rail(g, -12.5, 8.5, 12.5, 8.5, 0.35, 0.9, M().darkGrey);
-    rail(g, -12.5, -8.5, 12.5, -8.5, 0.35, 0.9, M().darkGrey);
+    // the royal tank: a wide sheet of water inside a grassy bank, ringed by
+    // a red-paved walkway with red-brick pillars and iron rails
+    const g = new T.Group(), lawn = mt('mnLawn', 0x6aa043, 1), pave = mt('mnPave', 0xa4553a, 0.85), brick = mt('mnBrick', 0x8a3b24, 0.9), iron = mt('mnIron', 0x3a3a3a, 0.5);
+    const W = 26, D = 17;
+    part(g, G.box(W + 12, 0.1, D + 12), lawn, 0, 0.05, 0);
+    part(g, G.box(W + 7, 0.14, D + 7), pave, 0, 0.08, 0);
+    part(g, G.box(W + 2, 0.18, D + 2), lawn, 0, 0.1, 0);
+    waterPlane(g, W, D, 0, 0.22, 0);
+    const posts = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0);
+      for (let t = 0; t <= len + 0.01; t += 2.6) {
+        const x = x0 + (x1 - x0) * t / len, z = z0 + (z1 - z0) * t / len;
+        part(g, G.box(0.45, 1.3, 0.45), brick, x, 0.8, z);
+        part(g, G.box(0.55, 0.1, 0.55), mt('mnCap', 0x6a5a4a, 0.8), x, 1.5, z);
+      }
+      [0.75, 1.15].forEach((y) => part(g, G.box(0.05, 0.05, len), iron, (x0 + x1) / 2, y, (z0 + z1) / 2, 0, ang, 0));
+    };
+    const hx = W / 2 + 1.6, hz = D / 2 + 1.6;
+    posts(-hx, -hz, hx, -hz); posts(-hx, hz, hx, hz); posts(-hx, -hz, -hx, hz); posts(hx, -hz, hx, hz);
     const baked = KT.bake(g);
     const top = new T.Group();
-    [[-15, 10], [15, 10], [-15, -10], [15, -10]].forEach(([x, z]) => add(top, Models.lampPost(), x, 0.1, z));
-    [[-17, 0], [17, 0]].forEach(([x, z], i) => add(top, Models.banyanTree(), x, 0, z, i, 0.75));
-    for (let i = 0; i < 6; i++) add(top, Models.flowerBed(i), -10 + i * 4, 0.05, 12);
+    [[-hx - 2.5, hz + 2], [hx + 2.5, hz + 2], [-hx - 2.5, -hz - 2], [hx + 2.5, -hz - 2]].forEach(([x, z]) => add(top, Models.lampPost(), x, 0.15, z));
+    [[-hx - 5, 0], [hx + 5, 0]].forEach(([x, z], i) => add(top, Models.banyanTree(), x, 0, z, i, 0.75));
     baked.add(KT.bake(top));
-    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 12.5, hd: 8.5 }];
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: hx, hd: hz }];
     return baked;
   };
+
 
   // -------------------------------------------- Payyambalam sculpture
   // Kanayi's "Amma" (mother and child) in the beach garden

@@ -1983,6 +1983,8 @@
             hubPlace(hub, bird, a + x, l + side * z, i, { y: w.position.y + 0.06, colliders: false });
           }
           hubPlace(hub, Models.railBridge(52), a + 14, l, 0, { absRot: heading + Math.PI / 2 + 0.2, colliders: false });
+          // gulls in flocks over the sand bars
+          if (Models.flyingBird) for (let i = 0; i < 14; i++) hubPlace(hub, Models.flyingBird(true), a - 8 + (i % 7) * 2.6, l + side * (2 + Math.floor(i / 7) * 3), i, { y: w.position.y + 4 + (i % 4) * 1.3, colliders: false }).scale.setScalar(2.2);
           hubPlace(hub, Models.watchTower(), a - 18, l - side * 18, rot);
           break;
         }
