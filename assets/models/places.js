@@ -330,7 +330,7 @@
   Models.eravikulam = function () {
     const g = new T.Group(), top = new T.Group();
     const grass = mt('eraGrass', 0x9ab54e, 0.95), grass2 = mt('eraGrass2', 0x7fa646, 0.95), rock = mt('eraRock', 0x5f5d58, 0.95), shola = mt('shola', 0x2f5a2a, 0.9);
-    [[-12, -6, 14], [8, -10, 16], [0, -22, 18]].forEach(([x, z, r], i) => part(g, G.sph(r, 28, 14), i % 2 ? grass : grass2, x, -r * 0.62, z, 0, 0, 0, 1, 0.6, 1));
+    [[-12, -6, 14], [8, -10, 16], [0, -22, 18]].forEach(([x, z, r], i) => part(g, G.sph(r, 28, 14), i % 2 ? grass : grass2, x, -r * 0.42, z, 0, 0, 0, 1, 0.6, 1));
     // the rock face behind
     for (let i = 0; i < 9; i++) part(g, KT.blob(5, 1, 0.25, 500 + i), rock, -20 + i * 5, 8 + (i % 3) * 2, -30 - (i % 2) * 2, 0, i, 0, 1, 1.8, 0.8);
     // shola forest clumps in the folds
@@ -403,7 +403,7 @@
     // walkway along x at z = 0, water behind it
     part(g, G.box(48, 0.3, 6), pave, 0, 0.15, 0);
     part(g, G.box(48, 0.6, 0.4), stone, 0, 0.0, -3.1);
-    waterPlane(g, 52, 22, 0, -0.35, -14);
+    waterPlane(g, 52, 22, 0, 0.08, -14);
     rail(g, -24, -2.9, 24, -2.9, 0.3, 1.0, steel);
     // the Rainbow Bridge: a high arch in rainbow bands over the walkway
     const RB = [0xd8203a, 0xe07a1f, 0xf2c230, 0x3f9f3c, 0x2c5fa8, 0x6b3fa0];
@@ -415,19 +415,19 @@
     [-1, 1].forEach((s) => part(g, G.box(1.4, 1.2, 7), stone, 0, 0.6, s * 6.4));
     // apartment towers on the land side
     const tower = KT.mat('pl_mdTower', { map: winTex, roughness: 0.6 });
-    [[-18, 12, 26], [-8, 15, 34], [9, 13, 22], [19, 16, 30]].forEach(([x, z, h], i) => {
+    [[-22, 10, 16], [-24, 19, 22], [22, 10, 14], [25, 19, 19]].forEach(([x, z, h], i) => {
       part(g, G.box(7, h, 7), tower, x, h / 2, z);
       part(g, G.box(7.4, 0.5, 7.4), mt('mdTop' + (i % 2), i % 2 ? 0x2c5fa8 : 0xc4212b, 0.6), x, h + 0.25, z);
     });
     // jetty
-    part(g, G.box(3, 0.25, 8), M().wood, 14, 0.25, -6.5);
+    part(g, G.box(3, 0.25, 8), M().wood, 14, 0.45, -6.5);
     const baked = KT.bake(g);
     [-20, -12, 12, 20].forEach((x) => add(top, Models.lampPost(), x, 0.3, 2.4));
     [-16, -6, 6, 16].forEach((x) => add(top, Models.bench(), x, 0.3, -1.6, 0));
-    if (Models.motorBoat) add(top, Models.motorBoat(), 17, -0.33, -9, 0.4);
-    add(top, Models.houseboat(), -12, -0.3, -14, Math.PI / 2 + 0.2, 0.9);
+    if (Models.motorBoat) add(top, Models.motorBoat(), 17, 0.1, -9, 0.4);
+    add(top, Models.houseboat(), -12, 0.12, -14, Math.PI / 2 + 0.2, 0.9);
     baked.add(KT.bake(top));
-    baked.userData.colliders = [{ type: 'box', x: 0, z: -9, hw: 26, hd: 6 }, ...[[-18, 12], [-8, 15], [9, 13], [19, 16]].map(([x, z]) => ({ type: 'box', x, z, hw: 3.6, hd: 3.6 }))];
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -9, hw: 26, hd: 6 }, ...[[-22, 10], [-24, 19], [22, 10], [25, 19]].map(([x, z]) => ({ type: 'box', x, z, hw: 3.6, hd: 3.6 }))];
     return baked;
   };
 
@@ -659,7 +659,7 @@
     const g = new T.Group(), stone = mt('tankStone', 0x9a8f80, 0.9), lawn = mt('mnLawn', 0x6aa043, 1);
     part(g, G.box(36, 0.1, 28), lawn, 0, 0.05, 0);
     for (let i = 0; i < 4; i++) part(g, G.box(24 - i * 1.4, 0.35, 16 - i * 1.4), stone, 0, 0.18 - i * 0.35, 0);
-    waterPlane(g, 18, 10, 0, -1.1, 0);
+    waterPlane(g, 18, 10, 0, 0.37, 0);
     rail(g, -12.5, 8.5, 12.5, 8.5, 0.35, 0.9, M().darkGrey);
     rail(g, -12.5, -8.5, 12.5, -8.5, 0.35, 0.9, M().darkGrey);
     const baked = KT.bake(g);
