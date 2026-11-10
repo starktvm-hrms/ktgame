@@ -117,8 +117,8 @@
       { name: 'Palakkad Fort', kind: 'main', icon: '\u{1F3F0}', facts: ['Tipu Sultan’s granite fort was rebuilt by Hyder Ali in 1766.'] },
       { name: 'Malampuzha Dam & Gardens', kind: 'garden', model: 'malampuzha', icon: '\u{1F33A}', facts: ['Malampuzha has beautiful gardens below its dam, with fountains and a ropeway.', 'The famous Yakshi sculpture by Kanayi Kunhiraman stands here.'] },
       { name: "Silent Valley National Park", kind: 'wildlife', model: 'silentValley', icon: '\u{1F412}', facts: ["Silent Valley is one of the last untouched tropical evergreen forests in India.", "It is home to the lion-tailed macaque."] },
-      { name: "Nelliyampathy Hills", kind: 'tea', icon: '\u{1F375}', facts: ["Nelliyampathy's hairpin road climbs to tea and orange estates.", "From Seetharkundu viewpoint you can see across the Palakkad plains."] },
-      { name: 'Parambikulam Tiger Reserve', kind: 'parambikulam', icon: '\u{1F405}', facts: ['Parambikulam lies in a valley of the Anamalai hills, around three reservoirs.', 'Its Kannimara teak, over 450 years old, is one of the largest teak trees in the world. Visitors sleep in tree houses and float on bamboo rafts.'] }
+      { name: "Nelliyampathy Hills", kind: 'tea', model: 'nelliyampathy', icon: '\u{1F375}', facts: ["Nelliyampathy's hairpin road climbs to tea and orange estates.", "From Seetharkundu viewpoint you can see across the Palakkad plains."] },
+      { name: 'Parambikulam Tiger Reserve', kind: 'parambikulam', model: 'parambikulam', icon: '\u{1F405}', facts: ['Parambikulam lies in a valley of the Anamalai hills, around three reservoirs.', 'Its Kannimara teak, over 450 years old, is one of the largest teak trees in the world. Visitors sleep in tree houses and float on bamboo rafts.'] }
     ],
     mlp: [
       { name: 'Malappuram Mosque', kind: 'main', icon: '\u{1F54C}', facts: ['Malappuram has some of Kerala’s oldest mosques.'] },

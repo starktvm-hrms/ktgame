@@ -2080,6 +2080,16 @@
         // the cream entrance arch with its red trim, before the palace
         hubPlace(hub, Models.mattancherryGate(), a, l - side * 13, rot);
         break;
+      case 'nelliyampathy': {
+        // Seetharkundu: a bare rock viewpoint with a jeep, over the plains
+        const rk = Models.rock(9); rk.scale.set(3.2, 0.7, 2.4);
+        hubPlace(hub, rk, a + 16, l - side * 12, rot, { colliders: false });
+        if (Models.car) hubPlace(hub, Models.car(0x3f5a3a, 'suv'), a + 16, l - side * 12, rot + 0.6, { y: wyAt(a + 16, l - side * 12) + 1.0 });
+        break;
+      }
+      case 'parambikulam':
+        hubPlace(hub, Models.placeSign(['PARAMBIKULAM', 'TIGER RESERVE • PALAKKAD'], 4.4, '#5a3a20'), a - 6, l - side * 20, rot);
+        break;
       case 'munnar':
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });
@@ -2447,7 +2457,19 @@
         });
         break;
       }
-      case 'fort': hubPlace(hub, Models.fort(false), 20, side + 15, rot); break;
+      case 'fort': {
+        // Palakkad Fort: dark granite walls and round bastions in a moat
+        const granite = KT.mat('palakkadGranite', { color: 0x6e665c, roughness: 0.92 });
+        const f = hubPlace(hub, Models.fort(false, granite), 20, side + 15, rot);
+        const moat = new T.Mesh(new T.RingGeometry(29, 35, 48), mats.water);
+        moat.rotation.x = -Math.PI / 2; moat.position.set(f.position.x, f.position.y + 0.08, f.position.z);
+        hub.group.add(moat);
+        const br = new T.Mesh(new T.BoxGeometry(4, 0.5, 8), granite);
+        const bq = Hw.at(hub.s + 20, side + 15 - 32);
+        br.position.set(bq.x, f.position.y + 0.3, bq.z); br.rotation.y = f.rotation.y;
+        hub.group.add(br);
+        break;
+      }
       case 'bekal': hubPlace(hub, Models.fort(true), 20, side + 15, rot); break;
       case 'mosque': hubPlace(hub, Models.mosque(), 20, side, rot); break;
       case 'beach': {

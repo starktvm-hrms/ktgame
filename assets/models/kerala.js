@@ -174,15 +174,17 @@
 
   // Laterite fort with round bastions (Palakkad, Kannur); "bekal" adds the
   // round observation tower of Bekal Fort.
-  Models.fort = function (bekal) {
+  // stone: the wall material (Palakkad's fort is granite, not laterite)
+  Models.fort = function (bekal, stone) {
     const g = new T.Group();
+    const wallM = stone || M().laterite;
     const S = 34, H = 6, hs = S / 2;
     const cols = [];
     const wall = (x, z, len, rot) => {
-      part(g, G.box(len, H, 1.6), M().laterite, x, H / 2, z, 0, rot, 0);
+      part(g, G.box(len, H, 1.6), wallM, x, H / 2, z, 0, rot, 0);
       for (let i = -len / 2 + 1; i < len / 2; i += 2) {
         const cx = x + Math.cos(rot) * i, cz = z - Math.sin(rot) * i;
-        part(g, G.box(0.9, 0.9, 1.6), M().laterite, cx, H + 0.45, cz, 0, rot, 0);
+        part(g, G.box(0.9, 0.9, 1.6), wallM, cx, H + 0.45, cz, 0, rot, 0);
       }
       cols.push({ type: 'box', x, z, hw: len / 2, hd: 0.9, rot });
     };
@@ -192,22 +194,22 @@
     wall(-(hs + 3) / 2 - 0.5, hs, hs - 4, 0);
     wall((hs + 3) / 2 + 0.5, hs, hs - 4, 0);
     [[-hs, -hs], [hs, -hs], [-hs, hs], [hs, hs]].forEach((c) => {
-      part(g, G.cyl(3.2, 3.6, H + 1.5, 20), M().laterite, c[0], (H + 1.5) / 2, c[1]);
+      part(g, G.cyl(3.2, 3.6, H + 1.5, 20), wallM, c[0], (H + 1.5) / 2, c[1]);
       for (let k = 0; k < 10; k++) {
         const a = (k / 10) * Math.PI * 2;
-        part(g, G.box(0.8, 0.8, 0.8), M().laterite, c[0] + Math.cos(a) * 3, H + 1.9, c[1] + Math.sin(a) * 3);
+        part(g, G.box(0.8, 0.8, 0.8), wallM, c[0] + Math.cos(a) * 3, H + 1.9, c[1] + Math.sin(a) * 3);
       }
       cols.push({ type: 'circle', x: c[0], z: c[1], r: 3.6 });
     });
     // arched gateway
-    [-2.6, 2.6].forEach((x) => part(g, G.box(1.2, H + 2, 2.2), M().laterite, x, (H + 2) / 2, hs));
-    part(g, G.box(6.4, 1.5, 2.2), M().laterite, 0, H + 1.2, hs);
+    [-2.6, 2.6].forEach((x) => part(g, G.box(1.2, H + 2, 2.2), wallM, x, (H + 2) / 2, hs));
+    part(g, G.box(6.4, 1.5, 2.2), wallM, 0, H + 1.2, hs);
     part(g, G.box(4, 5, 0.3), M().woodDark, 0, 2.5, hs - 0.5);
     if (bekal) {
-      part(g, G.cyl(5, 5.6, 12, 24), M().laterite, 0, 6, -4);
+      part(g, G.cyl(5, 5.6, 12, 24), wallM, 0, 6, -4);
       for (let k = 0; k < 14; k++) {
         const a = (k / 14) * Math.PI * 2;
-        part(g, G.box(0.9, 0.9, 0.9), M().laterite, Math.cos(a) * 4.8, 12.45, -4 + Math.sin(a) * 4.8);
+        part(g, G.box(0.9, 0.9, 0.9), wallM, Math.cos(a) * 4.8, 12.45, -4 + Math.sin(a) * 4.8);
       }
       for (let i = 0; i < 6; i++) part(g, G.box(2, 0.3, 0.8), M().stoneGrey, 5.8, 0.6 + i * 1.8, -4 + i * 0.9 - 3, 0, 0, 0.4);
       cols.push({ type: 'circle', x: 0, z: -4, r: 5.6 });
