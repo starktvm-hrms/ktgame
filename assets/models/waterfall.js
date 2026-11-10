@@ -93,8 +93,8 @@
   // to the lip behind it)
   KT.FALLS = {
     athirappilly: { H: 26, w: 30, streams: 4 },        // a broad curtain in parts
-    palaruvi: { H: 38, w: 6, streams: 1 },             // tall and narrow, "a stream of milk"
-    perunthenaruvi: { H: 11, w: 26, streams: 5, tiers: 2, rock: 0x2f2d2a }, // low and wide over black rock
+    palaruvi: { H: 38, w: 8, streams: 1, tiers: 3, rock: 0x3d3833 }, // a milky stream stepping down a dark rock face
+    perunthenaruvi: { H: 14, w: 30, streams: 6, tiers: 3, rock: 0x2f2d2a }, // ~30 m wide, slanting down over honeycombed black rock
     adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
     soochipara: { H: 34, w: 9, streams: 1, tiers: 3 }, // "needle rock" falls in three tiers
     thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 },
@@ -189,7 +189,11 @@
         g.add(tongue);
       });
       // the rock ledge each tier breaks on
-      if (t < tiers - 1) part(g, KT.blob(W * 0.5 + 2, 1, 0.25, 600 + t), KT.mat('fallLedge' + (opts.rock || 0), { color: rockCol.getHex(), roughness: 0.9 }), 0, yBot - 0.6, backZ + 2.5 + t * 2.2, 0, 0, 0, 1.2, 0.25, 0.5);
+      if (t < tiers - 1) {
+        const lm = KT.mat('fallLedge' + (opts.rock || 0), { color: rockCol.getHex(), roughness: 0.9 });
+        const n = Math.max(1, Math.round(W / 6));
+        for (let k = 0; k < n; k++) part(g, KT.blob(3.4, 1, 0.3, 600 + t * 9 + k), lm, (n === 1 ? 0 : (k / (n - 1) - 0.5) * (W - 2)), yBot - 0.4, backZ + 1.2 + t * 2.2, 0, k, 0, 1.1, 0.3, 0.4);
+      }
     }
     // a few thin side trickles down the rock
     for (let k = 0; k < 3; k++) {

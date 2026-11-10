@@ -275,9 +275,9 @@
   // viewing deck.
   Models.jatayu = function () {
     const g = new T.Group();
-    const stone = KT.mat('jatayuStone', { color: 0xc4bdb0, roughness: 0.7 });
-    const stone2 = KT.mat('jatayuStone2', { color: 0xa9a294, roughness: 0.75 });
-    const rock = KT.mat('jatayuRock', { color: 0x7f766a, roughness: 0.95 });
+    const stone = KT.mat('jatayuStone', { color: 0x9c978e, roughness: 0.8 });          // grey concrete, weathered
+    const stone2 = KT.mat('jatayuStone2', { color: 0x84807a, roughness: 0.85 });
+    const rock = KT.mat('jatayuRock', { color: 0x6c6862, roughness: 0.95 });           // Jatayupara's bare granite
     // granite hill
     part(g, KT.blob(9, 2, 0.16, 21), rock, 0, 0.5, -1, 0, 0, 0, 2.3, 0.5, 1.5);
     part(g, KT.blob(5, 1, 0.2, 22), rock, -12, 0.5, 6, 0, 0, 0, 1.4, 0.45, 1.2);
@@ -292,7 +292,7 @@
     // raised wing: primaries fanned out, coverts layered over them
     const wing = new T.Group();
     wing.position.set(-1, 9.5, -1.5);
-    wing.rotation.set(-0.45, 0.25, 0.85);
+    wing.rotation.set(-0.25, 0.35, 0.32);   // spread over the rock, the tip curling up
     g.add(wing);
     part(wing, G.box(7, 1, 3.4), stone, 3.2, 0, 0);
     for (let i = 0; i < 11; i++) {
@@ -307,17 +307,21 @@
     // folded wing beneath
     for (let i = 0; i < 6; i++) part(g, G.box(6 - i * 0.5, 0.35, 1.0), stone2, -2 + i * 0.4, 4.4 + i * 0.12, 3.6 + i * 0.25, 0.2, 0.15, 0.1);
     // neck, head with crest, eye and hooked beak
-    for (let i = 0; i < 5; i++) part(g, G.sph(1.7 - i * 0.12, 14, 10), stone, 7.2 + i * 1.15, 6.8 + i * 0.45, 0.8 + i * 0.12);
-    part(g, G.sph(1.9, 16, 12), stone, 12.6, 9.0, 1.4, 0, 0, 0, 1.15, 1, 1);
-    for (let i = 0; i < 5; i++) part(g, G.cone(0.35, 1.8, 6), stone2, 11.6 - i * 0.3, 10.4 + i * 0.12, 1.2 + (i - 2) * 0.35, 0, 0, 0.9 + i * 0.1);
-    part(g, G.cone(0.85, 2.6, 10), KT.mat('jatayuBeak', { color: 0xd9b45a, roughness: 0.55 }), 14.6, 8.6, 1.5, 0, 0, -1.85);
-    part(g, G.cone(0.35, 0.9, 8), KT.mat('jatayuBeak', { color: 0xd9b45a }), 15.7, 8.0, 1.5, 0, 0, -2.8);
-    part(g, G.sph(0.32, 10, 8), M().black, 13.1, 9.6, 3.0);
-    part(g, G.torus(0.42, 0.08, 6, 14), stone2, 13.1, 9.6, 2.95);
+    for (let i = 0; i < 6; i++) part(g, G.sph(2.3 - i * 0.12, 14, 10), stone, 7.0 + i * 1.1, 6.9 + i * 0.8, 0.8 + i * 0.12);
+    // the great head, raised, beak open
+    part(g, G.sph(3.0, 18, 14), stone, 13.2, 12.0, 1.4, 0, 0, 0, 1.2, 1, 1.05);
+    for (let i = 0; i < 7; i++) part(g, G.cone(0.55, 3.0, 6), stone2, 11.4 - i * 0.35, 14.0 + (i % 2) * 0.3, 1.2 + (i - 3) * 0.5, 0, 0, 0.9 + i * 0.12);
+    part(g, G.cone(1.3, 4.0, 10), stone2, 16.4, 11.6, 1.5, 0, 0, -1.75);
+    part(g, G.cone(0.9, 2.6, 10), stone2, 16.0, 10.4, 1.5, 0, 0, -2.2);
+    part(g, G.cone(0.5, 1.4, 8), stone2, 18.2, 10.8, 1.5, 0, 0, -2.8);
+    // the museum inside: a door and windows in the body's side
+    part(g, G.box(1.6, 2.2, 0.3), KT.mat('jatayuDoor', { color: 0x2a2724, roughness: 0.6 }), 1.0, 4.8, 4.75, 0, 0.1, 0);
+    [-2.6, 3.8].forEach((x) => part(g, G.box(1.4, 0.9, 0.3), M().windowDark, x, 5.6, 4.6, 0, 0.1, 0));
+    [-1, 1].forEach((s) => { part(g, G.sph(0.45, 10, 8), M().black, 14.0, 12.8, 1.4 + s * 3.0); part(g, G.torus(0.6, 0.12, 6, 14), stone2, 14.0, 12.8, 1.4 + s * 2.95); });
     // legs with talons in the air
     [[2.5, 0.8], [4.2, -1.2]].forEach(([x, z], k) => {
-      part(g, G.cyl(0.45, 0.6, 3.2, 10), stone2, x, 10.3, z, 0.3 * (k ? -1 : 1), 0, -0.4);
-      for (let c = 0; c < 4; c++) part(g, G.cone(0.22, 1.4, 6), stone2, x - 0.6 + c * 0.4, 12.2, z + (c - 1.5) * 0.3, (c - 1.5) * 0.35, 0, -0.5);
+      part(g, G.cyl(0.7, 0.9, 4.6, 10), stone2, x, 10.8, z, 0.3 * (k ? -1 : 1), 0, -0.4);
+      for (let c = 0; c < 4; c++) part(g, G.cone(0.35, 2.2, 6), stone2, x - 0.9 + c * 0.6, 13.4, z + (c - 1.5) * 0.45, (c - 1.5) * 0.35, 0, -0.5);
     });
     // tail fan
     for (let i = 0; i < 9; i++) part(g, G.box(5.2, 0.3, 1.0), i % 2 ? stone : stone2, -9.6, 5.4 + i * 0.12, -3.2 + i * 0.8, 0, -0.45 + i * 0.11, 0.28);

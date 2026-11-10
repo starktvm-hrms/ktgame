@@ -737,7 +737,9 @@
     Hw.addLandform(x, z, ry, g.Rc + 30 + fall, (h, lx, lz) => {
       const d = Math.hypot(lx, lz - g.z0);
       if (d < g.Rc + 1.5) return h;
-      const k = ss(g.Rc + 1.5, g.Rc + 6.5, d) * (1 - ss(g.Rc + 26, g.Rc + 26 + fall, d)) * (1 - ss(g.zEnd - 2, g.zEnd + fall * 0.8, lz));
+      let k = ss(g.Rc + 1.5, g.Rc + 6.5, d) * (1 - ss(g.Rc + 26, g.Rc + 26 + fall, d)) * (1 - ss(g.zEnd - 2, g.zEnd + fall * 0.8, lz));
+      // in front of the gorge the valley stays open, widening as it goes
+      if (lz > g.zEnd - 4) k *= ss(g.Rc * 0.95, g.Rc * 0.95 + 8, Math.abs(lx) - Math.max(0, lz - g.zEnd) * 0.35);
       return k > 0 ? KT.lerp(h, Math.max(h, top), k) : h;
     });
   };
@@ -1003,7 +1005,7 @@
       water: new T.MeshStandardMaterial({ color: 0x2a7f8a, roughness: 0.12, metalness: 0.1, normalMap: waterN, normalScale: new T.Vector2(0.6, 0.6), transparent: true, opacity: 0.92 }),
       concrete: KT.mat('concrete', { color: 0xc9c6bd, roughness: 0.9 }),
       kerb: KT.mat('kerbStripe', { color: 0xf2f2ee, roughness: 0.6 }),
-      sand: KT.mat('hubSand', { map: KT.tex('sand', 1, 1), color: 0xffffff }, 0.15),
+      sand: KT.mat('hubSand', { map: KT.tex('sand', 1, 1), color: 0xe2bb80 }, 0.15), // Kerala's beaches are golden-brown
       kerbWhite: KT.mat('kerbPaintWhite', { color: 0xeeeeea, roughness: 0.7 }),
       kerbBlack: KT.mat('kerbPaintBlack', { color: 0x1d1d1f, roughness: 0.7 }),
       catEye: KT.mat('catEye', { color: 0xffd36a, emissive: 0xffb020, emissiveIntensity: 0.4, roughness: 0.3 }),
@@ -1893,6 +1895,7 @@
         case 'spice': hubPlace(hub, Models.spiceGarden(), a, l, rot); break;
         case 'hillview': hubPlace(hub, Models.hillView(), a, l + side * 2, rot); break;
         case 'elephantCamp': {
+          if (def.model === 'konni') hubPlace(hub, Models.kraal(), a - 16, l + side * 6, rot);
           hubPlace(hub, Models.elephantShelter(), a, l + side * 2, rot);
           [-6, 0, 6].forEach((x, i) => {
             const el = KT.skinify(Models.elephant(i !== 1, 2 + i));
@@ -2040,10 +2043,26 @@
     const faceCentre = (al, la) => { const q = Hw.at(hub.s + al, la); return Math.atan2(cx - q.x, cz - q.z); };
     const wyAt = (al, la) => { const q = Hw.at(hub.s + al, la); return Hw.groundY(q.x, q.z).y; };
     switch (m) {
-      case 'ashtamudi':
+      case 'ashtamudi': {
+        // the nets stand out in the lake on their own platforms, each reached
+        // by a narrow walkway of planks, and a wooded island lies beyond
+        const wy = wyAt(a, l);
+        [[-15, 0], [0, 3], [15, -1]].forEach(([x, z]) => {
+          const al = a + x, la = l + side * z;
+          // the platform faces the shore it is reached from; the net reaches out
+          hubPlace(hub, Models.chineseNet(), al, la, rot + Math.PI, { y: wy - 0.4, colliders: false });
+          hubPlace(hub, Models.boardwalk(14), al, la - side * 9.5, 0, { absRot: heading + Math.PI / 2, y: wy + 0.05, colliders: false });
+        });
+        const iq = Hw.at(hub.s + a + 10, l + side * 12);
+        const isl = new T.Mesh(new T.CircleGeometry(5, 20), mats.islandGreen || (mats.islandGreen = KT.mat('islandGreen', { color: 0x4f8a36, roughness: 0.95 })));
+        isl.rotation.x = -Math.PI / 2; isl.scale.set(1.6, 1, 1); isl.position.set(iq.x, wy + 0.12, iq.z);
+        hub.group.add(isl);
+        [[7, 11], [10, 13], [13, 11], [9, 9]].forEach(([x, z], i) => hubPlace(hub, i % 2 ? Models.coconutPalm(120 + i) : Models.mangoTree(), a + x, l + side * z, i, { y: wy + 0.15, colliders: false }));
+        break;
+      }
       case 'cherai':
         // Chinese fishing nets on the shore
-        [0.4, 1.1, -0.4].slice(0, m === 'cherai' ? 2 : 3).forEach((ang) => {
+        [0.4, 1.1, -0.4].slice(0, 2).forEach((ang) => {
           const al = a + Math.cos(Math.PI / 2 * side + ang + Math.PI) * (m === 'cherai' ? 22 : 24), la = l + Math.sin(Math.PI / 2 * side + ang + Math.PI) * (m === 'cherai' ? 22 : 24);
           hubPlace(hub, Models.chineseNet(), al, la, 0, { absRot: faceCentre(al, la), colliders: false });
         });
@@ -2051,13 +2070,18 @@
         break;
       case 'kumarakom': hubPlace(hub, Models.houseboat(), a + 4, l + side * 2, 0, { absRot: heading + 0.6, y: wyAt(a, l) + 0.06, colliders: false }); break;
       case 'thenmala':
-        // the canopy walk: a hanging bridge high over the pool
-        hubPlace(hub, Models.hangingBridge(24), a, l + side * 6, 0, { absRot: heading + Math.PI / 2, y: wyAt(a, l) + 2.5, colliders: false });
+        // the canopy walk: an elevated wooden walkway with green railings
+        // through the trees, and the deer rehabilitation enclosure
+        hubPlace(hub, Models.canopyWalk(), a - 2, l + side * 10, rot, { colliders: false });
+        hubPlace(hub, Models.deerPen(), a + 14, l - side * 8, rot);
         break;
       case 'gavi': {
         // Gavi lake, with kayaks, in front of the forest
-        const w = waterDisc(hub, a + 12, l - side * 12, 9);
-        [[9, -10], [14, -14], [12, -9]].forEach(([x, z], i) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading + i * 1.3, y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
+        const w = waterDisc(hub, a - 20, l - side * 12, 9);
+        [[-23, -10], [-18, -14], [-20, -9]].forEach(([x, z], i) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading + i * 1.3, y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
+        // a forest stream tumbling over dark rock in little steps
+        const cas = hubPlace(hub, Models.waterfall({ H: 5, w: 10, streams: 3, tiers: 2, rock: 0x34312c }), a - 14, l + side * 12, rot);
+        hub.ticks = (hub.ticks || []).concat([cas.userData.tick]);
         break;
       }
       case 'thekkady': {
@@ -2353,7 +2377,7 @@
     const rot = faceRoad(side);
     switch (L) {
       case 'gopuram': hubPlace(hub, Models.gopuram(), 20, side, rot); break;
-      case 'lighthouse': { const lh = hubPlace(hub, Models.lighthouse(), 20, side + 10, rot); hub.beam = lh.userData.beam; break; }
+      case 'lighthouse': { const lh = hubPlace(hub, Models.lighthouse({ spiral: true, H: 38 }), 20, side + 10, rot); hub.beam = lh.userData.beam; break; } // Thangassery: 41 m, barber-pole bands
       case 'shrine': hubPlace(hub, Models.hillShrine(), 25, side + 20, rot); break;
       case 'backwaters': {
         waterDisc(hub, 25, side + 5, 30);

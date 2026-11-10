@@ -435,11 +435,26 @@
   };
 
   // Red & white striped lighthouse (Kovalam / Vizhinjam).
-  Models.lighthouse = function () {
+  // opts.spiral: red and white oblique bands, like a barber's pole
+  // (Thangassery); opts.H: tower height
+  let spiralTex = null;
+  Models.lighthouse = function (opts) {
+    opts = opts || {};
     const g = new T.Group();
     part(g, G.cyl(4.5, 5, 1.2, 16), M().stoneGrey, 0, 0.6, 0);
-    const H = 26, bands = 7;
-    for (let i = 0; i < bands; i++) {
+    const H = opts.H || 26, bands = 7;
+    if (opts.spiral) {
+      if (!spiralTex) {
+        const c = document.createElement('canvas'); c.width = 256; c.height = 512;
+        const x = c.getContext('2d');
+        x.fillStyle = '#f4f2ea'; x.fillRect(0, 0, 256, 512);
+        x.fillStyle = '#c4212b';
+        for (let k = -4; k < 8; k++) { x.beginPath(); x.moveTo(0, k * 96); x.lineTo(256, k * 96 + 128); x.lineTo(256, k * 96 + 176); x.lineTo(0, k * 96 + 48); x.closePath(); x.fill(); }
+        spiralTex = new T.CanvasTexture(c); spiralTex.encoding = T.sRGBEncoding; spiralTex.wrapS = spiralTex.wrapT = T.RepeatWrapping;
+        spiralTex.repeat.set(1, 2.2);
+      }
+      part(g, G.cyl(1.9, 2.8, H, 24), KT.mat('lhSpiral', { map: spiralTex, roughness: 0.6 }), 0, 1.2 + H / 2, 0);
+    } else for (let i = 0; i < bands; i++) {
       const h = H / bands;
       const r0 = KT.lerp(2.8, 1.9, i / bands), r1 = KT.lerp(2.8, 1.9, (i + 1) / bands);
       part(g, G.cyl(r1, r0, h, 8), i % 2 ? M().white : M().red, 0, 1.2 + h * (i + 0.5), 0);
@@ -457,7 +472,7 @@
     part(g, G.sph(0.6, 10, 8), M().lampGlow, 0, top + 1.5, 0);
     part(g, G.cone(1.8, 1.4, 12), M().red, 0, top + 3.3, 0);
     part(g, G.sph(0.25, 8, 6), M().darkGrey, 0, top + 4.1, 0);
-    for (let i = 0; i < 3; i++) part(g, G.box(0.6, 1.0, 0.1), M().windowDark, 0, 6 + i * 7, 2.6 - i * 0.25);
+    for (let i = 0; i < 3; i++) part(g, G.box(0.6, 1.0, 0.1), M().windowDark, 0, 6 + i * (H / 3.7), 2.6 - i * 0.25);
     part(g, G.box(1.2, 2.2, 0.2), M().woodDark, 0, 2.3, 2.85);
     const baked = KT.bake(g);
     // rotating beam (animated, not baked)

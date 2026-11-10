@@ -243,7 +243,9 @@
       p.rotation.z = (i % 2 ? -1 : 1) * 0.18;
     }
     add(top, Models.houseboat(), -6, 0.12, 0, Math.PI / 2, 0.8);
-    add(top, Models.canoe(), 10, 0.1 + (Models.CANOE_FLOAT || 0.36), 0.8, Math.PI / 2);
+    add(top, Models.canoe(), 16, 0.1 + (Models.CANOE_FLOAT || 0.36), 0.8, Math.PI / 2);
+    // the public water bus that serves the canal villages
+    if (Models.ferryBoat) add(top, Models.ferryBoat(), 6, 0.12, -1.0, -Math.PI / 2, 0.7);
     baked.add(KT.bake(top));
     baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 25, hd: 4.4 }, { type: 'box', x: 18, z: 5.8, hw: 1.4, hd: 1.2 }, { type: 'box', x: -18, z: -21.5, hw: 3, hd: 4.6 }];
     return baked;
@@ -255,6 +257,7 @@
   Models.marari = function () {
     const g = new T.Group(), top = new T.Group();
     for (let i = 0; i < 5; i++) add(top, Models.vallam(i), -16 + i * 7.5, 0, 6 + (i % 2) * 3, 0.15 * (i - 2) + Math.PI / 2 * (i % 2 ? 0.1 : 0));
+    add(top, Models.vallam(9), 4, 0.05, 22, 1.2);   // one out on the water
     // nets on poles
     const pole = M().woodDark, net = mt('dryNet', 0x2f6a7a, 0.95, { transparent: true, opacity: 0.75, side: T.DoubleSide });
     for (let i = 0; i < 4; i++) {
@@ -264,7 +267,7 @@
     // thatched cottages
     [-14, -4, 6, 16].forEach((x, i) => {
       part(g, G.box(4, 2.4, 3.6), mt('cottage', 0xd9c49a, 0.9), x, 1.2, -12 - (i % 2) * 2);
-      part(g, KT.hipRoofGeometry(5, 4.6, 1.8, 0.3), M().thatch, x, 2.4, -12 - (i % 2) * 2);
+      part(g, KT.hipRoofGeometry(5, 4.6, 1.8, 0.3), M().roof, x, 2.4, -12 - (i % 2) * 2);   // tiled, as at the resort
       part(g, G.box(1, 1.8, 0.1), M().woodDark, x, 0.9, -10.15 - (i % 2) * 2);
     });
     // hammock between two palms
@@ -482,6 +485,23 @@
     });
     part(g, G.box(0.8, 0.1, 4), play, 12, ty + 1.2, -2, 0.5, 0, 0);
     part(g, G.box(1, 2.4, 1), play2, 12, ty + 1.2, -4);
+    // the musical fountain: a round pool with jets
+    part(g, G.cyl(3.2, 3.4, 0.6, 24), M().stoneGrey, 0, ty + 0.3, 2);
+    waterDiscM(g, 3.0, 0, ty + 0.62, 2);
+    const jet = mt('jet', 0xe8f6fa, 0.2, { transparent: true, opacity: 0.6, emissive: 0x9fc6d0, emissiveIntensity: 0.3 });
+    part(g, G.cyl(0.06, 0.18, 3.2, 8), jet, 0, ty + 2.2, 2);
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; part(g, G.cyl(0.04, 0.1, 1.6, 6), jet, Math.cos(a) * 2, ty + 1.4, 2 + Math.sin(a) * 2, Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4); }
+    // a giant wheel for the children's park
+    const fw = mt('wheelSteel', 0xd8203a, 0.5), fw2 = mt('wheelCab', 0xf2c230, 0.5);
+    [-0.6, 0.6].forEach((z) => {
+      part(g, new T.TorusGeometry(4.2, 0.08, 6, 32), fw, 15, ty + 5.6, -6 + z);
+      [-1, 1].forEach((sd) => part(g, G.box(0.18, 6.2, 0.18), fw, 15 + sd * 1.6, ty + 2.7, -6 + z, 0, 0, sd * 0.28));
+    });
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4;
+      part(g, G.box(0.06, 4.2, 0.06), fw, 15 + Math.cos(a) * 2.1, ty + 5.6 + Math.sin(a) * 2.1, -6, 0, 0, a + Math.PI / 2);
+      part(g, KT.roundBox(0.8, 0.7, 1.0, 0.12), fw2, 15 + Math.cos(a) * 4.2, ty + 5.1 + Math.sin(a) * 4.2, -6);
+    }
     // sunset viewpoint railing
     rail(g, -6, 8, 6, 8, ty - 0.5, 1, mt('rail', 0x3a3a3a, 0.6));
     const baked = KT.bake(g);
@@ -560,16 +580,35 @@
     part(g, G.box(9, 3.4, 4), mt('cobraHouse', 0xf0e6d0, 0.8), 10, 1.7, -14);
     part(g, KT.hipRoofGeometry(10, 5, 1.6, 0.3), M().roof, 10, 3.4, -14);
     part(g, G.box(8, 1.8, 0.08), glass, 10, 1.6, -11.95);
+    // the second king cobra house, and fifteen glass cases on stands
+    part(g, G.box(7, 3, 3.6), mt('cobraHouse', 0xf0e6d0, 0.8), 16, 1.5, 4);
+    part(g, KT.hipRoofGeometry(8, 4.6, 1.4, 0.3), M().roof, 16, 3.0, 4);
+    part(g, G.box(6.2, 1.6, 0.08), glass, 16, 1.4, 5.85);
+    for (let i = 0; i < 15; i++) {
+      const x = -18 + (i % 5) * 2.2, z = -16 - Math.floor(i / 5) * 2.4;
+      part(g, G.box(1.6, 0.9, 0.1), M().woodDark, x, 0.45, z);
+      part(g, G.box(1.6, 0.9, 0.9), glass, x, 1.35, z + 0.4);
+      part(g, G.box(1.62, 0.06, 0.92), M().darkGrey, x, 1.82, z + 0.4);
+    }
+    // the statue of a man holding up a crocodile
+    const st = mt('statue', 0xb8b0a2, 0.8);
+    part(g, G.box(2, 1, 2), M().stoneGrey, 2, 0.5, 8);
+    part(g, G.cyl(0.25, 0.3, 1.5, 8), st, 2, 1.75, 8);
+    part(g, G.sph(0.24, 10, 8), st, 2, 2.75, 8);
+    part(g, G.box(0.4, 0.25, 2.2), st, 2, 2.6, 8.3, 0.3, 0, 0);
     // the crocodile pond
     waterDiscM(g, 4.5, -14, 0.05, 8, 1.2, 0.8);
     part(g, G.torus(4.5, 0.25, 4, 28), conc, -14, 0.2, 8, Math.PI / 2, 0, 0, 1.2, 0.8, 1);
     const baked = KT.bake(g);
     [[-15, 7, 0.6], [-12, 9.5, 2.4]].forEach(([x, z, r]) => add(top, Models.crocodile(), x, 0.05, z, r));
+    // turtles basking on a log in the pond
+    part(top, G.cyl(0.25, 0.25, 3, 6), M().woodDark, -12.5, 0.2, 6.5, 0, 0, Math.PI / 2);
+    [-13.4, -12.2].forEach((x) => part(top, G.sph(0.3, 8, 5), mt('turtle', 0x3f4a2a, 0.6), x, 0.5, 6.5, 0, 0, 0, 1, 0.45, 1.2));
     const gate = Models.entranceArch(['Snake Park', 'Parassinikkadavu']);
     add(top, gate, 0, 0, 14);
     [[-20, -12], [18, 4], [-20, 0], [16, -20]].forEach(([x, z], i) => add(top, Models.forestTree(i + 30), x, 0, z, i));
     baked.add(top);
-    baked.userData.colliders = [[-12, -4], [-4, -10], [5, -4]].map(([x, z]) => ({ type: 'circle', x, z, r: 4.1 })).concat([{ type: 'box', x: 10, z: -14, hw: 4.6, hd: 2.1 }, { type: 'circle', x: -14, z: 8, r: 5 }]);
+    baked.userData.colliders = [[-12, -4], [-4, -10], [5, -4]].map(([x, z]) => ({ type: 'circle', x, z, r: 4.1 })).concat([{ type: 'box', x: 10, z: -14, hw: 4.6, hd: 2.1 }, { type: 'box', x: 16, z: 4, hw: 3.6, hd: 1.9 }, { type: 'circle', x: -14, z: 8, r: 5 }, { type: 'box', x: -13.6, z: -18.6, hw: 5.4, hd: 3 }, { type: 'box', x: 2, z: 8, hw: 1, hd: 1 }]);
     return baked;
   };
 
@@ -652,6 +691,74 @@
     });
     [-len / 2, len / 2].forEach((x) => [-1, 1].forEach((s) => part(g, G.cyl(0.15, 0.18, 5.5, 6), M().woodDark, x, 2.75, s * 0.8)));
     return KT.bake(g);
+  };
+
+  // ------------------------------------------------- Konni kraal
+  // the Aanakoodu: a giant cage of kambakam logs (12.65 x 8.6 x 7 m, 1942)
+  // where calves found lost in the forest are cared for and trained
+  Models.kraal = function () {
+    const g = new T.Group(), log = mt('kambakam', 0x6b4a30, 0.9), log2 = mt('kambakam2', 0x5a3c26, 0.9);
+    const W = 12.65, D = 8.6, H = 7;
+    for (let x = -W / 2; x <= W / 2 + 0.01; x += 0.62) [-D / 2, D / 2].forEach((z) => part(g, G.cyl(0.2, 0.24, H, 7), (Math.round(x * 3) % 2) ? log : log2, x, H / 2, z));
+    for (let z = -D / 2 + 0.62; z < D / 2; z += 0.62) [-W / 2, W / 2].forEach((x) => part(g, G.cyl(0.2, 0.24, H, 7), log, x, H / 2, z));
+    [1.2, 3.6, 6.2].forEach((y) => {
+      [-D / 2 - 0.25, D / 2 + 0.25].forEach((z) => part(g, G.cyl(0.22, 0.22, W + 0.8, 7), log2, 0, y, z, 0, 0, Math.PI / 2));
+      [-W / 2 - 0.25, W / 2 + 0.25].forEach((x) => part(g, G.cyl(0.22, 0.22, D + 0.8, 7), log2, x, y, 0, Math.PI / 2, 0, 0));
+    });
+    for (let x = -W / 2; x <= W / 2; x += 1.6) part(g, G.cyl(0.22, 0.22, D + 0.8, 7), log2, x, H + 0.2, 0, Math.PI / 2, 0, 0);
+    part(g, KT.hipRoofGeometry(W + 3, D + 3, 2.2, 0.3), M().roof, 0, H + 0.4, 0);
+    part(g, G.box(W, 0.1, D), mt('kraalFloor', 0x8a6a46, 1), 0, 0.05, 0);
+    const baked = KT.bake(g);
+    const calf = KT.skinify(Models.elephant(false, 3)); calf.scale.setScalar(0.6); add(baked, calf, 1, 0, 0, 1.2);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: W / 2 + 0.3, hd: D / 2 + 0.3 }];
+    return baked;
+  };
+
+  // ------------------------------------------- Thenmala canopy walk
+  // an elevated wooden walkway on posts winding through the trees, with
+  // green pipe railings and stairs at each end
+  Models.canopyWalk = function () {
+    const g = new T.Group(), top = new T.Group();
+    const deck = M().wood, post = M().woodDark, rail = mt('canopyRail', 0x2f6b3a, 0.5);
+    const pts = [[-18, 4], [-10, 0], [-2, 3], [6, -2], [14, 1], [20, -4]];
+    const Y = 4.2;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0);
+      part(g, G.box(1.6, 0.18, len + 0.4), deck, (x0 + x1) / 2, Y, (z0 + z1) / 2, 0, ang, 0);
+      [-1, 1].forEach((sd) => {
+        const ox = Math.cos(ang) * 0.8 * sd, oz = -Math.sin(ang) * 0.8 * sd;
+        part(g, G.box(0.06, 0.06, len), rail, (x0 + x1) / 2 + ox, Y + 1.05, (z0 + z1) / 2 + oz, 0, ang, 0);
+        part(g, G.box(0.05, 0.05, len), rail, (x0 + x1) / 2 + ox, Y + 0.55, (z0 + z1) / 2 + oz, 0, ang, 0);
+        for (let t = 0; t <= len; t += 1.6) part(g, G.box(0.06, 1.05, 0.06), rail, x0 + (x1 - x0) * t / len + ox, Y + 0.55, z0 + (z1 - z0) * t / len + oz);
+      });
+      [[x0, z0]].forEach(([x, z]) => [-0.7, 0.7].forEach((o) => part(g, G.box(0.22, Y, 0.22), post, x + o, Y / 2, z)));
+    }
+    // stairs down at both ends
+    [[pts[0], -1], [pts[pts.length - 1], 1]].forEach(([[x, z], sd]) => {
+      for (let i = 0; i < 12; i++) part(g, G.box(1.6, 0.16, 0.5), deck, x + sd * (1 + i * 0.5), Y - 0.35 * (i + 1), z);
+    });
+    const baked = KT.bake(g);
+    [[-14, -3], [-6, 6], [2, -4], [10, 5], [17, -7], [-20, -2], [8, -8]].forEach(([x, z], i) => add(top, Models.forestTree(i + 50), x, 0, z, i, 1.2));
+    baked.add(KT.bake(top));
+    return baked;
+  };
+  // the deer rehabilitation enclosure: a wire-mesh fence round spotted deer
+  Models.deerPen = function () {
+    const g = new T.Group(), top = new T.Group();
+    const mesh = mt('penMesh', 0x3d4a3f, 0.6, { transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide });
+    const W = 14, D = 10;
+    [[-W / 2, -D / 2, W / 2, -D / 2], [W / 2, -D / 2, W / 2, D / 2], [W / 2, D / 2, -W / 2, D / 2], [-W / 2, D / 2, -W / 2, -D / 2]].forEach(([a, b, c, d]) => {
+      const len = Math.hypot(c - a, d - b), ang = Math.atan2(c - a, d - b) + Math.PI / 2;
+      part(g, G.box(len, 2.2, 0.04), mesh, (a + c) / 2, 1.1, (b + d) / 2, 0, ang, 0);
+      for (let t = 0; t <= len; t += 2.5) part(g, G.box(0.1, 2.4, 0.1), M().darkGrey, a + (c - a) * t / len, 1.2, b + (d - b) * t / len);
+    });
+    part(g, G.box(W, 0.04, D), mt('penGround', 0x8a6a46, 1), 0, 0.03, 0);
+    const baked = KT.bake(g);
+    if (Models.deer) [[-3, -1, 0.4, false], [1, 2, 2, true], [4, -2, -1, true], [-1, 3, 3, true]].forEach(([x, z, r, doe]) => add(top, Models.deer(doe), x, 0, z, r));
+    baked.add(top);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: W / 2, hd: D / 2 }];
+    return baked;
   };
 
   // ------------------------------------------------ Mananchira tank

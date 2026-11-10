@@ -67,7 +67,7 @@
       { name: 'Sabarimala', kind: 'main', icon: '\u26F0\uFE0F', facts: ['The hill shrine of Lord Ayyappa at Sabarimala draws millions of pilgrims every season.', 'Pilgrims climb the 18 holy steps, the Pathinettam Padi.'] },
       { name: 'Aranmula Snake Boats', kind: 'snakeboat', icon: '\u{1F6F6}', facts: ['The Aranmula Uthrattathi boat race on the Pampa river is held by the Parthasarathy Temple.', 'Each chundan vallam (snake boat) is over 30 m long and rowed by more than 100 oarsmen singing vanchipattu.', 'Aranmula is also famous for its metal mirror, the Aranmula kannadi.'] },
       { name: "Gavi Forest", kind: 'wildlife', model: 'gavi', icon: '\u{1F98C}', facts: ["Gavi is a remote forest village famous for its wildlife, trekking and cardamom plantations.", "Elephants, gaur and the Nilgiri tahr live in the surrounding hills."] },
-      { name: "Konni Elephant Camp", kind: 'elephantCamp', icon: '\u{1F418}', facts: ["Konni has one of Kerala's oldest elephant training centres, started over a century ago.", "Visitors can watch the elephants bathe and feed and see a museum about them."] },
+      { name: "Konni Elephant Camp", kind: 'elephantCamp', model: 'konni', icon: '\u{1F418}', facts: ["Konni has one of Kerala's oldest elephant training centres, started over a century ago.", "Visitors can watch the elephants bathe and feed and see a museum about them."] },
       { name: "Perunthenaruvi Waterfalls", kind: 'waterfall', model: 'perunthenaruvi', icon: '\u{1F4A7}', facts: ["Perunthenaruvi on the Pamba river tumbles over wide black rocks.", "The name means \"big honey stream\"."] }
     ],
     alp: [
