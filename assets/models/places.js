@@ -274,6 +274,80 @@
     baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: (W - 8) / 2, hd: (D - 8) / 2 }];
     return baked;
   };
+  // ------------------------------------------------------- Bekal Fort
+  // Kerala's largest fort, of laterite, on a headland: its walls (12 m)
+  // trace a giant keyhole, a round observation tower stands within, and
+  // bastions with gun loops look out over the sea on three sides
+  Models.bekalFort = function () {
+    const g = new T.Group();
+    const lat = KT.mat('pl_bekalLat', { map: KT.tex('laterite', 2, 1), color: 0xd08a5a }, 0.2), grass = mt('bekalGrass', 0x7aa04a, 1), path = mt('bekalPath', 0xa86a44, 0.95);
+    const H = 7, R = 22;
+    part(g, G.cyl(R - 1, R - 1, 0.1, 40), grass, 0, 0.05, -6);
+    // the round head of the keyhole (open at the front)
+    for (let k = 0; k < 30; k++) {
+      const a = Math.PI * 0.62 + (k / 30) * Math.PI * 1.76, a2 = a + Math.PI * 1.76 / 30;
+      const x = Math.sin(a) * R, z = Math.cos(a) * R - 6, len = 2 * R * Math.sin(Math.PI * 1.76 / 60) + 0.3;
+      part(g, G.box(len, H, 1.8), lat, x, H / 2, z, 0, (a + a2) / 2 + Math.PI / 2, 0);
+      if (k % 2 === 0) part(g, G.box(1.0, 0.9, 1.8), lat, x, H + 0.45, z, 0, (a + a2) / 2 + Math.PI / 2, 0);
+    }
+    // the neck of the keyhole towards the land, with the zigzag gate
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(1.8, H, 14), lat, sd * 7, H / 2, R - 6 + 2);
+      for (let z = R - 4; z < R + 9; z += 2) part(g, G.box(1.8, 0.9, 1.0), lat, sd * 7, H + 0.45, z - 4);
+    });
+    part(g, G.box(5, H - 1, 1.8), lat, -2, (H - 1) / 2, R + 8);
+    part(g, G.box(1.8, H - 1, 5), lat, 2.4, (H - 1) / 2, R + 6.5);
+    // bastions round the head, with gun loops
+    [-2.2, -1.2, 0, 1.2, 2.2].forEach((a) => {
+      const x = Math.sin(a + Math.PI) * (R + 1.5), z = Math.cos(a + Math.PI) * (R + 1.5) - 6;
+      part(g, G.cyl(3.2, 3.6, H + 0.6, 18), lat, x, (H + 0.6) / 2, z);
+      for (let k = 0; k < 4; k++) part(g, G.box(0.5, 0.35, 0.3), M().windowDark, x + Math.sin(a + Math.PI + (k - 1.5) * 0.4) * 3.4, H - 1.5, z + Math.cos(a + Math.PI + (k - 1.5) * 0.4) * 3.4);
+    });
+    // the observation tower in the middle, a ramp winding up it
+    part(g, G.cyl(4.5, 5, 10, 24), lat, 0, 5, -8);
+    for (let k = 0; k < 14; k++) { const a = k * 0.45; part(g, G.box(2.2, 0.3, 1.6), path, Math.cos(a) * 5.6, 0.6 + k * 0.68, -8 + Math.sin(a) * 5.6, 0, -a, 0); }
+    for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; part(g, G.box(0.9, 0.8, 0.9), lat, Math.cos(a) * 4.4, 10.4, -8 + Math.sin(a) * 4.4); }
+    // a path in from the gate
+    part(g, G.box(3, 0.08, 20), path, 0, 0.1, 6);
+    const baked = KT.bake(g);
+    const C = [];
+    for (let k = 0; k <= 16; k++) { const a = Math.PI * 0.62 + (k / 16) * Math.PI * 1.76; C.push({ type: 'circle', x: Math.sin(a) * R, z: Math.cos(a) * R - 6, r: 2 }); }
+    C.push({ type: 'circle', x: 0, z: -8, r: 5.2 }, { type: 'box', x: -7, z: R - 4, hw: 0.9, hd: 7 }, { type: 'box', x: 7, z: R - 4, hw: 0.9, hd: 7 });
+    baked.userData.colliders = C;
+    return baked;
+  };
+  // ------------------------------------------------- St. Angelo Fort
+  // Kannur (1505): a triangular laterite fort facing the sea, with a moat
+  // on the land side, bastions at the corners and cannons on the ramparts
+  Models.angeloFort = function () {
+    const g = new T.Group();
+    const lat = KT.mat('pl_angeloLat', { map: KT.tex('laterite', 2, 1), color: 0xc4784a }, 0.2), grass = mt('angGrass', 0x7aa04a, 1);
+    const H = 6, P = [[-20, 12], [20, 12], [0, -22]];
+    part(g, new T.ShapeGeometry(new T.Shape(P.map(([x, z]) => new T.Vector2(x, -z)))).rotateX(-Math.PI / 2), grass, 0, 0.06, 0);
+    const C = [];
+    for (let i = 0; i < 3; i++) {
+      const [x0, z0] = P[i], [x1, z1] = P[(i + 1) % 3];
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + Math.PI / 2;
+      const gate = i === 0;
+      const segs = gate ? [[0, 0.42], [0.58, 1]] : [[0, 1]];
+      segs.forEach(([t0, t1]) => {
+        const cx = x0 + (x1 - x0) * (t0 + t1) / 2, cz = z0 + (z1 - z0) * (t0 + t1) / 2, l2 = len * (t1 - t0);
+        part(g, G.box(l2, H, 1.8), lat, cx, H / 2, cz, 0, ang, 0);
+        for (let t = 0; t < l2; t += 2) part(g, G.box(0.9, 0.9, 1.8), lat, cx + Math.cos(ang) * (t - l2 / 2), H + 0.45, cz - Math.sin(ang) * (t - l2 / 2), 0, ang, 0);
+        C.push({ type: 'box', x: cx, z: cz, hw: l2 / 2, hd: 0.9, rot: ang });
+      });
+      // corner bastion and a cannon on it
+      part(g, G.cyl(3.4, 3.8, H + 1.2, 16), lat, x0, (H + 1.2) / 2, z0);
+      part(g, G.cyl(0.25, 0.32, 2.4, 10), M().darkGrey, x0, H + 1.6, z0 + (z0 < 0 ? -1.2 : 1.2), Math.PI / 2 - 0.15, 0, 0);
+      part(g, G.box(0.8, 0.5, 1.2), M().woodDark, x0, H + 1.45, z0);
+      C.push({ type: 'circle', x: x0, z: z0, r: 3.8 });
+    }
+    // gate arch
+    part(g, G.box(5.4, 1.2, 2.2), lat, 0, H - 0.4, 12);
+    const baked = KT.bake(g);
+    baked.userData.colliders = C;
+    return baked;
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);

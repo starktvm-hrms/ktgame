@@ -2487,6 +2487,14 @@
         break;
       }
       case 'fort': {
+        if (hub.district.id === 'knr') {
+          // St. Angelo Fort: triangular, laterite, a moat on the land side
+          const f = hubPlace(hub, Models.angeloFort(), 20, side + 15, rot);
+          const moat = new T.Mesh(new T.RingGeometry(26, 30, 48, 1, Math.PI * 1.2, Math.PI * 0.6), mats.water);
+          moat.rotation.x = -Math.PI / 2; moat.rotation.z = f.rotation.y; moat.position.set(f.position.x, f.position.y + 0.08, f.position.z);
+          hub.group.add(moat);
+          break;
+        }
         // Palakkad Fort: dark granite walls and round bastions in a moat
         const granite = KT.mat('palakkadGranite', { color: 0x6e665c, roughness: 0.92 });
         const f = hubPlace(hub, Models.fort(false, granite), 20, side + 15, rot);
@@ -2499,7 +2507,14 @@
         hub.group.add(br);
         break;
       }
-      case 'bekal': hubPlace(hub, Models.fort(true), 20, side + 15, rot); break;
+      case 'bekal': {
+        // the keyhole fort on its headland, the sea round three sides
+        const f = hubPlace(hub, Models.bekalFort(), 20, side + 15, rot);
+        const sea = new T.Mesh(new T.RingGeometry(31, 52, 48, 1, Math.PI * 0.05, Math.PI * 0.9), mats.water);
+        sea.rotation.x = -Math.PI / 2; sea.rotation.z = f.rotation.y; sea.position.set(f.position.x, f.position.y + 0.06, f.position.z);
+        hub.group.add(sea);
+        break;
+      }
       case 'mosque': hubPlace(hub, Models.mosque(), 20, side, rot); break;
       case 'beach': {
         const sand = new T.Mesh(new T.CircleGeometry(40, 32), mats.sand);
