@@ -2151,6 +2151,15 @@
         // cars driving along the firm sand
         if (Models.car) [[-14, 4, 0x2c5fa8, 'suv'], [-4, -2, 0xd8203a, 'hatch'], [8, 6, 0xf3f3f0, 'sedan'], [16, 0, 0x1d1d1f, 'suv']].forEach(([x, z, c, st]) => hubPlace(hub, Models.car(c, st), a + x, l + side * z, 0, { absRot: heading + (x > 0 ? 0 : Math.PI) }));
         hubPlace(hub, Models.scooter(0xb3261e, 0x2c5fa8, 0x111111), a + 2, l + side * 10, 0, { absRot: heading, colliders: false });
+        {
+          // black rocks and Dharmadam islet just off the beach
+          const w = waterDisc(hub, a, l + side * 34, 16);
+          [[-8, 30, 2.2], [-3, 33, 1.4], [4, 31, 1.8], [9, 36, 1.2]].forEach(([x, z, sc], i) => { const r = Models.rock(20 + i); r.scale.setScalar(sc); hubPlace(hub, r, a + x, l + side * z, i, { y: w.position.y - 0.2, colliders: false }); });
+          const iq = Hw.at(hub.s + a + 2, l + side * 40);
+          const islet = new T.Mesh(new T.SphereGeometry(5, 14, 8), mats.islandGreen || (mats.islandGreen = KT.mat('islandGreen', { color: 0x4f8a36, roughness: 0.95 })));
+          islet.scale.set(1.3, 0.5, 1); islet.position.set(iq.x, w.position.y - 0.6, iq.z); hub.group.add(islet);
+          [[0, 40], [3, 41]].forEach(([x, z], i) => hubPlace(hub, Models.coconutPalm(140 + i), a + x, l + side * z, i, { y: w.position.y + 1.6, colliders: false }));
+        }
         break;
       case 'payyambalam':
         hubPlace(hub, Models.ammaSculpture(), a - 14, l - side * 10, rot);
