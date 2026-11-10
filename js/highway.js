@@ -2109,6 +2109,25 @@
         // Conolly's Plot: rows of tall, straight teak over brown leaf litter
         hubPlace(hub, Models.teakGrove(), a + 20, l + side * 10, rot, { colliders: false });
         break;
+      case 'goldmast': {
+        // the gold-clad flagstaff (dhwajasthambham, ~21 m) before the east entrance
+        const mast = new T.Group();
+        const gold = KT.M.gold || KT.mat('gold', { color: 0xd4a434, metalness: 0.7, roughness: 0.35 });
+        KT.part(mast, KT.G.box(1.6, 1.0, 1.6), KT.M.stoneGrey, 0, 0.5, 0);
+        KT.part(mast, KT.G.cyl(0.22, 0.4, 20, 10), gold, 0, 11, 0);
+        for (let k = 0; k < 12; k++) KT.part(mast, KT.G.cyl(0.42 - k * 0.015, 0.42 - k * 0.015, 0.12, 10), gold, 0, 2 + k * 1.5, 0);
+        KT.part(mast, KT.G.box(1.4, 0.1, 0.5), gold, 0, 20.4, 0);
+        hubPlace(hub, KT.bake(mast), a, l - side * 9, rot);
+        break;
+      }
+      case 'vagamon': {
+        // Kurisumala, the "cross hill": a white cross on the summit
+        const cr = new T.Group();
+        KT.part(cr, KT.G.box(0.5, 6, 0.5), KT.M.white, 0, 3, 0);
+        KT.part(cr, KT.G.box(3, 0.5, 0.5), KT.M.white, 0, 4.4, 0);
+        hubPlace(hub, KT.bake(cr), a + 4, l + side * 6, rot, { y: wyAt(a, l + side * 2) + 4.5, colliders: false });
+        break;
+      }
       case 'munnar':
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });
@@ -2141,10 +2160,17 @@
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.bambooClump(i), a - 16 + i * 6, l + side * (14 + (i % 2) * 5), i, { colliders: false });
         if (Models.car) hubPlace(hub, Models.car(0x8a7a4a, 'suv'), a - 4, l - side * 18, 0, { absRot: heading - 0.4 });
         break;
-      case 'malampuzha':
+      case 'malampuzha': {
         hubPlace(hub, Models.yakshi(), a - 14, l - side * 6, rot);
+        // the canal through the garden and its hanging bridges
+        const cq = Hw.at(hub.s + a, l + side * 2);
+        const canal = new T.Mesh(new T.PlaneGeometry(3.5, 40), mats.water);
+        canal.rotation.x = -Math.PI / 2; canal.rotation.z = heading; canal.position.set(cq.x, wyAt(a, l) + 0.1, cq.z);
+        hub.group.add(canal);
+        [-8, 8].forEach((x) => hubPlace(hub, Models.hangingBridge(6), a + x, l + side * 2, 0, { absRot: heading, y: wyAt(a, l) - 3.2, colliders: false }));
         hubPlace(hub, Models.ropeway(30), a, l + side * 14, 0, { absRot: heading, colliders: false });
         break;
+      }
       case 'chembra': hubPlace(hub, Models.heartLake(), a + 15, l - side * 4, rot, { y: wyAt(a + 15, l - side * 4) + 0.08, colliders: false }); break;
       case 'ranipuram':
         for (let i = 0; i < 8; i++) hubPlace(hub, Models.flowerBush(i), a - 14 + i * 4, l - side * (10 + (i % 2) * 3), i, { colliders: false });

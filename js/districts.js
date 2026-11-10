@@ -82,8 +82,8 @@
     ktm: [
       { name: 'Kottayam Valiyapally', kind: 'main', icon: '\u26EA', facts: ['Kottayam Valiyapally (St. Mary’s Church), built in 1550, is famous for its two ancient Persian crosses. Kottayam is a centre of Kerala’s ancient Syrian Christian churches.', 'Kottayam was the first town in India to achieve 100% literacy.'] },
       { name: 'Kumarakom Bird Sanctuary', kind: 'birds', model: 'kumarakom', icon: '\u{1F426}', facts: ['On the banks of Vembanad lake, Kumarakom bird sanctuary is home to egrets, herons, cormorants and kingfishers.', 'Migratory birds from Siberia visit in winter.'] },
-      { name: "Vagamon Meadows", kind: 'hillview', icon: '\u26F0\uFE0F', facts: ["Vagamon's rolling green meadows, pine forests and tea gardens sit 1,100 m up.", "It is a favourite spot for paragliding."] },
-      { name: "Ettumanoor Mahadeva Temple", kind: 'shrine', icon: '\u{1F6D5}', facts: ["The Ettumanoor temple is famous for its 16th-century murals.", "Its golden flagstaff and the Ezharaponnana festival of seven and a half golden elephants are famous."] },
+      { name: "Vagamon Meadows", kind: 'hillview', model: 'vagamon', icon: '\u26F0\uFE0F', facts: ["Vagamon's rolling green meadows, pine forests and tea gardens sit 1,100 m up.", "It is a favourite spot for paragliding."] },
+      { name: "Ettumanoor Mahadeva Temple", kind: 'shrine', model: 'goldmast', icon: '\u{1F6D5}', facts: ["The Ettumanoor temple is famous for its 16th-century murals.", "Its golden flagstaff and the Ezharaponnana festival of seven and a half golden elephants are famous."] },
       { name: 'Vembanad Lake', kind: 'vembanad', icon: '\u{1F6E5}\uFE0F', facts: ['Vembanad is the longest lake in India, about 96 km long, and a Ramsar wetland.', 'Houseboats cruise it from Kumarakom and Alappuzha, and Pathiramanal island lies in the middle.'] },
       { name: 'Illikkal Kallu', kind: 'illikkal', icon: '\u26F0\uFE0F', facts: ['Illikkal Kallu rises about 1,200 m (4,000 ft) above sea level near Teekoy.', 'Its rocks are Kuda Kallu, shaped like an umbrella, Koonu Kallu, the hunchback, and Narakapalam, a narrow "bridge to hell" ledge between them.'] }
     ],
@@ -108,7 +108,7 @@
     tsr: [
       { name: 'Vadakkunnathan Temple', kind: 'main', icon: '\u{1F418}', facts: ['Thrissur Pooram is held at the Vadakkunnathan temple grounds, with caparisoned elephants and fireworks.'] },
       { name: 'Athirappilly Waterfalls', kind: 'waterfall', model: 'athirappilly', icon: '\u{1F4A7}', facts: ['Athirappilly, 25 m high, is the largest waterfall in Kerala — the "Niagara of India".', 'It lies on the Chalakudy river at the edge of the Sholayar forests.'] },
-      { name: 'Guruvayur Temple', kind: 'shrine', icon: '\u{1FA94}', facts: ['Guruvayur is one of the most important Krishna temples in India.', 'Its Punnathur Kotta is home to dozens of temple elephants.'] },
+      { name: 'Guruvayur Temple', kind: 'shrine', model: 'goldmast', icon: '\u{1FA94}', facts: ['Guruvayur is one of the most important Krishna temples in India.', 'Its Punnathur Kotta is home to dozens of temple elephants.'] },
       { name: "Kerala Kalamandalam", kind: 'kathakali', icon: '\u{1F3AD}', facts: ["Kerala Kalamandalam, founded in 1930 by the poet Vallathol, teaches Kathakali, Mohiniyattam and Koodiyattam.", "Its traditional theatre, the Koothambalam, is built in Kerala temple style."] },
       { name: "Punnathur Kotta", kind: 'elephantCamp', model: 'punnathur', icon: '\u{1F418}', facts: ["Punnathur Kotta near Guruvayur is home to dozens of temple elephants.", "They are cared for by the Guruvayur temple and lead its festivals."] },
       { name: 'Thrissur Zoo & Museum', kind: 'thrissurZoo', icon: '\u{1F992}', colors: [0xb5452e, 0xf2e2c4, 0x4a4a52], facts: ['The Thrissur Zoo at Chembukkavu, opened in 1885, is one of the oldest zoos in India.', 'The State Museum and the Natural History Museum share its compound.'] }
