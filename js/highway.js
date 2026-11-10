@@ -1863,8 +1863,10 @@
           break;
         }
         case 'lakeTemple': {
-          const w = waterDisc(hub, a, l, 17);
-          hubPlace(hub, Models.lakeShrine(), a, l, rot, { y: w.position.y - 0.6 });
+          // Ananthapura: the shrine stands in a square tank lined with laterite
+          // steps (not a round lake)
+          const tank = hubPlace(hub, Models.templeTank(30, 26), a, l, rot);
+          hubPlace(hub, Models.lakeShrine(), a, l, rot, { y: tank.position.y - 0.5 });
           break;
         }
         case 'church': {

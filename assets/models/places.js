@@ -252,9 +252,26 @@
     const rng = KT.makeRng(31);
     for (let i = 0; i < 120; i++) { const x = (rng() - 0.5) * 44, z = (rng() - 0.5) * 24; part(g, G.cone(0.08, 0.9, 3), rng() < 0.5 ? grass : grass2, x, hy(x, z) + 0.4, z); }
     if (shola) for (let i = 0; i < 6; i++) part(g, KT.blob(2 + rng(), 1, 0.3, 940 + i), mt('shola', 0x2f5a2a, 0.9), -18 + i * 7, 1.5, 10 + (i % 2) * 2);
+    // Ranipuram's summit: a great dark rock on the top of the grass
+    if (shola) { part(g, KT.blob(3.2, 1, 0.3, 960), mt('summitRock', 0x3a3632, 0.9), 2, 10, -6, 0, 0, 0, 1.2, 0.85, 1); part(g, KT.blob(2, 1, 0.3, 961), mt('summitRock', 0x3a3632, 0.9), -1, 9.2, -4); }
+    for (let i = 0; i < 30; i++) { const x = (rng() - 0.5) * 36, z = (rng() - 0.5) * 18; part(g, G.sph(0.14, 5, 4), mt(i % 2 ? 'wildflowerW' : 'wildflowerV', i % 2 ? 0xf4f2f8 : 0x9a7ac8, 0.7), x, hy(x, z) + 0.6, z); }
     const baked = KT.bake(g);
     for (let i = 0; i < 3; i++) mist(baked, -24 + i * 22, 1.2, 22, 16, 0.25); // clouds below, in the valley
     baked.userData.colliders = [{ type: 'circle', x: 0, z: -4, r: 14 }];
+    return baked;
+  };
+  // a square temple tank: laterite steps down on every side to the water
+  Models.templeTank = function (W, D) {
+    const g = new T.Group(), lat = KT.mat('pl_tankLat', { map: KT.tex('laterite', 2, 2), color: 0x9a7058 }, 0.2);
+    for (let i = 0; i < 5; i++) {
+      const w = W - i * 1.6, d = D - i * 1.6, y = (4 - i) * 0.3; // stepping down to water at ground level
+      [[0, -d / 2, w, 0.8], [0, d / 2, w, 0.8], [-w / 2, 0, 0.8, d], [w / 2, 0, 0.8, d]].forEach(([x, z, sx, sz]) => part(g, G.box(sx, 0.35, sz), lat, x, y + 0.17, z));
+    }
+    waterPlane(g, W - 7, D - 7, 0, 0.1, 0);
+    // lotus leaves
+    for (let i = 0; i < 18; i++) { const a = i * 2.4, r = 4 + (i % 5) * 1.6; part(g, G.cyl(0.45, 0.45, 0.03, 10), mt('lotusLeaf', 0x3f7a2a, 0.8), Math.cos(a) * r, 0.13, Math.sin(a) * r * 0.8); }
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: (W - 8) / 2, hd: (D - 8) / 2 }];
     return baked;
   };
   // a tetrapod (breakwater block)
