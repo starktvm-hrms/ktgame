@@ -1755,7 +1755,7 @@
       const def = hub.district.sights.find((x) => x.name === sg.name) || {};
       const wy = (al, la) => { const q = Hw.at(hub.s + al, la); return Hw.groundY(q.x, q.z).y; };
       switch (sg.kind) {
-        case 'museum': hubPlace(hub, Models.heritageHall(def.colors), a, l, rot); break;
+        case 'museum': hubPlace(hub, def.model === 'paradesi' ? Models.synagogue() : Models.heritageHall(def.colors), a, l, rot); break;
         case 'cliff':
           sand(hub, a, l - side * 6, 26);
           hubPlace(hub, Models.cliff(), a, l + side * 12, rot);
@@ -2524,6 +2524,14 @@
         hub.group.add(sand);
         [[-10, 0], [8, 8], [14, -10]].forEach((p) => hubPlace(hub, Models.thatchedHut(), 20 + p[0], side + 10 + p[1], rot));
         [[-4, 22], [6, 25]].forEach((p) => hubPlace(hub, Models.canoe(), 20 + p[0], side + p[1], 0.4));
+        if (hub.district.id === 'kkd') {
+          // Kappad: the stone pillar marking Vasco da Gama's landing (1498), and
+          // the sprawling rock running out into the sea with a small shrine on it
+          hubPlace(hub, Models.gamaPillar(), 12, side + 4, rot);
+          const w = waterDisc(hub, 36, side + 34, 16);
+          [[30, 26, 3.2], [34, 30, 2.6], [38, 34, 2.2], [42, 37, 1.6]].forEach(([al, la, sc], i) => { const r = Models.rock(30 + i); r.scale.set(sc * 1.4, sc * 0.6, sc); hubPlace(hub, r, al, side + la, i, { y: w.position.y - 0.3, colliders: false }); });
+          hubPlace(hub, Models.lampTower(3), 30, side + 26, rot, { y: w.position.y + 1.4, colliders: false });
+        }
         break;
       }
       case 'rocks': {

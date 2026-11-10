@@ -348,6 +348,51 @@
     baked.userData.colliders = C;
     return baked;
   };
+  // -------------------------------------------------- Paradesi Synagogue
+  // Jew Town (1568): a white-walled hall with a red-tiled roof, wrought-iron
+  // gates with the Star of David, and the three-storey square clock tower
+  // with its gabled tiled roof on wooden brackets, blue clock faces and a
+  // little cupola
+  Models.synagogue = function () {
+    const g = new T.Group(), white = mt('synWhite', 0xf4f2ea, 0.8), roofM = M().roof, blue = mt('synBlue', 0x2c5fa8, 0.5), wood = M().woodDark;
+    part(g, G.box(12, 6, 16), white, 0, 3, -4);
+    part(g, KT.gableRoofGeometry ? KT.gableRoofGeometry(13, 17, 3.2) : G.box(13, 1, 17), roofM, 0, 6, -4);
+    for (let i = 0; i < 4; i++) [-1, 1].forEach((s) => part(g, G.box(0.15, 2.2, 1.2), mt('synShutter', 0x2f6b4a, 0.7), s * 6.05, 3.4, -10 + i * 4));
+    // the clock tower beside the entrance
+    const tx = 7.5, tz = 5;
+    part(g, G.box(4, 12, 4), white, tx, 6, tz);
+    [4, 8].forEach((y) => part(g, G.box(4.3, 0.2, 4.3), mt('synBand', 0xd9d2c0, 0.8), tx, y, tz));
+    part(g, KT.hipRoofGeometry(5.4, 5.4, 2.0, 0.3), roofM, tx, 12, tz);
+    part(g, G.cyl(0.5, 0.5, 1.2, 8), white, tx, 14.4, tz);
+    part(g, G.cone(0.7, 1.0, 8), roofM, tx, 15.4, tz);
+    [[0, 2.02, 0], [2.02, 0, Math.PI / 2], [0, -2.02, Math.PI], [-2.02, 0, -Math.PI / 2]].forEach(([dx, dz, r]) => {
+      const side_ = Math.abs(dx) > 0.1;
+      part(g, G.cyl(0.9, 0.9, 0.08, 18), blue, tx + dx, 10, tz + dz, side_ ? 0 : Math.PI / 2, 0, side_ ? Math.PI / 2 : 0);
+      part(g, G.box(0.06, 0.7, 0.04), M().white, tx + dx * 1.02, 10.15, tz + dz * 1.02, 0, r, 0);
+    });
+    for (let k = 0; k < 6; k++) part(g, G.box(0.18, 0.6, 0.4), wood, tx - 2.4 + (k % 2) * 4.8, 11.4, tz - 1.5 + Math.floor(k / 2) * 1.5);
+    // the gates
+    part(g, G.box(3, 2.4, 0.1), mt('synIron', 0x2a2a2a, 0.5), 0, 1.2, 4.05);
+    part(g, G.cyl(0.4, 0.4, 0.05, 6), mt('synStar', 0xd4a434, 0.4), 0, 1.6, 4.12, Math.PI / 2, 0, 0);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -4, hw: 6, hd: 8 }, { type: 'box', x: tx, z: tz, hw: 2, hd: 2 }];
+    return baked;
+  };
+  // Kappad: the memorial pillar for Vasco da Gama's landing
+  Models.gamaPillar = function () {
+    const g = new T.Group(), st = mt('gamaStone', 0xc9c2b2, 0.85);
+    part(g, G.box(2.4, 0.4, 2.4), st, 0, 0.2, 0);
+    part(g, G.box(1.6, 0.4, 1.6), st, 0, 0.6, 0);
+    part(g, G.box(0.7, 3.4, 0.7), st, 0, 2.5, 0);
+    part(g, G.cone(0.5, 0.7, 4), st, 0, 4.55, 0, 0, Math.PI / 4, 0);
+    const pl = KT.signMaterial([{ text: 'VASCO DA GAMA LANDED HERE', size: 30 }, { text: 'KAPPAKADAVU • 1498', size: 34 }], { width: 600, height: 200, bg: '#3a3a3a', color: '#f4f0e0' });
+    const plaque = new T.Mesh(G.box(1.2, 0.5, 0.05), [st, st, st, st, pl, pl]);
+    plaque.position.set(0, 1.8, 0.38); plaque.userData.noBake = true;
+    const baked = KT.bake(g);
+    baked.add(plaque);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 1.2, hd: 1.2 }];
+    return baked;
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);
