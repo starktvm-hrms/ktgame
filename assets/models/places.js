@@ -207,6 +207,20 @@
     baked.userData.colliders = [{ type: 'box', x: -2.6, z: 0, hw: 1.1, hd: 1.4 }, { type: 'box', x: 2.6, z: 0, hw: 1.1, hd: 1.4 }];
     return baked;
   };
+  // a teak plantation: tall straight trunks in rows, thin crowns, leaf litter
+  Models.teakGrove = function () {
+    const g = new T.Group(), bark = mt('teakBark', 0x5a4632, 0.95), leaf = mt('teakCrown', 0x7a8a3a, 0.9), litter = mt('teakLitter', 0x9a7a52, 1);
+    part(g, G.cyl(14, 14, 0.06, 28), litter, 0, 0.03, 0);
+    part(g, G.box(2.4, 0.07, 28), mt('teakTrack', 0xc4a47a, 1), 0, 0.05, 0);
+    const rng = KT.makeRng(1840);
+    for (let x = -12; x <= 12; x += 3.4) for (let z = -12; z <= 12; z += 3.4) {
+      if (Math.abs(x) < 2 || x * x + z * z > 150) continue;
+      const h = 13 + rng() * 5, xx = x + (rng() - 0.5) * 0.8, zz = z + (rng() - 0.5) * 0.8;
+      part(g, G.cyl(0.18, 0.32, h, 6), bark, xx, h / 2, zz);
+      part(g, KT.blob(1.4 + rng(), 1, 0.35, Math.round(x * 7 + z)), leaf, xx, h + 0.4, zz, 0, 0, 0, 1.3, 0.55, 1.3);
+    }
+    return KT.bake(g);
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);

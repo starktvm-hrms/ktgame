@@ -2090,6 +2090,10 @@
       case 'parambikulam':
         hubPlace(hub, Models.placeSign(['PARAMBIKULAM', 'TIGER RESERVE • PALAKKAD'], 4.4, '#5a3a20'), a - 6, l - side * 20, rot);
         break;
+      case 'nilambur':
+        // Conolly's Plot: rows of tall, straight teak over brown leaf litter
+        hubPlace(hub, Models.teakGrove(), a + 20, l + side * 10, rot, { colliders: false });
+        break;
       case 'munnar':
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });
