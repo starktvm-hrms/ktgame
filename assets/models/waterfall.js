@@ -97,7 +97,7 @@
     perunthenaruvi: { H: 14, w: 30, streams: 6, tiers: 3, rock: 0x2f2d2a }, // ~30 m wide, slanting down over honeycombed black rock
     adyanpara: { H: 10, w: 22, streams: 6, tiers: 2 }, // cascades over sloping slabs
     soochipara: { H: 32, w: 7, streams: 1, rock: 0x2e2c2a }, // one tall white stream down black rock
-    thusharagiri: { H: 24, w: 12, streams: 2, tiers: 2 },
+    thusharagiri: { H: 18, w: 14, streams: 2, tiers: 2, rock: 0x9a7050 }, // sliding down tan-brown rock, a smaller stream beside
     meenmutty: { H: 26, w: 12, streams: 2, tiers: 2 },
     plain: { H: 24, w: 14, streams: 2 }
   };
