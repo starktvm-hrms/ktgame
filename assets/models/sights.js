@@ -746,23 +746,29 @@
   // path with tea pickers, and the estate's tea factory.
   Models.teaHill = function () {
     const g = new T.Group();
-    const soil = KT.mat('teaHillSoil', { color: 0x5f8f3a, roughness: 0.95 });
+    const soil = KT.mat('teaHillSoil', { color: 0x7a5a3a, roughness: 0.95 }); // the red-brown earth between the rows
     part(g, G.sph(22, 40, 20), soil, 0, -10, 0, 0, 0, 0, 1, 0.75, 1);
     const hy = (r) => Math.sqrt(Math.max(0, 22 * 22 - r * r)) * 0.75 - 10;
-    const bush = Models.teaBush();
-    const items = [];
-    bush.updateMatrixWorld(true);
-    for (let ring = 5; ring <= 19.5; ring += 1.6) {
-      const n = Math.floor(ring * 2.6);
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        if (Math.abs(Math.sin(a * 0.5 + ring * 0.15)) < 0.06) continue; // the winding path
-        const x = Math.cos(a) * ring, z = Math.sin(a) * ring;
-        bush.children.forEach((m) => items.push({ geometry: m.geometry, matrix: new T.Matrix4().makeTranslation(x, hy(ring) - 0.25, z).multiply(new T.Matrix4().makeScale(0.85, 0.85, 0.85)).multiply(m.matrix), material: m.material }));
+    // tea grows as continuous, rounded hedges following the contours, with
+    // a narrow path between the rows and a winding track up the hill
+    const teaM = [KT.mat('teaHedge0', { color: 0x4f9a34, roughness: 0.85 }), KT.mat('teaHedge1', { color: 0x5aa83a, roughness: 0.85 })];
+    const hedges = new T.Group();
+    let row = 0;
+    for (let ring = 5; ring <= 19.6; ring += 1.25, row++) {
+      const SEG = 36;
+      for (let k = 0; k < SEG; k++) {
+        const a0 = (k / SEG) * Math.PI * 2, am = a0 + Math.PI / SEG;
+        if (Math.abs(Math.sin(am * 0.5 + ring * 0.15)) < 0.07) continue; // the track
+        const arc = new T.TorusGeometry(ring, 0.52, 6, 4, (Math.PI * 2) / SEG + 0.01);
+        arc.rotateX(Math.PI / 2);
+        arc.rotateY(-a0);
+        arc.scale(1, 0.75, 1);
+        const m = new T.Mesh(arc, teaM[row % 2]);
+        m.position.y = hy(ring) + 0.05;
+        hedges.add(m);
       }
     }
-    const merged = new T.Mesh(KT.mergeGeometries(items), items[0].material);
-    merged.castShadow = merged.receiveShadow = true;
+    const merged = KT.bake(hedges);
     // silver oaks
     const oak = KT.mat('silverOak', { color: 0x5c7f4a, roughness: 0.9 });
     for (let i = 0; i < 7; i++) {

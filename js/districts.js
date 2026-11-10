@@ -97,9 +97,9 @@
     ],
     ekm: [
       { name: 'Chinese Fishing Nets', kind: 'main', icon: '\u{1F3A3}', facts: ['The cantilevered Chinese nets of Fort Kochi may have come with traders from the court of Kublai Khan.', 'Try fishing here: cast the net at a Fishing Point!'] },
-      { name: 'Mattancherry Palace', kind: 'museum', icon: '\u{1F3EF}', colors: [0xf0e6cf, 0xa0522d, 0x7a3b2e], facts: ['Built by the Portuguese in 1555 and gifted to the Raja of Kochi, it is known as the Dutch Palace.', 'Its walls hold some of the finest Hindu mural paintings in Kerala.', 'Jew Town and the 1568 Paradesi Synagogue are a short walk away.'] },
+      { name: 'Mattancherry Palace', kind: 'museum', model: 'mattancherry', icon: '\u{1F3EF}', colors: [0xf0e6cf, 0xa0522d, 0x7a3b2e], facts: ['Built by the Portuguese in 1555 and gifted to the Raja of Kochi, it is known as the Dutch Palace.', 'Its walls hold some of the finest Hindu mural paintings in Kerala.', 'Jew Town and the 1568 Paradesi Synagogue are a short walk away.'] },
       { name: "Kathakali Centre", kind: 'kathakali', icon: '\u{1F3AD}', facts: ["Kathakali is Kerala's classical dance-drama, with green faces, huge skirts and tall crowns.", "Performers tell stories from the epics with eye movements and hand gestures (mudras)."] },
-      { name: "St. Francis Church", kind: 'church', icon: '\u26EA', facts: ["Built in 1503, St. Francis Church in Fort Kochi is the oldest European church in India.", "Vasco da Gama was first buried here in 1524."] },
+      { name: "St. Francis Church", kind: 'church', model: 'stfrancis', icon: '\u26EA', facts: ["Built in 1503, St. Francis Church in Fort Kochi is the oldest European church in India.", "Vasco da Gama was first buried here in 1524."] },
       { name: "Paradesi Synagogue", kind: 'museum', icon: '\u2721\uFE0F', colors: [0xf4f4f0, 0x2c5fa8, 0x8a3b24], facts: ["The Paradesi Synagogue in Jew Town was built in 1568.", "Its floor is laid with hand-painted Chinese tiles, no two alike."] },
       { name: "Cherai Beach", kind: 'beach', model: 'cherai', icon: '\u{1F3D6}\uFE0F', facts: ["Cherai beach on Vypin island lies between the sea and the backwaters.", "Dolphins are sometimes seen offshore."] },
       { name: 'Marine Drive', kind: 'marineDrive', icon: '\u{1F309}', facts: ['Marine Drive is Kochi\'s promenade along the backwater, lined with tall apartment towers.', 'The arched Rainbow Bridge spans the walkway, and sunset cruises leave from its boat jetty.'] },
@@ -110,7 +110,7 @@
       { name: 'Athirappilly Waterfalls', kind: 'waterfall', model: 'athirappilly', icon: '\u{1F4A7}', facts: ['Athirappilly, 25 m high, is the largest waterfall in Kerala — the "Niagara of India".', 'It lies on the Chalakudy river at the edge of the Sholayar forests.'] },
       { name: 'Guruvayur Temple', kind: 'shrine', icon: '\u{1FA94}', facts: ['Guruvayur is one of the most important Krishna temples in India.', 'Its Punnathur Kotta is home to dozens of temple elephants.'] },
       { name: "Kerala Kalamandalam", kind: 'kathakali', icon: '\u{1F3AD}', facts: ["Kerala Kalamandalam, founded in 1930 by the poet Vallathol, teaches Kathakali, Mohiniyattam and Koodiyattam.", "Its traditional theatre, the Koothambalam, is built in Kerala temple style."] },
-      { name: "Punnathur Kotta", kind: 'elephantCamp', icon: '\u{1F418}', facts: ["Punnathur Kotta near Guruvayur is home to dozens of temple elephants.", "They are cared for by the Guruvayur temple and lead its festivals."] },
+      { name: "Punnathur Kotta", kind: 'elephantCamp', model: 'punnathur', icon: '\u{1F418}', facts: ["Punnathur Kotta near Guruvayur is home to dozens of temple elephants.", "They are cared for by the Guruvayur temple and lead its festivals."] },
       { name: 'Thrissur Zoo & Museum', kind: 'thrissurZoo', icon: '\u{1F992}', colors: [0xb5452e, 0xf2e2c4, 0x4a4a52], facts: ['The Thrissur Zoo at Chembukkavu, opened in 1885, is one of the oldest zoos in India.', 'The State Museum and the Natural History Museum share its compound.'] }
     ],
     pkd: [

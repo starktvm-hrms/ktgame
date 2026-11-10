@@ -148,6 +148,65 @@
     part(g, G.cone(0.18, 0.3, 6), mt('sack' + ((k || 0) % 5), cols[(k || 0) % 5], 0.95), 0, 1.0, 0);
     return KT.bake(g);
   };
+  // ---------------------------------------------- St. Francis Church
+  // Fort Kochi (1503): a plain hall with a tall cream façade, its gable in
+  // stepped, scrolled Dutch curves with finials, a round window, three
+  // arched windows with red-brown shutters and a little belfry on top
+  Models.stFrancis = function () {
+    const g = new T.Group();
+    const cream = mt('sfCream', 0xeee4c8, 0.85), trim = mt('sfTrim', 0xd9cba6, 0.85), shut = mt('sfShutter', 0x8a3b24, 0.7), roofM = M().roof;
+    part(g, G.box(11, 8, 22), cream, 0, 4, -10);
+    part(g, KT.gableRoofGeometry ? KT.gableRoofGeometry(12, 23, 4) : G.box(12, 1, 23), roofM, 0, 8, -10);
+    // the façade: a wide base, stepped scrolled gable above
+    part(g, G.box(13, 9, 0.8), cream, 0, 4.5, 1);
+    part(g, G.box(9, 2.6, 0.8), cream, 0, 10.3, 1);
+    part(g, G.box(5, 2.0, 0.8), cream, 0, 12.6, 1);
+    [-1, 1].forEach((sd) => {
+      part(g, new T.CylinderGeometry(1.3, 1.3, 0.8, 16, 1, false, 0, Math.PI), cream, sd * 4.5, 9.0, 1, Math.PI / 2, 0, sd > 0 ? Math.PI / 2 : -Math.PI / 2);
+      part(g, new T.CylinderGeometry(1.0, 1.0, 0.8, 16, 1, false, 0, Math.PI), cream, sd * 2.5, 11.6, 1, Math.PI / 2, 0, sd > 0 ? Math.PI / 2 : -Math.PI / 2);
+      // pilasters and finials
+      [6.3, 2.8].forEach((x, k) => part(g, G.box(0.6, 9 - k * 0, 0.9), trim, sd * x, 4.5, 1.1));
+      part(g, G.cone(0.35, 1.4, 8), trim, sd * 6.2, 9.7, 1.1);
+      part(g, G.cone(0.3, 1.1, 8), trim, sd * 4.4, 12.1, 1.1);
+    });
+    part(g, G.box(13.6, 0.3, 1.0), trim, 0, 9.05, 1.1);
+    // belfry with a cross
+    part(g, G.box(2.0, 2.0, 0.8), cream, 0, 14.6, 1);
+    part(g, KT.roundBox(1.0, 1.2, 0.3, 0.45), mt('sfDark', 0x3a2a24, 0.7), 0, 14.5, 1.3);
+    part(g, G.box(0.18, 1.2, 0.15), trim, 0, 16.2, 1);
+    part(g, G.box(0.7, 0.16, 0.15), trim, 0, 16.4, 1);
+    // windows and door
+    part(g, G.cyl(0.7, 0.7, 0.3, 16), mt('sfDark', 0x3a2a24, 0.7), 0, 10.4, 1.35, Math.PI / 2, 0, 0);
+    [-3.6, 0, 3.6].forEach((x) => { part(g, G.box(1.4, 2.2, 0.2), shut, x, 6.2, 1.45); part(g, G.cyl(0.7, 0.7, 0.2, 12, 1), shut, x, 7.3, 1.45, Math.PI / 2, 0, 0); });
+    part(g, G.box(2.2, 3.4, 0.2), mt('sfDoor', 0x5a3a24, 0.7), 0, 1.7, 1.45);
+    part(g, G.cyl(1.1, 1.1, 0.2, 14), mt('sfDoor', 0x5a3a24, 0.7), 0, 3.4, 1.45, Math.PI / 2, 0, 0);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -9.5, hw: 6.6, hd: 11.5 }];
+    return baked;
+  };
+  // ------------------------------------------- Mattancherry Palace gate
+  // a cream archway with orange-red trim, trefoil openings over the side
+  // piers and a round medallion in the gable
+  Models.mattancherryGate = function () {
+    const g = new T.Group(), cream = mt('mgCream', 0xf0dca0, 0.85), red = mt('mgRed', 0xc4502a, 0.75);
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(2.0, 4.2, 2.6), cream, sd * 2.6, 2.1, 0);
+      part(g, G.box(2.2, 0.3, 2.8), red, sd * 2.6, 4.25, 0);
+      part(g, G.cyl(0.25, 0.25, 4.0, 10), red, sd * 3.7, 2.0, 1.35);
+      [0, 0.45, -0.45].forEach((dx, k) => part(g, G.cyl(0.32, 0.32, 0.3, 12), mt('mgDark', 0x4a3a2a, 0.7), sd * 2.6 + dx, 3.2 + (k ? -0.25 : 0.15), 1.32, Math.PI / 2, 0, 0));
+      part(g, G.box(1.6, 0.5, 2.8), red, sd * 2.6, 0.25, 0);
+    });
+    part(g, new T.TorusGeometry(1.6, 0.35, 8, 20, Math.PI), red, 0, 4.2, 1.15);
+    part(g, G.box(7.4, 1.6, 2.6), cream, 0, 5.4, 0);
+    // the gable with a red border and medallion
+    const sh = new T.Shape(); sh.moveTo(-3.8, 0); sh.lineTo(3.8, 0); sh.lineTo(0, 2.2); sh.lineTo(-3.8, 0);
+    part(g, new T.ExtrudeGeometry(sh, { depth: 2.6, bevelEnabled: false }), cream, 0, 6.2, -1.3);
+    [-1, 1].forEach((sd) => part(g, G.box(4.5, 0.3, 2.8), red, sd * 1.9, 7.3, 0, 0, 0, sd * -0.52));
+    part(g, G.cyl(0.6, 0.6, 0.2, 16), red, 0, 7.0, 1.35, Math.PI / 2, 0, 0);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: -2.6, z: 0, hw: 1.1, hd: 1.4 }, { type: 'box', x: 2.6, z: 0, hw: 1.1, hd: 1.4 }];
+    return baked;
+  };
   // a tetrapod (breakwater block)
   function tetrapod(g, x, y, z, r, m) {
     const s = 0.6 * (r || 1);

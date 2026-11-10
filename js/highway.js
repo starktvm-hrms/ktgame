@@ -1857,7 +1857,7 @@
           break;
         }
         case 'church': {
-          hubPlace(hub, Models.church(), a, l + side * 6, rot);
+          hubPlace(hub, def.model === 'stfrancis' ? Models.stFrancis() : Models.church(), a, l + side * 6, rot);
           [-9, 9].forEach((x, i) => hubPlace(hub, Models.coconutPalm(i + 30), a + x, l - side * 6, 0));
           break;
         }
@@ -1896,6 +1896,14 @@
         case 'hillview': hubPlace(hub, Models.hillView(), a, l + side * 2, rot); break;
         case 'elephantCamp': {
           if (def.model === 'konni') hubPlace(hub, Models.kraal(), a - 16, l + side * 6, rot);
+          if (def.model === 'punnathur') {
+            // the old palace of the Punnathur rajas, a sandy yard and shade trees
+            sand(hub, a, l, 22);
+            const pal = Models.keralaHouse({ cycle: false }); pal.scale.setScalar(1.5);
+            hubPlace(hub, pal, a + 2, l + side * 16, rot);
+            [[-14, 4], [14, -2], [-8, -10]].forEach(([x, z], i) => hubPlace(hub, Models.banyanTree(), a + x, l + side * z, i, { colliders: false }));
+            for (let k = 0; k < 6; k++) hubPlace(hub, Models.fern ? Models.fern() : Models.bananaTree(), a - 5 + k * 2.2, l - side * 3, k, { colliders: false });
+          }
           hubPlace(hub, Models.elephantShelter(), a, l + side * 2, rot);
           [-6, 0, 6].forEach((x, i) => {
             const el = KT.skinify(Models.elephant(i !== 1, 2 + i));
@@ -2067,6 +2075,10 @@
           hubPlace(hub, Models.chineseNet(), al, la, 0, { absRot: faceCentre(al, la), colliders: false });
         });
         if (m === 'cherai') waterDisc(hub, a, l + side * 30, 8);
+        break;
+      case 'mattancherry':
+        // the cream entrance arch with its red trim, before the palace
+        hubPlace(hub, Models.mattancherryGate(), a, l - side * 13, rot);
         break;
       case 'munnar':
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
