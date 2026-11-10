@@ -2149,8 +2149,11 @@
         break;
       }
       case 'thekkady': {
-        hubPlace(hub, Models.stumps(), a, l + side * 6, 0, { absRot: heading, colliders: false });
-        if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 2, l + side * 7, 0, { absRot: heading + 0.4, y: wyAt(a, l + side * 6) + 0.08, colliders: false });
+        // Periyar lake: a wide sheet of water among forested hills, dead tree
+        // stumps standing in it, and the double-decker tour boats at the jetty
+        const w = waterDisc(hub, a - 4, l - side * 21, 11);
+        hubPlace(hub, Models.stumps(), a - 4, l - side * 21, 0, { absRot: heading, y: w.position.y - 0.6, colliders: false });
+        if (Models.ferryBoat) [[-10, -25, 0.3], [-6, -28, 0.1]].forEach(([x, z, r]) => hubPlace(hub, Models.ferryBoat(), a + x, l + side * z, 0, { absRot: heading + r, y: w.position.y + 0.02, colliders: false }).scale.setScalar(0.6));
         break;
       }
       case 'silentValley':
