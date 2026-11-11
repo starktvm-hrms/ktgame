@@ -980,7 +980,7 @@
     for (let i = 0; i <= NR; i++) for (let k = 0; k <= NT; k++) {
       const r = 1 + (RR - 1) * i / NR, th = Math.PI - SPAN / 2 + SPAN * k / NT, u = r / RR;
       const rib = Math.abs(Math.cos(RIBS * (th - Math.PI) / 2 * 2)) * 0.7 * u;
-      const y = 1.1 + rib + 2.2 * KT.smoothstep(0.78, 1, u) + 0.4 * u;
+      const y = 1.1 + rib + 1.2 * KT.smoothstep(0.8, 1, u) + 0.4 * u;
       pos.push(HX + Math.cos(th) * r, y, Math.sin(th) * r * 0.55);
     }
     for (let i = 0; i < NR; i++) for (let k = 0; k < NT; k++) { const a = i * (NT + 1) + k, b = a + NT + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
@@ -1000,20 +1000,92 @@
     const eg = new T.BufferGeometry(); eg.setAttribute('position', new T.Float32BufferAttribute(ep, 3)); eg.setIndex(ei); eg.computeVertexNormals();
     g.add(new T.Mesh(eg, KT.mat('mermaidSkirt', { color: 0x9e9d97, roughness: 0.85, side: T.DoubleSide })));
     void shellM; void shellD;
-    // her: reclining along the shell, head to the left
-    ell(3.2, 1.7, 2.6, -2, 3.1, 0.2);                 // hips
-    ell(2.6, 2.6, 2.2, -6.2, 4.7, 0.0, 0, 0, 0.55);   // waist and chest, raised
-    ell(1.6, 1.5, 1.7, -8.0, 6.3, 0.6);               // bust
-    ell(0.9, 1.2, 0.9, -9.4, 7.3, 0.0, 0, 0, 0.6);    // neck
-    ell(1.6, 1.8, 1.6, -10.6, 8.7, -0.2, 0, 0, 0.8);  // head thrown back
-    ell(2.4, 1.0, 1.8, -11.6, 9.3, -1.4, 0, 0, 0.5);  // hair spread behind
-    ell(0.65, 2.6, 0.65, -9.2, 4.3, -1.8, 0.3, 0, -0.9); // the arm she leans on, elbow on the shell
-    ell(0.55, 2.2, 0.55, -9.6, 9.3, 1.0, -0.3, 0, 1.3);  // the arm raised behind her head
-    // the tail, sweeping along and up at its end
-    ell(4.6, 1.5, 2.2, 3.6, 2.7, 0.3, 0, 0, -0.08);
-    ell(4.2, 1.1, 1.6, 10.6, 2.3, 0.8, 0, 0, 0.0);
-    ell(2.6, 0.8, 1.2, 15.4, 2.9, 1.0, 0, 0, 0.45);
-    ell(2.0, 0.3, 1.6, 17.6, 4.3, 1.2, 0, 0, 0.9);    // the fin
+    // her, swept as smooth shapes along curves (head to the left, -x; the
+    // viewer's side is +z). sweep(points, radius(t) -> [w, h], segments)
+    // lofts an elliptical section along a curve, with rounded ends.
+    const sweep = (pts, prof, n, m) => {
+      const curve = new T.CatmullRomCurve3(pts.map((p) => new T.Vector3(p[0], p[1], p[2])));
+      const N = n || 40, S = 18, pos = [], idx = [];
+      const fr = curve.computeFrenetFrames(N, false);
+      for (let i = 0; i <= N; i++) {
+        const t = i / N, P = curve.getPointAt(t), [w, h] = prof(t);
+        // keep the section's "height" axis close to world up so she is not twisted
+        const Tn = fr.tangents[i], up = new T.Vector3(0, 1, 0);
+        if (Math.abs(Tn.dot(up)) > 0.95) up.set(0, 0, 1);
+        const side = new T.Vector3().crossVectors(Tn, up).normalize(), U = new T.Vector3().crossVectors(side, Tn).normalize();
+        for (let k = 0; k <= S; k++) {
+          const a = (k / S) * Math.PI * 2;
+          pos.push(P.x + side.x * Math.cos(a) * w + U.x * Math.sin(a) * h, P.y + side.y * Math.cos(a) * w + U.y * Math.sin(a) * h, P.z + side.z * Math.cos(a) * w + U.z * Math.sin(a) * h);
+        }
+      }
+      for (let i = 0; i < N; i++) for (let k = 0; k < S; k++) { const a = i * (S + 1) + k, b = a + S + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+      const mesh = new T.Mesh(geo, m || c); g.add(mesh);
+      // round caps
+      [0, 1].forEach((t) => { const [w, h] = prof(t); const P = curve.getPointAt(t); const cap = part(g, new T.SphereGeometry(1, 16, 12), m || c, P.x, P.y, P.z); cap.scale.set(Math.max(w, h) * 0.98, Math.max(w, h) * 0.98, Math.max(w, h) * 0.98); });
+      return mesh;
+    };
+    const lerp = KT.lerp, smooth = KT.smoothstep;
+    // the body: from the neck down the chest and waist, over the hips and on
+    // into the long tail, which lies along the shell and lifts at the end
+    sweep([[-11.0, 11.4, 0.0], [-10.0, 9.4, 0.1], [-8.6, 7.6, 0.2], [-6.6, 5.9, 0.3], [-4.0, 4.6, 0.4], [-0.8, 3.9, 0.6], [3.0, 3.5, 0.9], [7.0, 3.3, 1.2], [10.8, 3.3, 1.3], [14.2, 3.7, 1.1], [17.0, 5.0, 0.8]], (t) => {
+      // neck, shoulders and chest, waist, hips, then the tail tapering to the fin
+      const w = t < 0.05 ? lerp(0.9, 2.6, t / 0.05) : t < 0.15 ? lerp(2.6, 2.8, (t - 0.05) / 0.1) : t < 0.27 ? lerp(2.8, 2.1, smooth(0, 1, (t - 0.15) / 0.12)) : t < 0.38 ? lerp(2.1, 3.1, smooth(0, 1, (t - 0.27) / 0.11)) : lerp(3.1, 0.45, smooth(0.38, 1, t));
+      const h = t < 0.05 ? lerp(0.9, 1.7, t / 0.05) : t < 0.27 ? lerp(1.7, 1.5, (t - 0.05) / 0.22) : t < 0.38 ? lerp(1.5, 1.9, (t - 0.27) / 0.11) : lerp(1.9, 0.35, smooth(0.38, 1, t));
+      return [w, h];
+    }, 70);
+    // the breasts
+    [-1.05, 1.05].forEach((dz) => { const b = part(g, new T.SphereGeometry(1, 20, 14), c, -9.0, 9.0, 0.3 + dz); b.scale.set(1.3, 1.15, 1.15); b.rotation.z = 0.75; });
+    // the scales: soft overlapping crescents along the top of the tail
+    const scaleM = mat('mermaidScale', 0x9b9a94, 0.85);
+    for (let k = 0; k < 12; k++) for (let r = -1; r <= 1; r++) {
+      const x = 0.5 + k * 1.3, tt = KT.clamp((x + 0.8) / 17.8, 0, 1), y = 3.6 + (x > 10 ? (x - 10) * 0.18 : -x * 0.03), w = lerp(2.6, 0.7, tt);
+      const sc = part(g, new T.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, HP), scaleM, x, y + lerp(1.6, 0.4, tt) * 0.92, lerp(0.6, 1.2, tt) + r * w * 0.45);
+      sc.scale.set(0.55, 0.18, 0.4 * (1 - tt * 0.5));
+    }
+    // the tail fin: two broad, flat lobes spreading out sideways from the
+    // tail's end, their tips lifting
+    [-1, 1].forEach((sd) => {
+      const lobe = new T.Mesh(new T.SphereGeometry(1, 20, 12), c);
+      lobe.scale.set(2.6, 0.22, 1.25);
+      lobe.position.set(18.6, 5.6, 0.8 + sd * 1.3);
+      lobe.rotation.set(sd * 0.25, -sd * 0.55, 0.35);
+      g.add(lobe);
+    });
+    // the head, thrown back and turned a little to us: a soft oval with a
+    // brow, a straight nose, closed eyes, full lips and a rounded chin
+    const head = new T.Group(); head.position.set(-12.3, 13.3, 0.4); head.rotation.set(0.15, 0.4, 0.8); head.scale.setScalar(1.85); g.add(head);
+    const hp = (geo, x, y, z, sx, sy, sz, rx, ry, rz) => { const m = new T.Mesh(geo, c); m.position.set(x, y, z); m.scale.set(sx || 1, sy || 1, sz || 1); m.rotation.set(rx || 0, ry || 0, rz || 0); head.add(m); return m; };
+    hp(new T.SphereGeometry(1, 28, 20), 0, 0, 0, 1.05, 1.3, 1.05);                      // skull and face
+    hp(new T.SphereGeometry(1, 18, 14), 0, -0.75, 0.5, 0.62, 0.55, 0.6);                 // jaw and chin
+    hp(new T.SphereGeometry(1, 14, 10), 0, 0.42, 0.82, 0.78, 0.18, 0.3);                 // brow
+    hp(new T.ConeGeometry(0.2, 0.62, 8), 0, 0.05, 1.12, 1, 1, 0.9, -1.25);               // nose
+    hp(new T.SphereGeometry(0.16, 10, 8), 0, -0.22, 1.12, 1.2, 0.6, 1);                  // the tip of the nose
+    [-1, 1].forEach((sd) => {
+      hp(new T.SphereGeometry(1, 12, 8), sd * 0.38, 0.22, 0.9, 0.24, 0.07, 0.12);        // closed eyelids
+      hp(new T.SphereGeometry(1, 12, 10), sd * 0.62, -0.25, 0.7, 0.3, 0.32, 0.25);       // cheeks
+      hp(new T.SphereGeometry(1, 10, 8), sd * 1.0, 0.0, 0.05, 0.15, 0.32, 0.22);         // ears
+    });
+    hp(new T.SphereGeometry(1, 14, 8), 0, -0.52, 1.0, 0.32, 0.09, 0.14);                 // upper lip
+    hp(new T.SphereGeometry(1, 14, 8), 0, -0.66, 0.97, 0.28, 0.1, 0.14);                 // lower lip
+    hp(new T.SphereGeometry(1, 16, 10), 0, 1.05, -0.2, 0.9, 0.35, 0.95);                 // hair parted over the crown
+    // her long hair: thick waving locks streaming back over the shell
+    const hairM = mat('mermaidHair', 0x9a9993, 0.9);
+    [[-0.9, 0.2], [0.1, -0.2], [1.1, 0.25]].forEach(([off, wave]) => {
+      sweep([[-12.8, 15.0, 0.3 + off * 0.9], [-14.2, 14.2, off * 1.3], [-14.9, 12.0, off * 1.5 + wave], [-14.6, 9.2, off * 1.7 - wave], [-13.6, 6.6, off * 1.8 + wave * 0.5], [-12.6, 4.2, off * 1.9]], (t) => [lerp(1.25, 0.45, t), lerp(0.85, 0.35, t)], 34, hairM);
+    });
+    // the arms. Her right arm, behind, takes her weight: shoulder, elbow
+    // down on the shell, forearm flat, the hand spread. Her left arm comes
+    // up and round behind her head.
+    const arm = (pts, r0, r1) => sweep(pts, (t) => { const r = lerp(r0, r1, t) * (1 + 0.12 * Math.sin(t * Math.PI * 1.6)); return [r, r * 0.92]; }, 32);   // (a fuller upper arm and forearm, tapering to the wrist)
+    const hand = (x, y, z, ry, rz) => { const h = new T.Group(); h.position.set(x, y, z); h.rotation.set(0, ry, rz); h.scale.setScalar(1.7); g.add(h);
+      const palm = new T.Mesh(new T.SphereGeometry(1, 12, 8), c); palm.scale.set(0.5, 0.18, 0.4); h.add(palm);
+      for (let f = 0; f < 4; f++) { const fg = new T.Mesh(new T.CapsuleGeometry(0.08, 0.5, 4, 6), c); fg.position.set(0.6, 0, -0.26 + f * 0.17); fg.rotation.z = HP; h.add(fg); }
+      const th = new T.Mesh(new T.CapsuleGeometry(0.09, 0.36, 4, 6), c); th.position.set(0.3, 0, 0.42); th.rotation.set(0.7, 0, HP); h.add(th); };
+    arm([[-9.8, 9.6, -2.2], [-10.8, 7.4, -3.4], [-11.4, 5.0, -4.2], [-10.6, 3.2, -5.4], [-9.0, 2.6, -6.4]], 1.05, 0.62);
+    hand(-8.2, 2.5, -6.8, -0.6, 0.05);
+    arm([[-9.6, 10.4, 2.4], [-9.4, 13.4, 3.4], [-11.0, 16.0, 3.0], [-12.8, 16.6, 1.8]], 0.95, 0.6);
+    hand(-13.4, 16.4, 1.4, -0.4, 2.6);
     const baked = KT.bake(g);
     baked.userData.colliders = [{ type: 'box', x: 4, z: 1, hw: 15, hd: 8 }];
     return baked;
@@ -2090,7 +2162,7 @@
         const sandM = KT.mat('shankhSand', { map: KT.tex('sand', 1, 1), color: 0xe2bb80, side: T.DoubleSide }, 0.15);
         const sheet = new T.Mesh(geo, sandM); sheet.receiveShadow = true; it.group.add(sheet);
       }
-      place(it, mermaid(), -18, -12, 0);
+      place(it, mermaid(), -18, -12, 0);   // (models face the road: she looks towards the visitors)
       place(it, beachMandapam(), 26, 4, 0.1);
       [[-2, 16, 0.1, 3], [6, 18, -0.15, 5], [14, 15, 0.2, 7], [38, 14, 0.05, 1], [44, 17, -0.1, 9]].forEach(([dx, dz, r, k]) => {
         const b = place(it, Models.vallam(k), dx, dz, HP + r);
