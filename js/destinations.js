@@ -54,7 +54,7 @@
         Hw.gorgeLandform(sg.x + it.out.x * 10, sg.z + it.out.z * 10, it.rot, it.y, KT.FALLS.meenmutty);
       } else {
         // (the zoo compound is square: its corners need the extra room)
-        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' });
+        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' });
       }
       if (it.lake) lakes.push(it.lake);
     });
@@ -106,30 +106,238 @@
   }
 
   // a few custom models -------------------------------------------------
+  // The Government Secretariat (1869): a long two-storey white building in
+  // the Roman-Dutch style, arched verandahs below and balustraded ones above,
+  // both screened with green bamboo chiks, a low red roof, a central portico
+  // of six tall columns under a pediment, and the square clock tower with a
+  // white dome, golden finial and the flag; wings with their own porticos at
+  // both ends. In front, inside the compound wall and railings: a drive,
+  // lawns edged with low hedges and white fences, beds of marigolds in pots,
+  // topiary, a tiered fountain, the statue of Velu Thampi Dalawa, palms and
+  // lamps, and a paved footpath outside along the wall.
+  // (Model space: +z faces the road; the compound is 124 x 96 m.)
+  let secFacadeTex = null;
+  function secFacade() {
+    if (secFacadeTex) return secFacadeTex;
+    const c = document.createElement('canvas'); c.width = 128; c.height = 384;
+    const x = c.getContext('2d');
+    const W = 128, H = 384;
+    x.fillStyle = '#f4f2ec'; x.fillRect(0, 0, W, H);
+    const chik = (x0, y0, w, h) => {
+      x.fillStyle = '#2f6a52'; x.fillRect(x0, y0, w, h);
+      x.fillStyle = 'rgba(20,50,38,0.55)'; for (let yy = y0; yy < y0 + h; yy += 4) x.fillRect(x0, yy, w, 1);
+      x.fillStyle = 'rgba(160,190,170,0.25)'; x.fillRect(x0, y0, 4, h);
+    };
+    const balustrade = (x0, y0, w, h) => {
+      x.fillStyle = '#ffffff'; x.fillRect(x0, y0, w, 5); x.fillRect(x0, y0 + h - 4, w, 4);
+      for (let xx = x0 + 3; xx < x0 + w - 3; xx += 7) { x.fillRect(xx, y0 + 5, 4, h - 9); }
+      x.fillStyle = 'rgba(0,0,0,0.08)'; x.fillRect(x0, y0 + h, w, 2);
+    };
+    // upper floor: a tall rectangular opening, chik above a balustrade
+    chik(22, 34, 84, 116); balustrade(22, 120, 84, 30);
+    x.fillStyle = '#e4e0d4'; x.fillRect(16, 26, 96, 8); x.fillRect(16, 150, 96, 6);
+    // a moulded band between the floors
+    x.fillStyle = '#dcd8cc'; x.fillRect(0, 182, W, 10); x.fillStyle = '#ffffff'; x.fillRect(0, 178, W, 4);
+    // ground floor: an arched opening, chik, balustrade
+    x.save(); x.beginPath(); x.moveTo(22, 372); x.lineTo(22, 262); x.arc(64, 262, 42, Math.PI, 0); x.lineTo(106, 372); x.closePath(); x.clip();
+    chik(22, 212, 84, 160); x.restore();
+    balustrade(22, 330, 84, 36);
+    x.strokeStyle = '#e2ddd0'; x.lineWidth = 6; x.beginPath(); x.arc(64, 262, 46, Math.PI, 0); x.stroke();
+    // pilasters at both edges of the bay
+    x.fillStyle = '#fbfaf6'; x.fillRect(0, 0, 10, H); x.fillRect(W - 10, 0, 10, H);
+    x.fillStyle = 'rgba(0,0,0,0.07)'; x.fillRect(10, 0, 2, H); x.fillRect(W - 12, 0, 2, H);
+    secFacadeTex = new T.CanvasTexture(c);
+    secFacadeTex.encoding = T.sRGBEncoding; secFacadeTex.wrapS = T.RepeatWrapping; secFacadeTex.anisotropy = KT.maxAnisotropy;
+    return secFacadeTex;
+  }
   function secretariat() {
-    const g = new T.Group();
-    const white = mat('secWhite', 0xf2eee3, 0.7), grey = mat('secGrey', 0x8d8a83), dark = mat('secWin', 0x2f3a44, 0.4);
-    part(g, G.box(54, 10, 12), white, 0, 5, 0);
-    part(g, G.box(55, 0.8, 13), grey, 0, 10.4, 0);
-    for (let x = -25; x <= 25; x += 2.6) {
-      if (Math.abs(x) < 7.5) continue;
-      part(g, G.cyl(0.38, 0.42, 8.6, 10), white, x, 4.9, 6.6);
-      part(g, G.box(1.1, 2.6, 0.1), dark, x + 1.3, 6.3, 6.02);
-      part(g, G.box(1.1, 2.6, 0.1), dark, x + 1.3, 2.4, 6.02);
+    const g = new T.Group(), live = new T.Group();
+    const white = mat('secWhite', 0xf4f2ec, 0.6), trim = mat('secTrim', 0xe0dccf, 0.7), roofM = mat('secRoof', 0xc96a5c, 0.75);
+    const gold = KT.mat('secGold', { color: 0xd4a434, metalness: 0.7, roughness: 0.3 }), dark = mat('secDoor', 0x6a3b22, 0.6);
+    const faceM = new T.MeshStandardMaterial({ map: secFacade(), roughness: 0.7 });
+    const BAY = 4, FH = 12;          // a bay of the facade, the building's height
+    // a facade plane of n bays (UVs repeat the bay texture)
+    const facade = (cx, cz, n, ry) => {
+      const geo = new T.PlaneGeometry(n * BAY, FH);
+      const uv = geo.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setX(k, uv.getX(k) * n);
+      const m = new T.Mesh(geo, faceM); m.position.set(cx, FH / 2, cz); m.rotation.y = ry || 0; g.add(m);
+    };
+    // a block: walls, cornice, parapet and a low hipped roof
+    const block = (cx, cz, w, d, fronts) => {
+      part(g, G.box(w, FH, d), white, cx, FH / 2, cz);
+      part(g, G.box(w + 0.6, 0.5, d + 0.6), trim, cx, FH + 0.25, cz);
+      part(g, G.box(w + 0.2, 0.9, d + 0.2), white, cx, FH + 0.95, cz);
+      part(g, KT.hipRoofGeometry(w + 0.4, d + 0.4, 2.2, 0.2), roofM, cx, FH + 1.3, cz);
+      part(g, G.box(w + 0.8, 0.6, d + 0.8), trim, cx, 0.3, cz);   // plinth
+      (fronts || []).forEach(([fx, fz, n, ry]) => facade(fx, fz, n, ry));
+    };
+    const BZ = -26, BD = 14;         // the main range: centre z, depth
+    block(-26, BZ, 40, BD, [[-26, BZ + BD / 2 + 0.03, 10, 0]]);
+    block(26, BZ, 40, BD, [[26, BZ + BD / 2 + 0.03, 10, 0]]);
+    block(0, BZ, 12, BD, []);
+    // the end wings come forward with porticos of their own
+    [-1, 1].forEach((sd) => {
+      const wx = sd * 52;
+      block(wx, BZ + 8, 16, 30, [[wx - sd * 8.03, BZ + 8, 7, -sd * HP], [wx, BZ + 23.03, 4, 0]]);
+      for (let k = 0; k < 4; k++) part(g, G.cyl(0.55, 0.62, FH - 0.6, 14), white, wx - 4.5 + k * 3, (FH - 0.6) / 2, BZ + 26);
+      part(g, G.box(12, 0.8, 4), trim, wx, FH - 0.2, BZ + 25);
+      const pd = new T.Shape(); pd.moveTo(-6.4, 0); pd.lineTo(6.4, 0); pd.lineTo(0, 2.4); pd.lineTo(-6.4, 0);
+      part(g, new T.ExtrudeGeometry(pd, { depth: 4.4, bevelEnabled: false }), white, wx, FH + 0.2, BZ + 22.8);
+    });
+    // the central portico: six columns two storeys tall, entablature, pediment
+    const PZ = BZ + BD / 2 + 6;
+    part(g, G.box(16, 0.8, 7), trim, 0, 0.4, PZ - 0.5);
+    for (let k = 0; k < 3; k++) part(g, G.box(10 - k * 1.4, 0.25, 1.2), trim, 0, 0.12 + k * 0.25, PZ + 3.6 + k * 0.6 - 1.4);
+    for (let k = 0; k < 6; k++) {
+      const x = -6.5 + k * 2.6;
+      part(g, G.cyl(0.6, 0.68, FH - 1, 16), white, x, (FH - 1) / 2 + 0.8, PZ + 2);
+      part(g, G.box(1.5, 0.5, 1.5), trim, x, FH + 0.05, PZ + 2);
+      part(g, G.box(1.5, 0.6, 1.5), trim, x, 1.1, PZ + 2);
     }
-    // the central portico, pediment and dome
-    part(g, G.box(15, 12.5, 7), white, 0, 6.25, 6.5);
-    for (let x = -6; x <= 6; x += 2.4) part(g, G.cyl(0.55, 0.6, 10.5, 12), white, x, 5.25, 10.2);
-    const ped = part(g, G.cyl(0.01, 8.2, 3.2, 3), white, 0, 14.1, 10.1, 0, 0, 0);
-    ped.rotation.set(-HP, 0, 0); ped.scale.set(1, 0.18, 1);
-    part(g, G.box(16, 0.7, 7.6), grey, 0, 12.6, 6.6);
-    part(g, G.cyl(4.6, 4.8, 3.2, 24), white, 0, 12.8, 0);
-    const dome = part(g, new T.SphereGeometry(4.6, 24, 12, 0, Math.PI * 2, 0, HP), mat('secDome', 0xd9d4c7, 0.6), 0, 14.4, 0);
-    void dome;
-    part(g, G.cyl(0.25, 0.25, 2.2, 8), grey, 0, 19.8, 0);
-    part(g, G.box(3, 4.2, 0.12), dark, 0, 2.1, 10.05);
-    g.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 27, hd: 6.2 }, { type: 'box', x: 0, z: 7.5, hw: 7.6, hd: 3.4 }];
-    return g;
+    part(g, G.box(17, 1.2, 7.4), white, 0, FH + 0.9, PZ - 0.6);
+    part(g, G.box(17.6, 0.35, 7.8), trim, 0, FH + 1.6, PZ - 0.6);
+    const ped = new T.Shape(); ped.moveTo(-8.8, 0); ped.lineTo(8.8, 0); ped.lineTo(0, 3.4); ped.lineTo(-8.8, 0);
+    part(g, new T.ExtrudeGeometry(ped, { depth: 7.4, bevelEnabled: false }), white, 0, FH + 1.75, PZ - 4.3);
+    // the pediment's roof slopes, in the red of the main roof
+    [-1, 1].forEach((sd) => part(g, G.box(9.9, 0.25, 7.8), roofM, sd * 4.4, FH + 3.5, PZ - 0.6, 0, 0, -sd * Math.atan2(3.4, 8.8)));
+    // three tall doors behind the columns
+    [-3.6, 0, 3.6].forEach((x) => { part(g, G.box(1.8, 4.6, 0.2), dark, x, 3.1, BZ + BD / 2 + 0.12); part(g, G.cyl(0.9, 0.9, 0.2, 14, 1, false, 0, Math.PI), dark, x, 5.4, BZ + BD / 2 + 0.12, HP, 0, -HP); });
+    // the clock tower, dome, finial and flag
+    const TZ = BZ + 2, TH = FH + 2;
+    part(g, G.box(6.4, 7, 6.4), white, 0, TH + 3.5, TZ);
+    part(g, G.box(7.2, 0.5, 7.2), trim, 0, TH + 7.2, TZ);
+    [[0, 3.22, 0], [3.22, 0, HP], [0, -3.22, Math.PI], [-3.22, 0, -HP]].forEach(([dx, dz, r]) => {
+      const face = new T.Mesh(new T.CircleGeometry(1.6, 28), new T.MeshStandardMaterial({ map: clockFace(), roughness: 0.6 }));
+      face.position.set(dx, TH + 4.6, TZ + dz); face.rotation.y = r; face.userData.noBake = true; live.add(face);
+      part(g, G.torus(1.65, 0.12, 6, 28), mat('secClockRim', 0x3a3a3a, 0.5), dx, TH + 4.6, TZ + dz, 0, r, 0);
+      [-1, 1].forEach((sd) => part(g, G.box(0.35, 7, 0.35), trim, dx + (Math.abs(dz) > 0 ? sd * 2.9 : 0), TH + 3.5, TZ + dz + (Math.abs(dx) > 0 ? sd * 2.9 : 0)));
+    });
+    part(g, G.cyl(3.0, 3.0, 1.4, 24), white, 0, TH + 8.1, TZ);
+    part(g, new T.SphereGeometry(3.0, 24, 12, 0, Math.PI * 2, 0, HP), white, 0, TH + 8.8, TZ);
+    part(g, G.cyl(0.35, 0.5, 0.6, 10), gold, 0, TH + 12.0, TZ);
+    part(g, G.sph(0.45, 12, 10), gold, 0, TH + 12.6, TZ);
+    part(g, G.cone(0.3, 1.2, 10), gold, 0, TH + 13.5, TZ);
+    part(g, G.cyl(0.07, 0.09, 7, 6), mat('secPole', 0xd8d8d8, 0.4), 0, TH + 17, TZ);
+    const flagTex = (() => {
+      const c = document.createElement('canvas'); c.width = 96; c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#f08a2a'; x.fillRect(0, 0, 96, 22); x.fillStyle = '#ffffff'; x.fillRect(0, 21, 96, 22); x.fillStyle = '#138a36'; x.fillRect(0, 42, 96, 22);
+      x.strokeStyle = '#1f2a8a'; x.lineWidth = 2; x.beginPath(); x.arc(48, 32, 8, 0, Math.PI * 2); x.stroke();
+      for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; x.beginPath(); x.moveTo(48, 32); x.lineTo(48 + Math.cos(a) * 8, 32 + Math.sin(a) * 8); x.lineWidth = 0.7; x.stroke(); }
+      const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return t;
+    })();
+    const flag = new T.Mesh(new T.PlaneGeometry(2.6, 1.7, 8, 1), new T.MeshStandardMaterial({ map: flagTex, side: T.DoubleSide, roughness: 0.8 }));
+    flag.position.set(1.35, TH + 19.6, TZ); flag.userData.noBake = true; live.add(flag);
+    // --- the compound: drive, lawns, beds, fountain, statue, fences, wall
+    const asph = mat('secDrive', 0x55524e, 0.9), kerb = mat('secKerb', 0xd8d4c8, 0.8), pave = mat('secPave', 0xa8604a, 0.9);
+    const lawnM = mat('secLawn', 0x5f9a3a, 1), hedgeY = mat('secHedgeY', 0xa6bf3a, 0.9), hedgeG = mat('secHedgeG', 0x3f7a2e, 0.9);
+    const FRONT = 48, X = 62;        // the compound's front edge (z) and half width
+    // ground: the forecourt before the building, the lawns, the drives
+    part(g, G.box(124, 0.06, 18), asph, 0, 0.03, BZ + BD / 2 + 9);
+    [-1, 1].forEach((sd) => part(g, G.box(52, 0.08, FRONT + 7), lawnM, sd * 33, 0.04, (FRONT - 9) / 2 + 3));
+    part(g, G.box(9, 0.08, FRONT + 2), asph, 0, 0.05, (FRONT - 9) / 2 + 1);
+    [-1, 1].forEach((sd) => part(g, G.box(0.35, 0.18, FRONT - 8), kerb, sd * 4.7, 0.09, (FRONT - 9) / 2 + 3));
+    // a footpath of red pavers round each lawn
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(52, 0.1, 2.2), pave, sd * 33, 0.06, 2.5);
+      part(g, G.box(2.2, 0.1, FRONT - 2), pave, sd * 8.2, 0.06, FRONT / 2);
+    });
+    // the fountain in a round pool where the drive divides
+    const FZ = 18;
+    part(g, G.cyl(6.8, 6.8, 0.1, 32), pave, 0, 0.08, FZ);
+    part(g, G.cyl(4.6, 4.8, 0.7, 28), trim, 0, 0.35, FZ);
+    part(g, G.cyl(4.2, 4.2, 0.1, 28), KT.Highway.waterMaterial(), 0, 0.65, FZ);
+    [[0.5, 1.6, 2.2], [0.35, 3.0, 1.4], [0.25, 4.1, 0.8]].forEach(([r, y, R]) => { part(g, G.cyl(r, r * 1.3, y - 0.4, 10), trim, 0, (y - 0.4) / 2 + 0.6, FZ); part(g, G.cyl(R, R * 0.4, 0.45, 18), trim, 0, y, FZ); });
+    const jet = new T.MeshStandardMaterial({ color: 0xe8f6fa, transparent: true, opacity: 0.55, emissive: 0x9fc6d0, emissiveIntensity: 0.3, depthWrite: false });
+    const jets = new T.Mesh(G.cyl(0.08, 0.3, 1.4, 8), jet); jets.position.set(0, 5.0, FZ); jets.userData.noBake = true; live.add(jets);
+    [2.25, 1.45].forEach((R, k) => { const sheet = new T.Mesh(new T.CylinderGeometry(R, R + 0.3, k ? 1.2 : 1.4, 18, 1, true), jet); sheet.position.set(0, k ? 2.4 : 1.0, FZ); sheet.userData.noBake = true; live.add(sheet); });
+    // lawns: hedge borders (yellow-green), white fences with square posts
+    [-1, 1].forEach((sd) => {
+      const x0 = sd * 9.5, x1 = sd * 58, z0 = 2, z1 = FRONT - 3;
+      const cx = (x0 + x1) / 2, w = Math.abs(x1 - x0);
+      part(g, G.box(0.8, 0.8, z1 - z0 - 6), hedgeY, x0 + sd * 0.6, 0.4, (z0 + z1) / 2 + 2);
+      for (let x = Math.min(x0, x1); x <= Math.max(x0, x1) + 0.01; x += 3) {
+        part(g, G.box(0.25, 0.9, 0.25), white, x, 0.45, z1 - 1);
+        if (x + 3 <= Math.max(x0, x1) + 0.01) [0.35, 0.75].forEach((y) => part(g, G.box(3, 0.05, 0.05), white, x + 1.5, y, z1 - 1));
+      }
+      [[sd * 12, z1 - 1], [sd * 56, z1 - 1]].forEach(([x, z]) => part(g, G.box(0.9, 1.1, 0.9), white, x, 0.55, z));
+      // rows of marigolds in clay pots before the building, and the beds
+      for (let k = 0; k < 22; k++) {
+        const x = sd * (11 + k * 2.1), z = 4.6 + (k % 2) * 0.9;
+        part(g, G.cyl(0.32, 0.24, 0.5, 10), mat('secPot', 0xb0603a, 0.9), x, 0.25, z);
+        part(g, KT.blob(0.45, 1, 0.25, 1100 + k), hedgeG, x, 0.75, z, 0, 0, 0, 1, 0.8, 1);
+        for (let f = 0; f < 4; f++) part(g, G.sph(0.17, 6, 5), mat(k % 3 ? 'secMarigold' : 'secMarigold2', k % 3 ? 0xf28c1a : 0xf2b81a, 0.7), x + Math.cos(f * 1.6) * 0.3, 1.05, z + Math.sin(f * 1.6) * 0.3);
+      }
+      [14, 30].forEach((z, k) => {
+        part(g, G.cyl(3.2, 3.3, 0.3, 24), mat('secBedSoil', 0x6a4a2e, 1), sd * 33, 0.15, z);
+        for (let f = 0; f < 26; f++) { const a = f * 2.4, r = 0.5 + (f % 6) * 0.45; part(g, G.sph(0.22, 6, 5), mat(['secMarigold', 'secRose', 'secMarigold2'][(f + k) % 3], [0xf28c1a, 0xd8203a, 0xf2b81a][(f + k) % 3], 0.7), sd * 33 + Math.cos(a) * r, 0.42, z + Math.sin(a) * r); }
+      });
+      // topiary near the front fence: stacked clipped spheres
+      [sd * 16, sd * 22, sd * 46, sd * 52].forEach((x, k) => {
+        [0.9, 0.7, 0.45].forEach((r, h) => part(g, G.sph(r, 10, 8), hedgeG, x, 0.7 + h * 0.9 + r * 0.3, FRONT - 6 - (k % 2) * 1.5));
+      });
+    });
+    // Velu Thampi Dalawa on his tall dark plinth, garlanded
+    const SX = -36, SZ = 24;
+    const plinthM = mat('secPlinth', 0x4a4440, 0.6), bronze = KT.mat('secBronze', { color: 0x2f2c2a, metalness: 0.4, roughness: 0.5 });
+    part(g, G.box(4.4, 0.5, 4.4), plinthM, SX, 0.25, SZ);
+    part(g, G.box(3.2, 4.4, 3.2), plinthM, SX, 2.7, SZ);
+    part(g, G.box(3.6, 0.4, 3.6), plinthM, SX, 5.1, SZ);
+    part(g, G.cyl(0.55, 0.85, 2.4, 12), bronze, SX, 6.5, SZ);          // the long coat
+    part(g, G.cyl(0.5, 0.55, 1.0, 12), bronze, SX, 8.2, SZ);
+    [-1, 1].forEach((s2) => part(g, G.capsule(0.17, 0.7, 4, 8), bronze, SX + s2 * 0.45, 7.9, SZ + 0.35, 0.9, 0, 0));
+    part(g, G.sph(0.34, 12, 10), bronze, SX, 9.05, SZ);
+    part(g, G.cyl(0.36, 0.38, 0.3, 12), bronze, SX, 9.35, SZ);           // turban
+    for (let f = 0; f < 14; f++) { const t = f / 13; part(g, G.sph(0.09, 5, 4), mat('secMarigold', 0xf28c1a, 0.7), SX + Math.sin(t * Math.PI * 2) * 0.42, 8.55 - Math.sin(t * Math.PI) * 0.7, SZ + 0.35 + Math.cos(t * Math.PI * 2) * 0.15); }
+    const plaqueM = KT.signMaterial([{ text: 'വേലുത്തമ്പി ദളവ', size: 40 }, { text: 'Velu Thampi Dalawa  1765 - 1809', size: 30 }], { width: 600, height: 160, bg: '#3a3430', color: '#e8c76a' });
+    const plaque = new T.Mesh(G.box(2.6, 1.0, 0.05), [plinthM, plinthM, plinthM, plinthM, plaqueM, plinthM]);
+    plaque.position.set(SX, 3.6, SZ + 1.63); plaque.userData.noBake = true; live.add(plaque);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; part(g, G.cyl(0.3, 0.22, 0.45, 10), mat('secPot', 0xb0603a, 0.9), SX + Math.cos(a) * 2.9, 0.72, SZ + Math.sin(a) * 2.9); part(g, KT.blob(0.38, 1, 0.3, 1200 + k), mat(k % 2 ? 'secCroton' : 'secFoliage', k % 2 ? 0x8a2a4a : 0x4f8a36, 0.9), SX + Math.cos(a) * 2.9, 1.15, SZ + Math.sin(a) * 2.9); }
+    // the compound wall: a low white wall with iron railings between pillars,
+    // the main gate in front, and a paved footpath outside it
+    const iron = mat('secIron', 0x2a2a2a, 0.5);
+    const wallRun = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + HP;
+      part(g, G.box(len, 0.8, 0.5), white, (x0 + x1) / 2, 0.4, (z0 + z1) / 2, 0, ang, 0);
+      for (let t = 0; t <= len + 0.01; t += 4) {
+        const x = x0 + (x1 - x0) * t / len, z = z0 + (z1 - z0) * t / len;
+        part(g, G.box(0.7, 2.0, 0.7), white, x, 1.0, z);
+        part(g, G.box(0.9, 0.2, 0.9), trim, x, 2.1, z);
+      }
+      for (let t = 0.3; t < len; t += 0.25) part(g, G.box(0.05, 1.1, 0.05), iron, x0 + (x1 - x0) * t / len, 1.35, z0 + (z1 - z0) * t / len);
+      part(g, G.box(len, 0.06, 0.06), iron, (x0 + x1) / 2, 1.85, (z0 + z1) / 2, 0, ang, 0);
+    };
+    const GATE = 7;
+    wallRun(-X, FRONT, -GATE, FRONT); wallRun(GATE, FRONT, X, FRONT);
+    wallRun(-X, BZ - 12, -X, FRONT); wallRun(X, BZ - 12, X, FRONT); wallRun(-X, BZ - 12, X, BZ - 12);
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(1.6, 4, 1.6), white, sd * GATE, 2, FRONT);
+      part(g, G.box(2, 0.4, 2), trim, sd * GATE, 4.2, FRONT);
+      part(g, G.sph(0.5, 10, 8), white, sd * GATE, 4.8, FRONT);
+    });
+    // the footpath outside, red pavers with a kerb
+    part(g, G.box(2 * X + 6, 0.12, 4), pave, 0, 0.06, FRONT + 2.6);
+    part(g, G.box(2 * X + 6, 0.25, 0.3), kerb, 0, 0.12, FRONT + 4.7);
+    part(g, G.box(9, 0.06, 5), asph, 0, 0.08, FRONT + 2.6);
+    const baked = KT.bake(g);
+    baked.add(live);
+    // palms and shade trees, lamps, the officials' white cars
+    const top = new T.Group();
+    const add = (o, x, z, r, sc) => { o.position.set(x, 0, z); o.rotation.y = r || 0; if (sc) o.scale.setScalar(sc); top.add(o); return o; };
+    [[-48, 8], [-24, 12], [24, 12], [48, 8], [-28, 40], [28, 40], [-40, 40], [40, 40], [58, 38], [-58, 38]].forEach(([x, z], k) => add(Models.coconutPalm(200 + k), x, z, k));
+    [[-56, -35.5], [56, -35.5], [-30, -35.5], [30, -35.5]].forEach(([x, z], k) => add(Models.mangoTree(), x, z, k, 0.7));
+    for (let z = 4; z <= FRONT - 6; z += 9) [-1, 1].forEach((sd) => add(Models.lampPost(), sd * 6, z, sd > 0 ? -HP : HP));
+    if (Models.car) [[-14, PZ + 6, 0.1], [12, PZ + 7, -0.2], [20, PZ + 3, 1.4]].forEach(([x, z, r]) => add(Models.car(0xf3f3f0, 'sedan'), x, z, r));
+    baked.add(KT.bake(top));
+    // colliders: the building, wings, portico, fountain, statue and the walls
+    const C = [{ type: 'box', x: 0, z: BZ, hw: 46, hd: BD / 2 }, { type: 'box', x: 0, z: PZ - 0.5, hw: 8.5, hd: 3.6 },
+      { type: 'box', x: -52, z: BZ + 8, hw: 8, hd: 15 }, { type: 'box', x: 52, z: BZ + 8, hw: 8, hd: 15 },
+      { type: 'circle', x: 0, z: FZ, r: 4.8 }, { type: 'box', x: SX, z: SZ, hw: 2.2, hd: 2.2 },
+      { type: 'box', x: -(X + GATE) / 2, z: FRONT, hw: (X - GATE) / 2, hd: 0.4 }, { type: 'box', x: (X + GATE) / 2, z: FRONT, hw: (X - GATE) / 2, hd: 0.4 },
+      { type: 'box', x: -X, z: (FRONT + BZ - 12) / 2, hw: 0.4, hd: (FRONT - BZ + 12) / 2 }, { type: 'box', x: X, z: (FRONT + BZ - 12) / 2, hw: 0.4, hd: (FRONT - BZ + 12) / 2 },
+      { type: 'box', x: 0, z: BZ - 12, hw: X, hd: 0.4 }];
+    baked.userData.colliders = C;
+    baked.userData.jets = jets;
+    return baked;
   }
   function fortGate() {
     const g = new T.Group();
@@ -1273,8 +1481,10 @@
     fortGate(it) { place(it, fortGate(), 0, 4); },
     clockTower(it) { place(it, clockTower(it), 0, 2); },
     secretariat(it) {
-      place(it, secretariat(), 0, 6);
-      [-20, 20].forEach((x) => place(it, Models.lampPost(), x, -9));
+      // the compound's front wall stands about 48 m in front of its centre
+      const sec = place(it, secretariat(), 0, 0);
+      const jets = sec.userData.jets;
+      it.anim.push((t) => { if (jets) jets.scale.y = 1 + Math.sin(t * 3) * 0.12; });
     },
     zoo(it) { const root = place(it, zoo(it), 0, 0); KT.Life.zoo(it, root); },
     mermaidBeach(it) {

@@ -440,6 +440,11 @@ coast stretches with it:
 - A short road from Attingal leads to the jetty for Ponnumthuruthu Island
   and its temple.
 
+The Secretariat is a large compound modelled on photos.
+- **The building:** a long two-storey white building with arched verandahs below and balustraded ones above. Green bamboo blinds screen both floors, and the roof is low and red.
+- **The centre:** a portico of six tall columns under a pediment, and the clock tower with a white dome, a golden finial and the national flag. Wings with porticos of their own stand at both ends.
+- **The grounds:** inside white walls and iron railings there is a drive with a tiered fountain, lawns with yellow-green hedges and white fences, marigolds in clay pots, flower beds, topiary, palms and lamps. The statue of Velu Thampi Dalawa stands on its tall dark plinth, and a red-paved footpath runs outside the wall.
+
 The Arabian Sea lies along the whole coast. Beaches are only where the land
 meets the sea.
 
