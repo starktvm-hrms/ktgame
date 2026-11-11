@@ -54,7 +54,7 @@
         Hw.gorgeLandform(sg.x + it.out.x * 10, sg.z + it.out.z * 10, it.rot, it.y, KT.FALLS.meenmutty);
       } else {
         // (the zoo compound is square: its corners need the extra room)
-        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' });
+        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
       }
       if (it.lake) lakes.push(it.lake);
     });
@@ -103,6 +103,291 @@
     it.group.add(board);
     Hw.interactables.push({ label: 'About ' + sg.name, radius: 3, pos: () => board.position, action: () => KT.Game.readSight(sg) });
     Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 0.5 });
+  }
+
+  // ------------------------------------- Sree Padmanabhaswamy Temple
+  // The temple stands in its walled compound with the great east gopuram
+  // (seven tiers of cream-gold carvings under a barrel roof with seven
+  // golden kalasams, on a white base with a pillared, arched entrance and a
+  // flight of steps). Inside, the long tiled roofs of the corridors and the
+  // shrine. A street of four nadas runs round the compound; the East Nada,
+  // lined with shops (lamps, brass, flowers, puja items, sweets, books),
+  // leads in from the road. Beside it is the Padmatheertham tank in its own
+  // walled compound, with ghat steps, a yellow-pillared mandapam at the
+  // corner, a stone colonnade along one bank, and white Kerala houses with
+  // tiled roofs along the others. Devotees in mundu and saree come and go.
+  // (Model space: +z faces the road; the temple compound's front wall is at
+  // z = 6, the road's lane arrives at z ~ 76.)
+  let gopuramTex = null;
+  function gopuramCarving() {
+    if (gopuramTex) return gopuramTex;
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const x = c.getContext('2d');
+    x.fillStyle = '#e9d7a4'; x.fillRect(0, 0, 256, 128);
+    // a cornice band and a row of niches with figures
+    x.fillStyle = '#c9b07a'; x.fillRect(0, 0, 256, 10); x.fillRect(0, 118, 256, 10);
+    x.fillStyle = '#f6e9bf'; x.fillRect(0, 10, 256, 4); x.fillRect(0, 112, 256, 4);
+    for (let k = 0; k < 8; k++) {
+      const cx = 16 + k * 32;
+      x.fillStyle = '#b89a62';
+      x.beginPath(); x.moveTo(cx - 12, 108); x.lineTo(cx - 12, 38); x.arc(cx, 38, 12, Math.PI, 0); x.lineTo(cx + 12, 108); x.closePath(); x.fill();
+      x.fillStyle = '#f2e3b4';
+      x.beginPath(); x.arc(cx, 46, 5, 0, Math.PI * 2); x.fill();          // head
+      x.fillRect(cx - 5, 52, 10, 26);                                      // body
+      x.fillRect(cx - 4, 78, 3, 22); x.fillRect(cx + 1, 78, 3, 22);         // legs
+      x.fillRect(cx - 9, 54, 4, 16); x.fillRect(cx + 5, 54, 4, 16);         // arms
+      x.fillStyle = '#d6bf87'; x.beginPath(); x.moveTo(cx - 7, 41); x.lineTo(cx, 30); x.lineTo(cx + 7, 41); x.fill(); // crown
+      x.fillStyle = '#d9c38e'; x.fillRect(cx + 14, 20, 4, 90);              // pilaster between
+    }
+    gopuramTex = new T.CanvasTexture(c);
+    gopuramTex.encoding = T.sRGBEncoding; gopuramTex.wrapS = T.RepeatWrapping; gopuramTex.anisotropy = KT.maxAnisotropy;
+    return gopuramTex;
+  }
+  function gopuramEast() {
+    const g = new T.Group();
+    const cream = mat('gpCream', 0xeedcae, 0.8), cream2 = mat('gpCream2', 0xd9c28c, 0.85), white = mat('gpWhite', 0xf2f0e8, 0.7);
+    const gold = KT.mat('gpGold', { color: 0xd8a83a, metalness: 0.7, roughness: 0.3 }), dark = mat('gpDark', 0x2a2420, 0.7);
+    const carve = new T.MeshStandardMaterial({ map: gopuramCarving(), roughness: 0.85 });
+    // the white two-storey base with its pillared, arched entrance
+    const BW = 26, BD = 12, BH = 7;
+    part(g, G.box(BW, BH, BD), white, 0, BH / 2, 0);
+    part(g, G.box(BW + 0.6, 0.6, BD + 0.6), cream2, 0, BH + 0.3, 0);
+    part(g, G.box(6, 5.6, 0.3), dark, 0, 2.8, BD / 2 + 0.05);
+    part(g, new T.CylinderGeometry(3, 3, 0.4, 20, 1, false, 0, Math.PI), cream2, 0, 5.6, BD / 2 + 0.1, HP, 0, -HP);
+    [-4.2, -3, 3, 4.2].forEach((px) => { part(g, G.box(0.8, 6.4, 0.8), cream, px, 3.2, BD / 2 + 0.6); part(g, G.box(1.1, 0.4, 1.1), cream2, px, 6.5, BD / 2 + 0.6); });
+    // the carved arch panel over the entrance
+    part(g, G.box(9, 3.2, 0.5), carve, 0, BH + 2.2, BD / 2 + 0.2);
+    // steps up to the entrance
+    for (let k = 0; k < 8; k++) part(g, G.box(12 - k * 0.3, 0.3, 0.7), mat('gpStep', 0xb8b0a2, 0.9), 0, 0.15 + k * 0.3, BD / 2 + 6 - k * 0.7);
+    part(g, G.box(12, 2.4, 1), mat('gpStep', 0xb8b0a2, 0.9), 0, 1.2, BD / 2 + 0.7);
+    // seven tiers, each narrower, the faces carved, a column of openings up the middle
+    let y = BH + 0.6, w = BW - 1, d = BD - 1.2;
+    const TH = 3.4;
+    for (let k = 0; k < 7; k++) {
+      part(g, G.box(w, TH, d), cream, 0, y + TH / 2, 0);
+      const face = new T.PlaneGeometry(w, TH - 0.2);
+      const uv = face.attributes.uv; for (let n = 0; n < uv.count; n++) uv.setX(n, uv.getX(n) * Math.max(1, Math.round(w / 3)));
+      [1, -1].forEach((sd) => { const m = new T.Mesh(face, carve); m.position.set(0, y + TH / 2, sd * (d / 2 + 0.02)); m.rotation.y = sd > 0 ? 0 : Math.PI; g.add(m); });
+      const side = new T.PlaneGeometry(d, TH - 0.2);
+      const uv2 = side.attributes.uv; for (let n = 0; n < uv2.count; n++) uv2.setX(n, uv2.getX(n) * Math.max(1, Math.round(d / 3)));
+      [1, -1].forEach((sd) => { const m = new T.Mesh(side, carve); m.position.set(sd * (w / 2 + 0.02), y + TH / 2, 0); m.rotation.y = sd * HP; g.add(m); });
+      part(g, G.box(w + 0.5, 0.35, d + 0.5), cream2, 0, y + TH, 0);
+      part(g, G.box(1.0, 1.6, 0.2), dark, 0, y + TH / 2 + 0.2, d / 2 + 0.06);
+      // little kudu (horseshoe) gables along the cornice
+      for (let n = 0; n < Math.round(w / 4); n++) part(g, G.cyl(0.5, 0.5, 0.25, 10, 1, false, 0, Math.PI), cream2, -w / 2 + 2 + n * 4, y + TH + 0.35, d / 2 + 0.2, HP, 0, -HP);
+      y += TH + 0.35;
+      w *= 0.9; d *= 0.9;
+    }
+    // the barrel roof with its curled ends and the seven golden kalasams
+    part(g, new T.CylinderGeometry(d / 2 + 0.6, d / 2 + 0.6, w + 0.6, 20, 1, false, 0, Math.PI), cream, 0, y + 0.2, 0, 0, 0, HP);
+    [-1, 1].forEach((sd) => {
+      part(g, G.torus(1.3, 0.5, 8, 14, Math.PI * 1.4), cream, sd * (w / 2 + 0.6), y + 1.2, 0, 0, HP, sd > 0 ? 0 : Math.PI);
+      part(g, G.box(0.4, 2.4, 0.4), cream2, sd * (w / 2 + 0.9), y + 0.6, d / 2);
+    });
+    for (let k = 0; k < 7; k++) {
+      const kx = -w / 2 + 1 + (k * (w - 2)) / 6;
+      part(g, G.cyl(0.3, 0.45, 0.5, 12), gold, kx, y + d / 2 + 0.9, 0);
+      part(g, G.sph(0.45, 12, 10), gold, kx, y + d / 2 + 1.4, 0);
+      part(g, G.cone(0.22, 1.0, 10), gold, kx, y + d / 2 + 2.2, 0);
+    }
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: -8, z: 0, hw: 5, hd: BD / 2 }, { type: 'box', x: 8, z: 0, hw: 5, hd: BD / 2 }];
+    baked.userData.height = y + d / 2 + 2.7;
+    return baked;
+  }
+  // a row of small temple-street shops: one tiled roof over open fronts
+  const STREET_STOCK = [[0xd4a434, 'Brass lamps'], [0xf28c1a, 'Flowers'], [0xd8203a, 'Puja items'], [0x6b3fa0, 'Books'], [0xe8c26a, 'Sweets'], [0x2a9d8f, 'Bangles']];
+  function shopRow(n, seed) {
+    const g = new T.Group(), rng = KT.makeRng(seed);
+    const W = 4.2, D = 4.4, H = 3.2;
+    const wall = mat('tsWall', 0xf1ebdc, 0.85), roofM = mat('tsRoof', 0x8e3b24, 0.7), wood = mat('tsWood', 0x6a4426, 0.8), shutter = mat('tsShutter', 0x7c8288, 0.5);
+    part(g, G.box(n * W, H, D), wall, 0, H / 2, 0);
+    part(g, G.box(n * W + 0.4, 0.3, D + 2.6), mat('tsFloor', 0xb9b2a4, 0.9), 0, 0.15, 1.1);
+    part(g, KT.gableRoofGeometry ? KT.gableRoofGeometry(n * W + 0.6, D + 2.6, 1.6) : G.box(n * W, 1, D), roofM, 0, H, 0.6);
+    for (let k = 0; k < n; k++) {
+      const x = -n * W / 2 + W / 2 + k * W;
+      const [col] = STREET_STOCK[Math.floor(rng() * STREET_STOCK.length)];
+      part(g, G.box(W - 0.6, H - 0.7, 0.1), mat('tsInside', 0x4a3a2c, 0.9), x, (H - 0.7) / 2 + 0.3, D / 2 + 0.01);
+      part(g, G.box(W - 0.8, 0.9, 0.7), wood, x, 0.75, D / 2 + 0.6);                       // counter
+      for (let i = 0; i < 6; i++) part(g, G.box(0.4, 0.3, 0.3), mat('tsStock' + col.toString(16), col, 0.6), x - 1.2 + (i % 3) * 0.9, 1.35 + Math.floor(i / 3) * 0.35, D / 2 + 0.5);
+      part(g, G.box(W - 0.6, 0.6, 0.06), mat('tsSign' + (k % 3), [0x2c5fa8, 0xd8203a, 0x2f6b3a][(k + seed) % 3], 0.6), x, H - 0.2, D / 2 + 0.05);
+      part(g, G.box(0.12, H - 0.2, 0.12), wood, x - W / 2 + 0.1, (H - 0.2) / 2, D / 2 + 2.3);
+      if (k % 3 === 2) part(g, G.cyl(0.16, 0.16, W - 0.8, 10), shutter, x, H - 0.55, D / 2 + 0.1, 0, 0, HP);
+      // garlands of jasmine and marigold hanging at the flower stalls
+      if (col === 0xf28c1a) for (let i = 0; i < 5; i++) part(g, G.cyl(0.07, 0.07, 1.4, 6), mat(i % 2 ? 'tsJasmine' : 'tsMarigold', i % 2 ? 0xfafaf2 : 0xf28c1a, 0.8), x - 1.2 + i * 0.6, 2.0, D / 2 + 1.0);
+    }
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: n * W / 2, hd: D / 2 + 0.2 }];
+    return baked;
+  }
+  const DEVOTEES = [['male', 'mundu'], ['female', 'saree'], ['male', 'mundu'], ['female', 'saree'], ['female', 'churidar'], ['male', 'mundu'], ['male', 'casual'], ['female', 'saree']];
+  function devotees(it, parent, routes, seed) {
+    const rng = KT.makeRng(seed);
+    let n = 0;
+    routes.forEach((pts) => {
+      const speed = 0.8 + rng() * 0.4, legs = [];
+      let T0 = 0;
+      for (let i = 0; i < pts.length - 1; i++) { const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) / speed; legs.push({ a: pts[i], b: pts[i + 1], t0: T0, t1: T0 + d }); T0 += d; legs.push({ a: pts[i + 1], b: pts[i + 1], t0: T0, t1: T0 + 2 + rng() * 6, stop: true }); T0 = legs[legs.length - 1].t1; }
+      const people = 1 + Math.floor(rng() * 2.4), start = rng() * T0;
+      for (let k = 0; k < people; k++) {
+        const look = DEVOTEES[(n * 3 + seed) % DEVOTEES.length], female = look[0] === 'female', kid = k === 2;
+        const ch = Models.character({ gender: look[0], outfit: kid ? 'casual' : look[1], lite: true, hair: female ? ['bun', 'braid', 'default', 'loose'][n % 4] : ['short', 'default', 'wavy'][n % 3],
+          skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][n % 4], jasmine: female && rng() < 0.6, mustache: !female && rng() < 0.6,
+          colors: look[1] === 'mundu' ? { top: rng() < 0.6 ? 0xf3efe6 : 0xe8c26a } : undefined, acc: {}, carry: female && rng() < 0.3 ? 'handbag' : null, scale: kid ? 0.7 : 0.92 + rng() * 0.1, seed: 1300 + n });
+        parent.add(ch);
+        n++;
+        const side = (k - (people - 1) / 2) * 0.9, lag = k * 0.4 / speed;
+        let last = null;
+        it.anim.push((t) => {
+          const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last));
+          last = t;
+          const u = (t + start - lag + T0 * 4) % T0;
+          let L = legs[legs.length - 1];
+          for (let i = 0; i < legs.length; i++) if (u < legs[i].t1) { L = legs[i]; break; }
+          const q = L.t1 > L.t0 ? (u - L.t0) / (L.t1 - L.t0) : 0;
+          if (L.stop) { KT.Models.animateCharacter(ch, Math.sin(t * 0.7 + n) > 0.4 ? 'namaskaram' : 'idle', dt, 1); return; }
+          const dx = L.b[0] - L.a[0], dz = L.b[1] - L.a[1], len = Math.hypot(dx, dz) || 1;
+          ch.position.set(L.a[0] + dx * q + (dz / len) * side, 0, L.a[1] + dz * q - (dx / len) * side);
+          ch.rotation.y = KT.angleLerp(ch.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 6));
+          KT.Models.animateCharacter(ch, 'walk', dt, speed / 1.1);
+        });
+      }
+    });
+  }
+  function padmanabhaTemple(it) {
+    const root = new T.Group(), g = new T.Group(), top = new T.Group(), people = new T.Group();
+    root.add(people);
+    const white = mat('ptWall', 0xf1ede2, 0.85), lat = mat('ptLaterite', 0xa4553a, 0.95), roofM = mat('ptRoof', 0x8e3b24, 0.7), roofOld = mat('ptRoofOld', 0x7a4a3a, 0.8);
+    const road = mat('ptStreet', 0x6a6560, 0.9), pave = mat('ptPave', 0xb9b2a4, 0.9), stone = mat('ptStone', 0x9a8f80, 0.9), sandM = mat('ptSand', 0xd8c4a0, 1);
+    const C = [];
+    const box = (x, z, hw, hd) => C.push({ type: 'box', x, z, hw, hd });
+    // ---- the temple compound: wall with tiled coping, the gopuram in front
+    const TX0 = -34, TX1 = 34, TZ0 = -66, TZ1 = 6;
+    part(g, G.box(TX1 - TX0, 0.08, TZ1 - TZ0), sandM, 0, 0.04, (TZ0 + TZ1) / 2);
+    const tWall = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + HP, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+      part(g, G.box(len, 4, 1), white, cx, 2, cz, 0, ang, 0);
+      part(g, G.box(len, 0.25, 1.6), roofM, cx, 4.2, cz, 0, ang, 0);
+      part(g, G.box(len, 0.6, 1.1), lat, cx, 0.3, cz, 0, ang, 0);
+      C.push({ type: 'box', x: cx, z: cz, hw: Math.max(0.6, Math.abs(x1 - x0) / 2), hd: Math.max(0.6, Math.abs(z1 - z0) / 2) });
+    };
+    tWall(TX0, TZ0, TX1, TZ0); tWall(TX0, TZ0, TX0, TZ1); tWall(TX1, TZ0, TX1, TZ1);
+    tWall(TX0, TZ1, -13, TZ1); tWall(13, TZ1, TX1, TZ1);
+    // inside: the long corridors (sreebali pura) under tiled roofs, the shrine, the flagstaff
+    [[0, -60, 60, 6], [0, -2, 40, 5], [-28, -30, 6, 52], [28, -30, 6, 52]].forEach(([x, z, w, d]) => {
+      part(g, G.box(w, 3.2, d), white, x, 1.6, z);
+      part(g, KT.hipRoofGeometry(w + 1.2, d + 1.2, 2.4, 0.3), roofM, x, 3.2, z);
+    });
+    part(g, G.box(24, 5, 18), white, 0, 2.5, -34);
+    part(g, KT.hipRoofGeometry(26, 20, 5, 0.3), roofOld, 0, 5, -34);
+    part(g, KT.hipRoofGeometry(14, 10, 4, 0.3), roofM, 0, 9.2, -34);
+    part(g, G.cyl(0.25, 0.45, 18, 10), KT.mat('ptGold', { color: 0xd8a83a, metalness: 0.7, roughness: 0.3 }), 0, 9, -14);
+    // the east gopuram in the front wall
+    const gp = gopuramEast();
+    gp.position.set(0, 0, TZ1 - 2); root.add(gp);
+    gp.userData.colliders.forEach((c) => C.push(Object.assign({}, c, { z: c.z + TZ1 - 2 })));
+    // ---- the streets: a ring round the compound and the East Nada to the road
+    const RW = 8, FZ = 26;            // ring street width; the front street's centre z
+    part(g, G.box(TX1 - TX0 + 2 * RW + 4, 0.1, RW), road, 0, 0.05, FZ);
+    [-1, 1].forEach((sd) => part(g, G.box(RW, 0.1, FZ - TZ0 + RW), road, sd * (TX1 + RW / 2 + 2), 0.05, (FZ + TZ0 - RW) / 2));
+    part(g, G.box(TX1 - TX0 + 2 * RW + 4, 0.1, RW), road, 0, 0.05, TZ0 - RW / 2 - 2);
+    part(g, G.box(30, 0.12, FZ - RW / 2 - TZ1 + 6), pave, 0, 0.06, (TZ1 + FZ - RW / 2) / 2 + 3);   // the forecourt before the steps
+    part(g, G.box(10, 0.1, 80 - FZ), road, 0, 0.05, (FZ + 80) / 2);                                 // East Nada
+    // shops along both sides of the East Nada, and along the front street
+    [[-1, 36, 4], [-1, 56, 4], [1, 36, 4], [1, 56, 4], [1, 72, 2]].forEach(([sd, z, n], k) => {
+      const row = shopRow(n, 70 + k);
+      row.position.set(sd * 10.2, 0, z); row.rotation.y = sd > 0 ? -HP : HP;
+      top.add(row);
+      C.push({ type: 'box', x: sd * 10.2, z, hw: 2.4, hd: n * 2.1 });
+    });
+    [[22, FZ + RW / 2 + 3.4, 5], [-22, FZ + RW / 2 + 3.4, 1]].forEach(([x, z, n], k) => {
+      if (x < 0) return; // (the tank's compound is on the left)
+      const row = shopRow(n, 90 + k);
+      row.position.set(x + 4, 0, z + 1.2); row.rotation.y = Math.PI;
+      top.add(row);
+      C.push({ type: 'box', x: x + 4, z: z + 1.2, hw: n * 2.1, hd: 2.4 });
+    });
+    // old-style lamp posts with three globes along the East Nada and the forecourt
+    const lampM = mat('ptLamp', 0x1d1d1f, 0.5), globeM = KT.mat('ptGlobe', { color: 0xfff6e0, emissive: 0xffe0a0, emissiveIntensity: 0.5, roughness: 0.3 });
+    for (let z = 14; z <= 78; z += 8) [-1, 1].forEach((sd) => {
+      const x = sd * (z < FZ ? 14 : 5.3);
+      part(g, G.cyl(0.08, 0.12, 4, 8), lampM, x, 2, z);
+      part(g, G.box(1.2, 0.06, 0.06), lampM, x, 3.6, z);
+      [-0.5, 0, 0.5].forEach((dx) => part(g, G.sph(0.22, 8, 6), globeM, x + dx, dx ? 3.85 : 4.3, z));
+    });
+    // brass lamp towers either side of the steps
+    [-9, 9].forEach((x) => { const lt = Models.lampTower(5); lt.position.set(x, 0, 14); top.add(lt); });
+    // ---- the Padmatheertham tank in its own walled compound
+    const PX = -46, PZ = 54, PW = 34, PD = 28;
+    const pondWall = (x0, z0, x1, z1) => {
+      const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + HP, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+      part(g, G.box(len, 1.4, 0.6), white, cx, 0.7, cz, 0, ang, 0);
+      part(g, G.box(len, 0.2, 0.9), roofM, cx, 1.5, cz, 0, ang, 0);
+      for (let t = 0; t <= len + 0.01; t += 3.5) part(g, G.box(0.8, 2, 0.8), white, x0 + (x1 - x0) * t / len, 1, z0 + (z1 - z0) * t / len);
+      C.push({ type: 'box', x: cx, z: cz, hw: Math.max(0.5, Math.abs(x1 - x0) / 2), hd: Math.max(0.5, Math.abs(z1 - z0) / 2) });
+    };
+    const wx0 = PX - PW / 2 - 7, wx1 = PX + PW / 2 + 4, wz0 = PZ - PD / 2 - 8, wz1 = PZ + PD / 2 + 4;
+    pondWall(wx0, wz0, wx1, wz0); pondWall(wx0, wz1, wx1, wz1); pondWall(wx0, wz0, wx0, wz1);
+    pondWall(wx1, wz0, wx1, PZ - 3); pondWall(wx1, PZ + 3, wx1, wz1);       // the gate faces the East Nada
+    [-1, 1].forEach((sd) => { part(g, G.box(1.2, 3.2, 1.2), white, wx1, 1.6, PZ + sd * 3); part(g, KT.hipRoofGeometry(1.8, 1.8, 0.8, 0.2), roofM, wx1, 3.2, PZ + sd * 3); });
+    part(g, G.box(wx1 - wx0, 0.1, wz1 - wz0), pave, (wx0 + wx1) / 2, 0.05, (wz0 + wz1) / 2);
+    // the tank: stone steps down on every side to the water
+    // (a raised rim stepping down to the water at ground level)
+    for (let k = 0; k < 4; k++) {
+      const w2 = PW - k * 1.4, d2 = PD - k * 1.4, y2 = 0.95 - k * 0.28;
+      [[0, -d2 / 2, w2, 0.8], [0, d2 / 2, w2, 0.8], [-w2 / 2, 0, 0.8, d2], [w2 / 2, 0, 0.8, d2]].forEach(([dx, dz, sx, sz]) => part(g, G.box(sx, 0.3, sz), stone, PX + dx, y2, PZ + dz));
+    }
+    const water = new T.Mesh(new T.PlaneGeometry(PW - 5, PD - 5), KT.Highway.waterMaterial());
+    water.rotation.x = -HP; water.position.set(PX, 0.12, PZ); root.add(water);
+    box(PX, PZ, PW / 2, PD / 2);
+    // white Kerala houses with tiled roofs and wooden shutters along two banks
+    [[PX - 10, PZ - PD / 2 - 4.5, 9, 0], [PX + 2, PZ - PD / 2 - 4.5, 7, 0], [PX + 12, PZ - PD / 2 - 4.5, 8, 0], [PX - PW / 2 - 4, PZ - 6, 8, HP], [PX - PW / 2 - 4, PZ + 6, 8, HP]].forEach(([x, z, w, r], k) => {
+      const h = new T.Group();
+      part(h, G.box(w, k % 2 ? 6 : 4, 5), white, 0, (k % 2 ? 6 : 4) / 2, 0);
+      part(h, KT.hipRoofGeometry(w + 1.4, 6.4, 2.4, 0.3), roofOld, 0, k % 2 ? 6 : 4, 0);
+      for (let n = 0; n < Math.round(w / 2.5); n++) part(h, G.box(0.9, 1.1, 0.1), mat('ptShutter', 0xe0a020, 0.6), -w / 2 + 1.4 + n * 2.5, k % 2 ? 4.4 : 2.4, 2.55);
+      h.position.set(x, 0, z); h.rotation.y = r; g.add(h);
+      box(x, z, r ? 2.6 : w / 2, r ? w / 2 : 2.6);
+    });
+    // the stone colonnade (a pillared corridor) along the bank nearest the temple
+    for (let k = 0; k < 9; k++) part(g, G.box(0.5, 2.6, 0.5), stone, PX - 12 + k * 3, 1.3, PZ + PD / 2 + 1.2);
+    part(g, G.box(27, 0.4, 2.2), stone, PX, 2.8, PZ + PD / 2 + 1.6);
+    part(g, KT.hipRoofGeometry(28, 3, 0.9, 0.2), roofM, PX, 3.0, PZ + PD / 2 + 1.6);
+    // the yellow-pillared mandapam at the tank's corner
+    const mx = PX + PW / 2 + 0.5, mz = PZ + PD / 2 + 1;
+    part(g, G.box(4, 0.4, 4), stone, mx, 0.2, mz);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => part(g, G.box(0.3, 2.6, 0.3), mat('ptYellow', 0xe8b830, 0.6), mx + a * 1.6, 1.7, mz + b * 1.6));
+    part(g, KT.hipRoofGeometry(5, 5, 1.5, 0.25), roofOld, mx, 3.0, mz);
+    // ---- a few palms and old trees, and the drive's kerb
+    const baked = KT.bake(g);
+    root.add(baked);
+    [[-40, 12], [40, 12], [-40, -40], [44, -20], [-62, 70], [-30, 74], [24, 44], [30, 60]].forEach(([x, z], k) => { const p = Models.coconutPalm(220 + k); p.position.set(x, 0, z); p.rotation.y = k; top.add(p); });
+    [[-58, 30], [46, 40]].forEach(([x, z], k) => { const t = Models.banyanTree(); t.position.set(x, 0, z); t.scale.setScalar(0.75); t.rotation.y = k; top.add(t); });
+    root.add(KT.bake(top));
+    // shopkeepers behind their counters
+    const keepers = [];
+    [[-1, 36, 4], [-1, 56, 4], [1, 36, 4], [1, 56, 4]].forEach(([sd, z], k) => {
+      for (let n = 0; n < 2; n++) {
+        const female = (k + n) % 3 === 0;
+        const ch = Models.character({ gender: female ? 'female' : 'male', outfit: female ? 'saree' : 'mundu', lite: true, hair: female ? 'bun' : 'short', mustache: !female, acc: {}, skin: [0xc08660, 0xa8704c, 0xd9a27c][(k + n) % 3], seed: 1400 + k * 2 + n });
+        ch.position.set(sd * (10.2 - 1.3), 0, z - 4.2 + n * 8.4); ch.rotation.y = sd > 0 ? -HP : HP;
+        people.add(ch); keepers.push(ch);
+      }
+    });
+    let lastK = null;
+    it.anim.push((t) => { const dt = lastK === null ? 0 : Math.min(0.1, Math.max(0, t - lastK)); lastK = t; keepers.forEach((ch, i) => KT.Models.animateCharacter(ch, Math.sin(t * 0.4 + i) > 0.5 ? 'serve' : 'idle', dt, 1)); });
+    // devotees: up the East Nada to the gopuram, round the four nadas, to the tank
+    const RZ = TZ0 - RW / 2 - 2, RX = TX1 + RW / 2 + 2;
+    devotees(it, people, [
+      [[2, 76], [2, 40], [2, 18], [0, 12]], [[-2, 12], [-2, 30], [-2, 60], [-2, 76]],
+      [[3, 76], [3, 30], [RX, FZ], [RX, RZ], [-RX, RZ], [-RX, FZ], [-3, FZ], [-3, 76]],
+      [[-4, 44], [wx1 + 2, PZ], [wx1 - 3, PZ], [PX + 4, PZ + PD / 2 - 1], [PX - 6, PZ + PD / 2 - 1]],
+      [[RX, -20], [RX, FZ], [6, FZ], [6, 14]], [[-6, 14], [-RX, FZ], [-RX, -40]],
+      [[4, 70], [4, 20], [8, 15]], [[-5, 74], [-5, 22], [-8, 15]]
+    ], 23);
+    it.fauna = people;
+    root.userData.colliders = C;
+    return root;
   }
 
   // a few custom models -------------------------------------------------
@@ -1452,19 +1737,8 @@
 
   const BUILD = {
     gopuramTemple(it) {
-      place(it, Models.gopuram(), 0, 10);
-      // the Padmatheertham tank in front
-      const stone = mat('tankStone', 0x9a8f80, 0.9);
-      const y = it.y + 0.1;
-      const tank = new T.Group();
-      part(tank, G.box(18, 0.5, 11), stone, 0, 0.05, 0);
-      const w = new T.Mesh(G.box(16, 0.1, 9), KT.Highway.waterMaterial());
-      w.position.y = 0.32; tank.add(w);
-      [[-1, 0], [1, 0]].forEach(([sd]) => part(tank, G.box(0.6, 0.9, 11), stone, sd * 9, 0.45, 0));
-      [-1, 1].forEach((sd) => part(tank, G.box(18, 0.9, 0.6), stone, 0, 0.45, sd * 5.5));
-      tank.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 9.2, hd: 5.8 }];
-      place(it, tank, -16, -12, 0, { y });
-      [-8, 8].forEach((x) => place(it, Models.lampTower(5), x, -22));
+      const root = place(it, padmanabhaTemple(it), 0, 0);
+      void root;
     },
     palace(it) {
       place(it, Models.heritageHall(it.sg.def.colors), 0, 4);

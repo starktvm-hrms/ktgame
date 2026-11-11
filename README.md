@@ -440,6 +440,12 @@ coast stretches with it:
 - A short road from Attingal leads to the jetty for Ponnumthuruthu Island
   and its temple.
 
+The Sree Padmanabhaswamy Temple stands in a walled compound reached by its own street. Like the Secretariat, it is modelled on photos.
+- **The gopuram:** the great east gopuram has seven tiers of cream-gold carved figures under a barrel roof with seven golden kalasams. It stands on a white base with a pillared, arched entrance, and a flight of steps runs between brass lamp towers.
+- **The streets:** a street of four nadas runs round the compound. The East Nada leads in from the road, lined with shops selling brass lamps, flowers and garlands, puja items, sweets, books and bangles, with shopkeepers at their counters and three-globe street lamps.
+- **The Padmatheertham tank:** it has its own walled compound with a gate, stone steps down to the water, a yellow-pillared mandapam, a stone colonnade, and white Kerala houses with tiled roofs along its banks.
+- **The people:** devotees in mundu and saree walk up to the gopuram, round the nadas and to the tank, stopping to pray.
+
 The Secretariat is a large compound modelled on photos.
 - **The building:** a long two-storey white building with arched verandahs below and balustraded ones above. Green bamboo blinds screen both floors, and the roof is low and red.
 - **The centre:** a portico of six tall columns under a pediment, and the clock tower with a white dome, a golden finial and the national flag. Wings with porticos of their own stand at both ends.
