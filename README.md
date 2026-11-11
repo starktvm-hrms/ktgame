@@ -448,10 +448,16 @@ The Sree Padmanabhaswamy Temple stands in a walled compound reached by its own s
   - **The corridor:** the sreebali pura runs round the inner courtyard. It is a long corridor of carved granite pillars, many carrying a lamp-bearing deepalakshmi, with brass lamps hanging under the stone ceiling.
   - **The flagstaff:** the golden flagstaff stands with the stone altar in front of the corridor.
   - **The sanctum:** in the courtyard stand the granite sanctum under its golden roofs and the ottakkal mandapam. Climb onto the mandapam and look through the three doors: the god reclines on the coiled serpent Anantha, with the five hoods over his head, the lotus rising from his navel and oil lamps burning before him.
+- **Kuthiramalika Palace:** the palace stands beside the tank, along its west side, facing the water. It is a long two-storey palace in the Kerala style: white below with a verandah of wooden pillars, dark carved wooden screens above, steep tiled roofs with gables, and a taller middle block. A row of carved wooden horses under its eaves gives it its name, "the mansion of horses".
 - **The Padmatheertham tank:** a great tank sunk into the ground, with nine rings of stone steps on every side going down to the water. You can walk down to the water's edge.
   - Its yellow-pillared mandapam stands on a plinth down on the steps.
   - A stone colonnade and white Kerala houses with tiled roofs line its banks, all inside its own walled compound with a gate.
 - **The people:** devotees in mundu and saree walk up to the gopuram, round the nadas and to the tank, stopping to pray.
+
+Shankhumugham Beach is a wide stretch of golden sand.
+- **The mermaid:** the Jalakanyaka, a 35 m grey concrete mermaid, lies back in a great open scallop shell.
+- **The beach:** an old pillared stone mandapam stands on the sand, painted fishing boats are drawn up (one under a blue tarpaulin), and lamps and palms line the back of the beach.
+- **The people:** families stand, sit and walk along the water's edge as at sunset.
 
 The Secretariat is a large compound modelled on photos.
 - **The building:** a long two-storey white building with arched verandahs below and balustraded ones above. Green bamboo blinds screen both floors, and the roof is low and red.

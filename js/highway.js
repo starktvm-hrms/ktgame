@@ -884,6 +884,8 @@
   };
   // { x, z, r, cos, sin, y(lx, lz) -> height or null } in the platform's own axes
   const PLATFORMS = Hw.PLATFORMS = [];
+  let SANDY_ = null;
+  const sandySights = () => SANDY_ || (SANDY_ = Hw.sightList().filter((sg) => sg.dest && sg.kind === 'mermaidBeach'));
   Hw.addPlatform = function (x, z, rot, r, fn) { PLATFORMS.push({ x, z, r, cos: Math.cos(rot), sin: Math.sin(rot), y: fn }); };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
   Hw.deepWater = (x, z, gy) => gy < Hw.waterLevelAt(x, z) - 0.6;
@@ -1214,6 +1216,9 @@
       if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 232)) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (p.d < 20 && nearShop(p.road, p.s, p.lat)) return null;
+      // (never inside a sight's grounds: no trees growing in the temple tank)
+      if (PADS.some((P) => Math.abs(x - P.x) < P.r + 6 && Math.hypot(x - P.x, z - P.z) < P.r + 6)) return null;
+      if (Hw.sightList().some((sg) => sg.dest && Math.abs(x - sg.x) < sg.r + 24 && Math.hypot(x - sg.x, z - sg.z) < sg.r + 24)) return null;
       return p;
     };
     // (as green as the Alappuzha backwaters: groves all the way out)
@@ -1650,6 +1655,16 @@
     KT.DISTRICTS.forEach((d, i) => {
       let k = 0;
       d.sights.forEach((sg, j) => {
+        if (sg.place && sg.place.with) {
+          // a sight standing within another's grounds (Kuthiramalika beside
+          // the temple tank): at a spot in that sight's model space
+          const host = sightCache.find((o) => o.name === sg.place.with);
+          if (!host) return;
+          const f = host.road.frame(host.s), rot = f.heading + (host.lat < 0 ? -Math.PI / 2 : Math.PI / 2);
+          const c = Math.cos(rot), sn = Math.sin(rot), lx = sg.place.lx, lz = sg.place.lz;
+          sightCache.push({ id: d.id + ':' + j, name: sg.name, icon: sg.icon, facts: sg.facts, kind: sg.kind, def: sg, district: d, hub: i, dest: true, within: host, road: host.road, s: host.s, lat: 0, x: host.x + lx * c + lz * sn, z: host.z - lx * sn + lz * c, r: 14 });
+          return;
+        }
         if (sg.place) {
           // a destination on its own road
           const pl = sg.place, R = Hw.roads.find((r) => r.nh === pl.road);
@@ -2931,6 +2946,7 @@
         const hub = Hw.hubs[hi];
         if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
         if (PADS.some((P) => P.paved && Math.hypot(x - P.x, z - P.z) < P.r)) continue; // paved grounds
+        if (sandySights().some((sg) => Math.abs(x - sg.x) < 75 && Math.hypot(x - sg.x, z - sg.z) < 75)) continue; // (Shankhumugham's sand)
         const h = Hw.height(x, z);
         if (Hw.waterLevelAt(x, z) > h - 0.4) continue;
         const r = hash(gx, gz, 4);

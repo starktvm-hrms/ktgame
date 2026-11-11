@@ -25,6 +25,7 @@
     const pads = [], lakes = [];
     D.items.forEach((it) => {
       const sg = it.sg, k = sg.kind;
+      if (sg.within) return;            // (built as part of its host: Kuthiramalika by the temple tank)
       if (k === 'mermaidBeach') return; // the beach itself
       if (k === 'lakeVillage') {
         // the backwater: a long river along the far side of the park, straight
@@ -56,7 +57,7 @@
         // (the zoo compound is square: its corners need the extra room)
         // the Padmatheertham tank is sunk into the ground
         if (k === 'gopuramTemple') Hw.addLandform(sg.x, sg.z, it.rot, 150, (h, lx, lz) => (Math.abs(lx - TANK.x) < TANK.hx && Math.abs(lz - TANK.z) < TANK.hz ? it.y + TANK.floor : h));
-        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : k === 'gopuramTemple' ? 34 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
+        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : k === 'gopuramTemple' ? 56 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
       }
       if (it.lake) lakes.push(it.lake);
     });
@@ -249,6 +250,71 @@
     const baked = KT.bake(g);
     baked.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: n * W / 2, hd: D / 2 + 0.2 }];
     return baked;
+  }
+  // ------------------------------------------------ Kuthiramalika Palace
+  // "The mansion of horses" (1840s), beside the temple tank: a long
+  // two-storey palace in the Kerala style, white below with a verandah of
+  // wooden pillars, dark carved wooden screens and windows above, steep
+  // tiled roofs with gables, a taller block in the middle, and the row of
+  // 122 carved wooden horses under its eaves that give it its name.
+  // (Model space: facing +z; 50 m long, about 10 m deep.)
+  let latticeTex = null;
+  function lattice() {
+    if (latticeTex) return latticeTex;
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const x = c.getContext('2d');
+    x.fillStyle = '#3a2212'; x.fillRect(0, 0, 64, 64);
+    x.strokeStyle = '#6a4224'; x.lineWidth = 3;
+    for (let k = -64; k < 128; k += 10) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k + 64, 0); x.lineTo(k, 64); x.stroke(); }
+    x.strokeStyle = '#7a5230'; x.lineWidth = 5; x.strokeRect(2, 2, 60, 60);
+    latticeTex = new T.CanvasTexture(c); latticeTex.encoding = T.sRGBEncoding; latticeTex.wrapS = latticeTex.wrapT = T.RepeatWrapping;
+    return latticeTex;
+  }
+  function kuthiramalika() {
+    const g = new T.Group();
+    const white = mat('kmWhite', 0xf1ece0, 0.85), wood = mat('kmWood', 0x4a2c1a, 0.7), wood2 = mat('kmWood2', 0x6a4226, 0.75), roofM = mat('kmRoof', 0x8a3a24, 0.7), plinth = mat('kmPlinth', 0x8a7a68, 0.9);
+    const latM = new T.MeshStandardMaterial({ map: lattice(), roughness: 0.8 });
+    const L = 50, D = 10, H1 = 3.6, H2 = 3.4;
+    part(g, G.box(L + 1, 0.6, D + 3), plinth, 0, 0.3, 0.8);
+    part(g, G.box(L, H1, D), white, 0, 0.6 + H1 / 2, -0.5);
+    // the ground-floor verandah: wooden pillars under a tiled lean-to roof
+    for (let x = -L / 2 + 1; x <= L / 2 - 1; x += 2.5) { part(g, G.box(0.28, H1, 0.28), wood, x, 0.6 + H1 / 2, D / 2 + 1.2); part(g, G.box(0.5, 0.25, 0.5), wood2, x, 0.6 + H1 - 0.1, D / 2 + 1.2); }
+    part(g, G.box(L, 0.3, 0.4), wood, 0, 0.6 + H1, D / 2 + 1.2);
+    part(g, G.box(L + 0.4, 0.18, 2.6), roofM, 0, 0.6 + H1 + 0.3, D / 2 + 0.6, -0.3, 0, 0);
+    for (let x = -L / 2 + 2; x < L / 2 - 1; x += 5) part(g, G.box(1.4, 2.4, 0.1), wood2, x + 1.2, 0.6 + 1.2, D / 2 - 0.45);   // doors
+    // the upper floor: carved wooden screens all along the front
+    const y2 = 0.6 + H1 + 0.6;
+    part(g, G.box(L, H2, D - 1), white, 0, y2 + H2 / 2, -0.8);
+    const scr = new T.PlaneGeometry(L - 0.4, H2 - 0.6);
+    const uv = scr.attributes.uv; for (let n = 0; n < uv.count; n++) { uv.setX(n, uv.getX(n) * 24); uv.setY(n, uv.getY(n) * 2); }
+    const sm = new T.Mesh(scr, latM); sm.position.set(0, y2 + H2 / 2, D / 2 - 1.25); g.add(sm);
+    for (let x = -L / 2; x <= L / 2; x += 2.5) part(g, G.box(0.22, H2, 0.3), wood, x, y2 + H2 / 2, D / 2 - 1.2);
+    part(g, G.box(L + 0.4, 0.3, 0.6), wood, 0, y2 + 0.1, D / 2 - 1.1);
+    // the horses: carved wooden horses' heads and forelegs leaping out under the eaves
+    for (let x = -L / 2 + 0.6; x <= L / 2 - 0.6; x += 0.82) {
+      const hy = y2 + H2 - 0.2, hz = D / 2 - 0.7;
+      part(g, G.box(0.16, 0.34, 0.75), wood2, x, hy - 0.1, hz + 0.35, 0.45, 0, 0);          // neck and body
+      part(g, G.box(0.14, 0.2, 0.38), wood2, x, hy + 0.08, hz + 0.8, -0.3, 0, 0);            // head
+      part(g, G.box(0.06, 0.32, 0.06), wood, x - 0.05, hy - 0.38, hz + 0.6, -0.6, 0, 0);      // forelegs
+      part(g, G.box(0.06, 0.32, 0.06), wood, x + 0.05, hy - 0.38, hz + 0.55, -0.4, 0, 0);
+    }
+    // the steep main roof and the taller middle block with its own gabled roof
+    part(g, KT.hipRoofGeometry(L + 2, D + 2, 4.2, 0.3), roofM, 0, y2 + H2, -0.8);
+    part(g, G.box(10, 3.2, 8), white, 0, y2 + H2 + 2.6, -0.8);
+    const msc = new T.PlaneGeometry(9.4, 2.4); const mu = msc.attributes.uv; for (let n = 0; n < mu.count; n++) mu.setX(n, mu.getX(n) * 5);
+    const mm = new T.Mesh(msc, latM); mm.position.set(0, y2 + H2 + 2.6, 3.22); g.add(mm);
+    part(g, KT.hipRoofGeometry(12, 10, 3.6, 0.3), roofM, 0, y2 + H2 + 4.2, -0.8);
+    // gable fronts (mukhappu) on the main roof, with their finials
+    [-16, 16, 0].forEach((x, k) => {
+      const gy = k === 2 ? y2 + H2 + 5.4 : y2 + H2 + 1.6, gz = k === 2 ? 3.3 : D / 2 - 0.4;
+      const sh = new T.Shape(); sh.moveTo(-2.2, 0); sh.lineTo(2.2, 0); sh.lineTo(0, 2.0); sh.lineTo(-2.2, 0);
+      const ge = new T.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: false });
+      part(g, ge, latM, x, gy, gz);
+      part(g, G.cone(0.14, 0.7, 6), KT.mat('kmFinial', { color: 0xc89a3a, metalness: 0.6, roughness: 0.35 }), x, gy + 2.3, gz + 0.1);
+    });
+    // steps down to the tank deck in front
+    for (let k = 0; k < 3; k++) part(g, G.box(4, 0.2, 0.5), plinth, 0, 0.5 - k * 0.2, D / 2 + 2.5 + k * 0.5);
+    return KT.bake(g);
   }
   const DEVOTEES = [['male', 'mundu'], ['female', 'saree'], ['male', 'mundu'], ['female', 'saree'], ['female', 'churidar'], ['male', 'mundu'], ['male', 'casual'], ['female', 'saree']];
   function devotees(it, parent, routes, seed) {
@@ -473,12 +539,12 @@
       for (let t = 0; t <= len + 0.01; t += 3.5) part(g, G.box(0.8, 2, 0.8), white, x0 + (x1 - x0) * t / len, 1, z0 + (z1 - z0) * t / len);
       C.push({ type: 'box', x: cx, z: cz, hw: Math.max(0.5, Math.abs(x1 - x0) / 2), hd: Math.max(0.5, Math.abs(z1 - z0) / 2) });
     };
-    const WM = 6, wx0 = PX - RX - WM, wx1 = PX + RX + WM, wz0 = PZ - RZ - WM, wz1 = PZ + RZ + WM;
+    const WM = 6, KW = 16, wx0 = PX - RX - WM - KW, wx1 = PX + RX + WM, wz0 = PZ - RZ - WM, wz1 = PZ + RZ + WM;   // (KW: Kuthiramalika's strip on the west)
     pondWall(wx0, wz0, wx1, wz0); pondWall(wx0, wz1, wx1, wz1); pondWall(wx0, wz0, wx0, wz1);
     pondWall(wx1, wz0, wx1, PZ - 3); pondWall(wx1, PZ + 3, wx1, wz1);       // the gate faces the East Nada
     [-1, 1].forEach((sd) => { part(g, G.box(1.2, 3.2, 1.2), white, wx1, 1.6, PZ + sd * 3); part(g, KT.hipRoofGeometry(1.8, 1.8, 0.8, 0.2), roofM, wx1, 3.2, PZ + sd * 3); });
     // the stone deck round the rim (it also covers where the ground falls away)
-    [[PX, wz0 + WM / 2, 2 * (RX + WM), WM], [PX, wz1 - WM / 2, 2 * (RX + WM), WM], [wx0 + WM / 2, PZ, WM, 2 * RZ], [wx1 - WM / 2, PZ, WM, 2 * RZ]].forEach(([x, z, w, d]) => part(g, G.box(w, 0.3, d), pave, x, -0.12, z));
+    [[PX - KW / 2, wz0 + WM / 2, 2 * (RX + WM) + KW, WM], [PX - KW / 2, wz1 - WM / 2, 2 * (RX + WM) + KW, WM], [PX - RX - WM / 2, PZ, WM, 2 * RZ], [wx1 - WM / 2, PZ, WM, 2 * RZ], [PX - RX - WM - KW / 2, PZ, KW, 2 * RZ]].forEach(([x, z, w, d]) => part(g, G.box(w, 0.3, d), pave, x, -0.12, z));
     // the steps: each ring a little lower and further in, solid down to the bottom
     const tankStone = mat('ptTankStone', 0x8f8472, 0.9), tankStone2 = mat('ptTankStone2', 0x7d7262, 0.9);
     for (let k = 0; k < NS; k++) {
@@ -492,7 +558,11 @@
     water.rotation.x = -HP; water.position.set(PX, TANK.water, PZ); root.add(water);
     box(PX, PZ, RX - BAND + 0.2, RZ - BAND + 0.2);                            // (you can go down to the water, not into it)
     // white Kerala houses with tiled roofs and yellow shutters along two sides
-    [[PX - 16, wz0 + 3, 10, 0], [PX - 3, wz0 + 3, 8, 0], [PX + 11, wz0 + 3, 10, 0], [wx0 + 3, PZ - 8, 9, HP], [wx0 + 3, PZ + 8, 9, HP]].forEach(([x, z, w, r], k) => {
+    // Kuthiramalika palace stands along the west side of the tank, facing it
+    const kp = kuthiramalika();
+    kp.position.set(PX - RX - WM - KW / 2 + 1, 0, PZ); kp.rotation.y = HP; root.add(kp);
+    box(PX - RX - WM - KW / 2 + 1, PZ, 5.6, 25.5);
+    [[PX - 16, wz0 + 3, 10, 0], [PX - 3, wz0 + 3, 8, 0], [PX + 11, wz0 + 3, 10, 0]].forEach(([x, z, w, r], k) => {
       const h = new T.Group(), hh = k % 2 ? 6 : 4.4;
       part(h, G.box(w, hh, 5), white, 0, hh / 2, 0);
       part(h, KT.hipRoofGeometry(w + 1.4, 6.4, 2.4, 0.3), roofOld, 0, hh, 0);
@@ -525,7 +595,7 @@
       if (Math.abs(lx) < 2.5 && lz >= MZ1 && lz < MZ1 + 2) return SP * (4 - Math.floor((lz - MZ1) / 0.5)) / 4;
       // the tank
       const tx = Math.abs(lx - PX), tz = Math.abs(lz - PZ);
-      if (tx < RX + WM && tz < RZ + WM) {
+      if (lx > PX - RX - WM - KW && tx < RX + WM + KW && tz < RZ + WM) {
         const d = Math.min(RX - tx, RZ - tz);                 // how far in from the rim
         if (d < 0) return 0.03;
         if (d < BAND) return -(Math.floor(d / SW) + 1) * (-TANK.water + 0.3) / NS;
@@ -897,20 +967,76 @@
     return g;
   }
   function mermaid() {
-    // the Jalakanyaka: a huge reclining mermaid in pale concrete
+    // the Jalakanyaka (Kanayi Kunhiraman, 1992): a huge reclining mermaid in
+    // grey concrete, some 35 m long, lying back in a great open scallop shell,
+    // her body raised on one arm, her head thrown back, her tail curving away
     const g = new T.Group();
-    const c = mat('mermaidConcrete', 0xbdb6a8, 0.95);
-    const ell = (rx, ry, rz, x, y, z, rotZ) => { const m = part(g, new T.SphereGeometry(1, 20, 14), c, x, y, z); m.scale.set(rx, ry, rz); if (rotZ) m.rotation.z = rotZ; return m; };
-    ell(4.2, 1.6, 2.4, 0, 1.4, 0);           // body
-    ell(2.6, 1.3, 2.0, -3.8, 2.2, 0.2, 0.5);  // chest, raised
-    ell(1.2, 1.35, 1.2, -6.2, 4.0, 0.3);      // head
-    ell(1.6, 0.6, 2.2, -7.2, 4.6, -0.6, 0.4); // flowing hair
-    ell(3.4, 1.0, 1.4, 4.8, 0.9, 0.4, -0.15); // tail
-    ell(1.8, 0.35, 1.5, 8.6, 0.6, 0.6, 0.3);  // tail fin
-    ell(2.4, 0.5, 0.6, -2.4, 1.0, 2.2, -0.4); // arm
-    part(g, G.box(20, 0.5, 8), mat('mermaidBase', 0x9c9488, 0.95), 0, 0.2, 0);
-    g.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 10, hd: 3.8 }];
-    return g;
+    const c = mat('mermaidConcrete', 0xa9a8a2, 0.85), shellM = mat('mermaidShell', 0xc4c3bd, 0.8), shellD = mat('mermaidShellDark', 0x9e9d97, 0.85);
+    const ell = (rx, ry, rz, x, y, z, rx_, ry_, rz_) => { const m = part(g, new T.SphereGeometry(1, 24, 16), c, x, y, z, rx_ || 0, ry_ || 0, rz_ || 0); m.scale.set(rx, ry, rz); return m; };
+    // the shell: one great scallop, its ribs fanning out from the hinge (by
+    // the tail) to a broad, wavy rim that curls up at the edge
+    const HX = 17, RR = 30, NR = 16, NT = 48, SPAN = Math.PI * 0.7, RIBS = 14;
+    const pos = [], idx = [];
+    for (let i = 0; i <= NR; i++) for (let k = 0; k <= NT; k++) {
+      const r = 1 + (RR - 1) * i / NR, th = Math.PI - SPAN / 2 + SPAN * k / NT, u = r / RR;
+      const rib = Math.abs(Math.cos(RIBS * (th - Math.PI) / 2 * 2)) * 0.7 * u;
+      const y = 1.1 + rib + 2.2 * KT.smoothstep(0.78, 1, u) + 0.4 * u;
+      pos.push(HX + Math.cos(th) * r, y, Math.sin(th) * r * 0.55);
+    }
+    for (let i = 0; i < NR; i++) for (let k = 0; k < NT; k++) { const a = i * (NT + 1) + k, b = a + NT + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+    const sg = new T.BufferGeometry();
+    sg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); sg.setIndex(idx); sg.computeVertexNormals();
+    const shell = new T.Mesh(sg, KT.mat('mermaidShellSurf', { color: 0xc4c3bd, roughness: 0.8, side: T.DoubleSide }));
+    g.add(shell);
+    // the shell's edge: a band from the rim down into the sand, following it
+    const ep = [], ei = [];
+    for (let k = 0; k <= NT; k++) {
+      const t = (NR * (NT + 1) + k) * 3;
+      ep.push(pos[t], pos[t + 1], pos[t + 2], pos[t], -1.5, pos[t + 2]);
+      if (k < NT) { const a = k * 2; ei.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    }
+    for (let i = 0; i <= NR; i += NR) { /* (the two straight sides) */ }
+    [0, NT].forEach((k) => { for (let i = 0; i < NR; i++) { const t0 = (i * (NT + 1) + k) * 3, t1 = ((i + 1) * (NT + 1) + k) * 3, b = ep.length / 3; ep.push(pos[t0], pos[t0 + 1], pos[t0 + 2], pos[t0], -1.5, pos[t0 + 2], pos[t1], pos[t1 + 1], pos[t1 + 2], pos[t1], -1.5, pos[t1 + 2]); ei.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); } });
+    const eg = new T.BufferGeometry(); eg.setAttribute('position', new T.Float32BufferAttribute(ep, 3)); eg.setIndex(ei); eg.computeVertexNormals();
+    g.add(new T.Mesh(eg, KT.mat('mermaidSkirt', { color: 0x9e9d97, roughness: 0.85, side: T.DoubleSide })));
+    void shellM; void shellD;
+    // her: reclining along the shell, head to the left
+    ell(3.2, 1.7, 2.6, -2, 3.1, 0.2);                 // hips
+    ell(2.6, 2.6, 2.2, -6.2, 4.7, 0.0, 0, 0, 0.55);   // waist and chest, raised
+    ell(1.6, 1.5, 1.7, -8.0, 6.3, 0.6);               // bust
+    ell(0.9, 1.2, 0.9, -9.4, 7.3, 0.0, 0, 0, 0.6);    // neck
+    ell(1.6, 1.8, 1.6, -10.6, 8.7, -0.2, 0, 0, 0.8);  // head thrown back
+    ell(2.4, 1.0, 1.8, -11.6, 9.3, -1.4, 0, 0, 0.5);  // hair spread behind
+    ell(0.65, 2.6, 0.65, -9.2, 4.3, -1.8, 0.3, 0, -0.9); // the arm she leans on, elbow on the shell
+    ell(0.55, 2.2, 0.55, -9.6, 9.3, 1.0, -0.3, 0, 1.3);  // the arm raised behind her head
+    // the tail, sweeping along and up at its end
+    ell(4.6, 1.5, 2.2, 3.6, 2.7, 0.3, 0, 0, -0.08);
+    ell(4.2, 1.1, 1.6, 10.6, 2.3, 0.8, 0, 0, 0.0);
+    ell(2.6, 0.8, 1.2, 15.4, 2.9, 1.0, 0, 0, 0.45);
+    ell(2.0, 0.3, 1.6, 17.6, 4.3, 1.2, 0, 0, 0.9);    // the fin
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 4, z: 1, hw: 15, hd: 8 }];
+    return baked;
+  }
+  // the old stone mandapam on the beach: a pillared granite pavilion
+  function beachMandapam() {
+    const g = new T.Group(), st = mat('bmStone', 0xc9a878, 0.9), st2 = mat('bmStone2', 0xb08e62, 0.9);
+    part(g, G.box(11, 0.7, 6), st2, 0, 0.35, 0);
+    for (let i = 0; i < 6; i++) [-2.3, 0, 2.3].forEach((z, j) => {
+      if (j === 1 && i > 0 && i < 5) return;
+      const x = -4.5 + i * 1.8;
+      part(g, G.box(0.55, 0.5, 0.55), st2, x, 0.95, z);
+      part(g, G.box(0.42, 1.0, 0.42), st, x, 1.7, z);
+      part(g, G.cyl(0.22, 0.22, 0.6, 8), st2, x, 2.5, z);
+      part(g, G.box(0.42, 0.8, 0.42), st, x, 3.2, z);
+      part(g, G.box(0.8, 0.3, 0.6), st2, x, 3.75, z);
+    });
+    part(g, G.box(11.4, 0.5, 6.2), st, 0, 4.15, 0);
+    part(g, G.box(11.8, 0.25, 6.6), st2, 0, 4.5, 0);
+    part(g, G.box(10.6, 0.5, 5.6), st, 0, 4.85, 0);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [-4.5, -2.7, -0.9, 0.9, 2.7, 4.5].flatMap((x) => [{ type: 'circle', x, z: -2.3, r: 0.4 }, { type: 'circle', x, z: 2.3, r: 0.4 }]);
+    return baked;
   }
   // ------------------------------------------------- Thiruvananthapuram Zoo
   // The red-brick gate with its pointed arch, banded pillars and gabled
@@ -1946,9 +2072,65 @@
     },
     zoo(it) { const root = place(it, zoo(it), 0, 0); KT.Life.zoo(it, root); },
     mermaidBeach(it) {
-      place(it, mermaid(), -10, 0, HP);
-      place(it, Models.beachSet(6), 16, 6, 0, { colliders: false });
-      [-26, 30].forEach((x, i) => place(it, Models.coconutPalm(40 + i), x, -16, i));
+      // Shankhumugham: the mermaid in her shell back from the water, the old
+      // stone mandapam on the sand, fishing boats drawn up, and crowds out
+      // on the beach for the sunset (in local terms: dz < 0 is towards the road)
+      // golden sand over the whole beach, following the ground
+      {
+        const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz, Hw = KT.Highway;
+        const X0 = -60, X1 = 70, Z0 = -30, Z1 = 40, NX = 65, NZ = 35, pos = [], uv = [], idx = [];
+        for (let i = 0; i <= NZ; i++) for (let k = 0; k <= NX; k++) {
+          const dx = X0 + (X1 - X0) * k / NX, dz = Z0 + (Z1 - Z0) * i / NZ;
+          const x = it.sg.x + ax * dx + it.out.x * dz, z = it.sg.z + az * dx + it.out.z * dz;
+          pos.push(x, Math.max(Hw.groundY(x, z).y, Hw.SEA_Y - 0.4) + 0.06, z); uv.push(dx / 6, dz / 6);
+        }
+        for (let i = 0; i < NZ; i++) for (let k = 0; k < NX; k++) { const a = i * (NX + 1) + k, b = a + NX + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+        const geo = new T.BufferGeometry();
+        geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+        const sandM = KT.mat('shankhSand', { map: KT.tex('sand', 1, 1), color: 0xe2bb80, side: T.DoubleSide }, 0.15);
+        const sheet = new T.Mesh(geo, sandM); sheet.receiveShadow = true; it.group.add(sheet);
+      }
+      place(it, mermaid(), -18, -12, 0);
+      place(it, beachMandapam(), 26, 4, 0.1);
+      [[-2, 16, 0.1, 3], [6, 18, -0.15, 5], [14, 15, 0.2, 7], [38, 14, 0.05, 1], [44, 17, -0.1, 9]].forEach(([dx, dz, r, k]) => {
+        const b = place(it, Models.vallam(k), dx, dz, HP + r);
+        b.scale.setScalar(1.15);
+      });
+      // a blue tarpaulin over one boat
+      const tarp = new T.Mesh(new THREE.BoxGeometry(2.4, 0.6, 9), mat('tarpBlue', 0x2c4fb0, 0.7));
+      place(it, tarp, 44, 17, HP - 0.1, { colliders: false }).position.y += 0.8;
+      [[-40, -18], [-30, -22], [44, -20], [54, -14]].forEach(([x, z], i) => place(it, Models.coconutPalm(40 + i), x, z, i));
+      [[-6, -22], [12, -22], [30, -22]].forEach(([x, z]) => place(it, Models.lampPost(), x, z, 0));
+      // the crowd: families standing and sitting on the sand facing the sea,
+      // a few walking along the water's edge (only moved when you are near)
+      const crowd = new T.Group(); it.group.add(crowd);
+      const rng = KT.makeRng(1992), people = [];
+      const LOOKS = [['female', 'saree'], ['male', 'formal'], ['female', 'churidar'], ['male', 'mundu'], ['male', 'casual'], ['female', 'saree'], ['male', 'tee'], ['female', 'casual']];
+      for (let k = 0; k < 34; k++) {
+        const look = LOOKS[k % LOOKS.length], female = look[0] === 'female', kid = k % 7 === 3, sit = k % 3 === 1;
+        const ch = Models.character({ gender: look[0], outfit: kid ? 'tee' : look[1], lite: true, hair: female ? ['bun', 'braid', 'loose', 'default'][k % 4] : ['short', 'default', 'wavy'][k % 3],
+          skin: [0xc08660, 0xd9a27c, 0x8d5a3b, 0xa8704c][k % 4], jasmine: female && rng() < 0.4, mustache: !female && rng() < 0.5, acc: {}, scale: kid ? 0.7 : 0.92 + rng() * 0.1, seed: 1500 + k });
+        const dx = -46 + rng() * 96, dz = 8 + rng() * 22;
+        if (Math.abs(dx - 26) < 8 && Math.abs(dz - 4) < 6) continue;
+        place(it, ch, dx, dz, Math.PI + (rng() - 0.5) * 0.8, { colliders: false });
+        crowd.attach(ch);
+        people.push({ ch, sit, walk: !sit && k % 5 === 0, x0: ch.position.x, z0: ch.position.z, ph: rng() * 9 });
+      }
+      const wx = it.f.fx !== undefined ? it.f.fx : 1, wz = it.f.fz !== undefined ? it.f.fz : 0;
+      let last = null;
+      it.anim.push((t) => {
+        const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last)); last = t;
+        people.forEach((p) => {
+          if (p.walk) {
+            const u = Math.sin((t + p.ph) * 0.06) * 18, x = p.x0 + wx * u, z = p.z0 + wz * u;
+            const dir = Math.cos((t + p.ph) * 0.06) >= 0 ? 1 : -1;
+            p.ch.position.set(x, KT.Highway.groundY(x, z).y, z);
+            p.ch.rotation.y = Math.atan2(wx * dir, wz * dir);
+            KT.Models.animateCharacter(p.ch, 'walk', dt, 1);
+          } else KT.Models.animateCharacter(p.ch, p.sit ? 'sit' : Math.sin(t * 0.4 + p.ph) > 0.85 ? 'wave' : 'idle', dt, 1);
+        });
+      });
+      it.fauna = crowd;
     },
     lakeVillage(it) {
       const root = place(it, akkulam(it), 0, 0);
@@ -1985,6 +2167,13 @@
     const Hw = KT.Highway;
     it.group = new T.Group();
     Hw.scene.add(it.group);
+    if (it.sg.within) {
+      // its model is part of its host's; here only the board to read about it
+      const sg = it.sg, y = Hw.groundY(sg.x, sg.z).y;
+      Hw.interactables.push({ label: 'About ' + sg.name, radius: 7, pos: () => new T.Vector3(sg.x, y, sg.z), action: () => KT.Game.readSight(sg) });
+      it.built = true;
+      return;
+    }
     infoBoard(it);
     (BUILD[it.sg.kind] || BUILD.palace)(it);
     if (it.river) riverWater(it);
