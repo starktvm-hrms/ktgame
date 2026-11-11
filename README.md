@@ -443,7 +443,14 @@ coast stretches with it:
 The Sree Padmanabhaswamy Temple stands in a walled compound reached by its own street. Like the Secretariat, it is modelled on photos.
 - **The gopuram:** the great east gopuram has seven tiers of cream-gold carved figures under a barrel roof with seven golden kalasams. It stands on a white base with a pillared, arched entrance, and a flight of steps runs between brass lamp towers.
 - **The streets:** a street of four nadas runs round the compound. The East Nada leads in from the road, lined with shops selling brass lamps, flowers and garlands, puja items, sweets, books and bangles, with shopkeepers at their counters and three-globe street lamps.
-- **The Padmatheertham tank:** it has its own walled compound with a gate, stone steps down to the water, a yellow-pillared mandapam, a stone colonnade, and white Kerala houses with tiled roofs along its banks.
+- **The way in:** climb the steps, pass through the porch of carved granite pillars under the white studded arch, and walk straight through the gopuram into the temple. The doors stand open.
+- **Inside the temple:**
+  - **The corridor:** the sreebali pura runs round the inner courtyard. It is a long corridor of carved granite pillars, many carrying a lamp-bearing deepalakshmi, with brass lamps hanging under the stone ceiling.
+  - **The flagstaff:** the golden flagstaff stands with the stone altar in front of the corridor.
+  - **The sanctum:** in the courtyard stand the granite sanctum under its golden roofs and the ottakkal mandapam. Climb onto the mandapam and look through the three doors: the god reclines on the coiled serpent Anantha, with the five hoods over his head, the lotus rising from his navel and oil lamps burning before him.
+- **The Padmatheertham tank:** a great tank sunk into the ground, with nine rings of stone steps on every side going down to the water. You can walk down to the water's edge.
+  - Its yellow-pillared mandapam stands on a plinth down on the steps.
+  - A stone colonnade and white Kerala houses with tiled roofs line its banks, all inside its own walled compound with a gate.
 - **The people:** devotees in mundu and saree walk up to the gopuram, round the nadas and to the tank, stopping to pray.
 
 The Secretariat is a large compound modelled on photos.

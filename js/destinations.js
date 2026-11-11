@@ -54,7 +54,9 @@
         Hw.gorgeLandform(sg.x + it.out.x * 10, sg.z + it.out.z * 10, it.rot, it.y, KT.FALLS.meenmutty);
       } else {
         // (the zoo compound is square: its corners need the extra room)
-        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
+        // the Padmatheertham tank is sunk into the ground
+        if (k === 'gopuramTemple') Hw.addLandform(sg.x, sg.z, it.rot, 150, (h, lx, lz) => (Math.abs(lx - TANK.x) < TANK.hx && Math.abs(lz - TANK.z) < TANK.hz ? it.y + TANK.floor : h));
+        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : k === 'gopuramTemple' ? 34 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
       }
       if (it.lake) lakes.push(it.lake);
     });
@@ -118,6 +120,10 @@
   // tiled roofs along the others. Devotees in mundu and saree come and go.
   // (Model space: +z faces the road; the temple compound's front wall is at
   // z = 6, the road's lane arrives at z ~ 76.)
+  const GP_FLOOR = 1.5, GP_STEPS = 6;            // the gopuram's raised floor and its steps
+  const GP_Z = 4, GP_BD = 12;                   // the gopuram's centre (model z) and depth
+  // the tank (model space): centre, half sizes of the rim, the stepped band and the water's depth
+  const TANK = { x: -50, z: 59, hx: 28, hz: 21, band: 6, steps: 9, water: -2.3, floor: -5 };
   let gopuramTex = null;
   function gopuramCarving() {
     if (gopuramTex) return gopuramTex;
@@ -148,18 +154,42 @@
     const cream = mat('gpCream', 0xeedcae, 0.8), cream2 = mat('gpCream2', 0xd9c28c, 0.85), white = mat('gpWhite', 0xf2f0e8, 0.7);
     const gold = KT.mat('gpGold', { color: 0xd8a83a, metalness: 0.7, roughness: 0.3 }), dark = mat('gpDark', 0x2a2420, 0.7);
     const carve = new T.MeshStandardMaterial({ map: gopuramCarving(), roughness: 0.85 });
-    // the white two-storey base with its pillared, arched entrance
-    const BW = 26, BD = 12, BH = 7;
-    part(g, G.box(BW, BH, BD), white, 0, BH / 2, 0);
+    // the white two-storey base, with a passage straight through it: a
+    // white studded arch, carved granite pillars and an open porch in front,
+    // the red-brown door leaves swung back, a flight of steps up to it
+    const BW = 26, BD = 12, BH = 8.5, PW = 6, F = GP_FLOOR, AH = 6;
+    const granite = mat('gpGranite', 0x7a6a58, 0.9), granite2 = mat('gpGranite2', 0x5f5246, 0.9), stepM = mat('gpStep', 0xb8a88a, 0.9);
+    [-1, 1].forEach((sd) => {
+      part(g, G.box((BW - PW) / 2, BH, BD), white, sd * (BW + PW) / 4, BH / 2, 0);
+      // a red band and windows on the white walls, as in the photos
+      part(g, G.box(0.5, 6, 0.1), mat('gpRed', 0xb8442a, 0.7), sd * 9.5, 3.4, BD / 2 + 0.06);
+      part(g, G.box(3.4, 1.8, 0.1), dark, sd * 6.4, 5.2, BD / 2 + 0.06);
+      part(g, G.box(0.25, BH, BD), granite2, sd * (PW / 2 + 0.12), BH / 2, 0);   // the passage's stone lining
+    });
+    part(g, G.box(PW, BH - F - AH, BD), white, 0, F + AH + (BH - F - AH) / 2, 0);
+    part(g, G.box(PW, F, BD), stepM, 0, F / 2, 0);                                  // the passage floor
+    for (let z = -BD / 2 + 1; z < BD / 2; z += 2) part(g, G.box(PW, 0.3, 0.4), granite2, 0, F + AH - 0.2, z);  // ceiling beams
     part(g, G.box(BW + 0.6, 0.6, BD + 0.6), cream2, 0, BH + 0.3, 0);
-    part(g, G.box(6, 5.6, 0.3), dark, 0, 2.8, BD / 2 + 0.05);
-    part(g, new T.CylinderGeometry(3, 3, 0.4, 20, 1, false, 0, Math.PI), cream2, 0, 5.6, BD / 2 + 0.1, HP, 0, -HP);
-    [-4.2, -3, 3, 4.2].forEach((px) => { part(g, G.box(0.8, 6.4, 0.8), cream, px, 3.2, BD / 2 + 0.6); part(g, G.box(1.1, 0.4, 1.1), cream2, px, 6.5, BD / 2 + 0.6); });
-    // the carved arch panel over the entrance
-    part(g, G.box(9, 3.2, 0.5), carve, 0, BH + 2.2, BD / 2 + 0.2);
-    // steps up to the entrance
-    for (let k = 0; k < 8; k++) part(g, G.box(12 - k * 0.3, 0.3, 0.7), mat('gpStep', 0xb8b0a2, 0.9), 0, 0.15 + k * 0.3, BD / 2 + 6 - k * 0.7);
-    part(g, G.box(12, 2.4, 1), mat('gpStep', 0xb8b0a2, 0.9), 0, 1.2, BD / 2 + 0.7);
+    // the arch: white with rows of brass studs, on a dark red ground
+    [-1, 1].forEach((sd) => part(g, G.box(0.9, AH, 0.25), mat('gpArchRed', 0x7a2a1e, 0.7), sd * (PW / 2 + 0.75), F + AH / 2, BD / 2 + 0.05));
+    part(g, G.torus(PW / 2, 0.45, 8, 24, Math.PI), white, 0, F + AH - PW / 2, BD / 2 + 0.2);
+    [-1, 1].forEach((sd) => part(g, G.box(0.9, AH - PW / 2, 0.5), white, sd * PW / 2, F + (AH - PW / 2) / 2, BD / 2 + 0.2));
+    for (let k = 0; k <= 12; k++) { const a = Math.PI * k / 12; part(g, G.sph(0.08, 6, 4), gold, Math.cos(a) * PW / 2, F + AH - PW / 2 + Math.sin(a) * PW / 2, BD / 2 + 0.5); }
+    // the door leaves, open against the passage walls
+    [-1, 1].forEach((sd) => { part(g, G.box(0.15, AH - 0.4, PW / 2), mat('gpDoor', 0x6a2a1a, 0.6), sd * (PW / 2 - 0.2), F + (AH - 0.4) / 2, BD / 2 - PW / 4 - 0.2); });
+    // the porch: carved granite pillars and a stone lintel with the carved panel above
+    [-4.6, -3.4, 3.4, 4.6].forEach((px) => {
+      part(g, G.box(0.9, 0.5, 0.9), granite, px, F + 0.25, BD / 2 + 1.8);
+      for (let k = 0; k < 3; k++) { part(g, G.box(0.7, 1.1, 0.7), k % 2 ? granite2 : granite, px, F + 1.0 + k * 1.6, BD / 2 + 1.8); part(g, G.cyl(0.32, 0.32, 0.5, 8), granite, px, F + 1.8 + k * 1.6, BD / 2 + 1.8); }
+      part(g, G.box(1.3, 0.35, 1.0), granite2, px, F + AH + 0.1, BD / 2 + 1.8);
+    });
+    part(g, G.box(11, 0.7, 3.6), granite2, 0, F + AH + 0.6, BD / 2 + 1.6);
+    part(g, G.box(11.4, 0.2, 3.9), cream2, 0, F + AH + 1.0, BD / 2 + 1.6);
+    part(g, G.box(9, 2.6, 0.5), carve, 0, BH + 2.0, BD / 2 + 0.2);
+    part(g, G.box(PW + 4, F, 3.6), stepM, 0, F / 2, BD / 2 + 1.8);                  // the porch floor
+    // the flight of steps up to the porch, and down again inside
+    for (let k = 0; k < GP_STEPS; k++) part(g, G.box(16, F * (GP_STEPS - k) / GP_STEPS, 0.6), stepM, 0, F * (GP_STEPS - k) / GP_STEPS / 2, BD / 2 + 3.6 + k * 0.6 + 0.3);
+    for (let k = 0; k < GP_STEPS; k++) part(g, G.box(PW, F * (GP_STEPS - k) / GP_STEPS, 0.6), stepM, 0, F * (GP_STEPS - k) / GP_STEPS / 2, -BD / 2 - k * 0.6 - 0.3);
     // seven tiers, each narrower, the faces carved, a column of openings up the middle
     let y = BH + 0.6, w = BW - 1, d = BD - 1.2;
     const TH = 3.4;
@@ -191,7 +221,7 @@
       part(g, G.cone(0.22, 1.0, 10), gold, kx, y + d / 2 + 2.2, 0);
     }
     const baked = KT.bake(g);
-    baked.userData.colliders = [{ type: 'box', x: -8, z: 0, hw: 5, hd: BD / 2 }, { type: 'box', x: 8, z: 0, hw: 5, hd: BD / 2 }];
+    baked.userData.colliders = [{ type: 'box', x: -(BW + PW) / 4, z: 0, hw: (BW - PW) / 4, hd: BD / 2 }, { type: 'box', x: (BW + PW) / 4, z: 0, hw: (BW - PW) / 4, hd: BD / 2 }].concat([-4.6, -3.4, 3.4, 4.6].map((px) => ({ type: 'circle', x: px, z: BD / 2 + 1.8, r: 0.45 })));
     baked.userData.height = y + d / 2 + 2.7;
     return baked;
   }
@@ -273,19 +303,135 @@
     };
     tWall(TX0, TZ0, TX1, TZ0); tWall(TX0, TZ0, TX0, TZ1); tWall(TX1, TZ0, TX1, TZ1);
     tWall(TX0, TZ1, -13, TZ1); tWall(13, TZ1, TX1, TZ1);
-    // inside: the long corridors (sreebali pura) under tiled roofs, the shrine, the flagstaff
-    [[0, -60, 60, 6], [0, -2, 40, 5], [-28, -30, 6, 52], [28, -30, 6, 52]].forEach(([x, z, w, d]) => {
-      part(g, G.box(w, 3.2, d), white, x, 1.6, z);
-      part(g, KT.hipRoofGeometry(w + 1.2, d + 1.2, 2.4, 0.3), roofM, x, 3.2, z);
+    // ---- inside: the sreebali pura, a long corridor of carved granite pillars
+    // (many with a lamp-bearing deepalakshmi) round the inner courtyard, under
+    // a stone ceiling and tiled roofs, with brass lamps hanging along it; the
+    // golden flagstaff before it; and in the courtyard the sanctum with its
+    // single-stone mandapam in front
+    const granite = mat('ptGranite', 0x7a6a58, 0.9), granite2 = mat('ptGranite2', 0x5f5246, 0.9), floorM = mat('ptFloor', 0x8a8076, 0.6);
+    const gold = KT.mat('ptGold', { color: 0xd8a83a, metalness: 0.7, roughness: 0.3 }), flame = KT.mat('ptFlame', { color: 0xffd27a, emissive: 0xffa020, emissiveIntensity: 1.2 });
+    const lady = mat('ptLady', 0x6e5c48, 0.85);
+    const pillar = (x, z, h, statue, face) => {
+      part(g, G.box(0.9, 0.5, 0.9), granite2, x, CF + 0.25, z);
+      part(g, G.box(0.68, 1.0, 0.68), granite, x, CF + 1.0, z);
+      part(g, G.cyl(0.34, 0.34, 0.8, 8), granite2, x, CF + 1.9, z);
+      part(g, G.box(0.68, 0.9, 0.68), granite, x, CF + 2.75, z);
+      part(g, G.cyl(0.3, 0.34, h - 3.9, 8), granite2, x, CF + 3.2 + (h - 3.9) / 2, z);
+      part(g, G.box(1.3, 0.35, 0.6), granite, x, CF + h - 0.2, z);
+      part(g, G.box(0.6, 0.35, 1.3), granite, x, CF + h - 0.2, z);
+      if (statue) {
+        // a deepalakshmi: a woman holding a lamp, carved on the pillar's face
+        const fx = x + Math.sin(face) * 0.5, fz = z + Math.cos(face) * 0.5;
+        part(g, G.box(0.6, 0.3, 0.6), granite, fx, CF + 0.65, fz);
+        part(g, G.cyl(0.16, 0.24, 1.0, 8), lady, fx, CF + 1.3, fz);
+        part(g, G.cyl(0.13, 0.16, 0.5, 8), lady, fx, CF + 2.0, fz);
+        part(g, G.sph(0.13, 8, 6), lady, fx, CF + 2.4, fz);
+        part(g, G.cone(0.1, 0.25, 6), lady, fx, CF + 2.6, fz);
+        part(g, G.cyl(0.14, 0.08, 0.06, 10), gold, fx + Math.sin(face) * 0.18, CF + 1.95, fz + Math.cos(face) * 0.18);
+        part(g, G.cone(0.04, 0.12, 6), flame, fx + Math.sin(face) * 0.18, CF + 2.05, fz + Math.cos(face) * 0.18);
+      }
+      C.push({ type: 'circle', x, z, r: 0.45 });
+    };
+    const CF = 0.15, CH = 5.2;                            // corridor floor and pillar height
+    const OX = 26, IX = 20, OZ0 = -62, OZ1 = -12, IZ0 = -56, IZ1 = -18;
+    // the corridor's floor, ceiling and roofs, side by side
+    [[0, (OZ0 + IZ0) / 2, 2 * OX, IZ0 - OZ0], [0, (OZ1 + IZ1) / 2, 2 * OX, OZ1 - IZ1], [-(OX + IX) / 2, (IZ0 + IZ1) / 2, OX - IX, IZ1 - IZ0], [(OX + IX) / 2, (IZ0 + IZ1) / 2, OX - IX, IZ1 - IZ0]].forEach(([x, z, w, d]) => {
+      part(g, G.box(w, CF * 2, d), floorM, x, CF / 2, z);
+      part(g, G.box(w, 0.45, d), granite2, x, CF + CH + 0.22, z);
+      part(g, KT.hipRoofGeometry(w + 1.4, d + 1.4, 2.0, 0.25), roofM, x, CF + CH + 0.45, z);
     });
-    part(g, G.box(24, 5, 18), white, 0, 2.5, -34);
-    part(g, KT.hipRoofGeometry(26, 20, 5, 0.3), roofOld, 0, 5, -34);
-    part(g, KT.hipRoofGeometry(14, 10, 4, 0.3), roofM, 0, 9.2, -34);
-    part(g, G.cyl(0.25, 0.45, 18, 10), KT.mat('ptGold', { color: 0xd8a83a, metalness: 0.7, roughness: 0.3 }), 0, 9, -14);
+    for (let x = -OX + 0.5; x <= OX - 0.5; x += 2.9) [[OZ0 + 0.5, 0], [OZ1 - 0.5, Math.PI], [IZ0 - 0.5, Math.PI], [IZ1 + 0.5, 0]].forEach(([z, f], r) => {
+      if ((r >= 2) && Math.abs(x) > IX) return;
+      if (r === 1 && Math.abs(x) < 3) return;                 // the way in from the gopuram
+      if (r === 3 && Math.abs(x) < 3) return;                 // and out into the courtyard
+      pillar(x, z, CH, r >= 2 && Math.round(x / 2.9) % 2 === 0, r >= 2 ? (r === 2 ? Math.PI : 0) : f);
+    });
+    for (let z = OZ0 + 3.4; z <= OZ1 - 3.4; z += 2.9) [-1, 1].forEach((sd) => {
+      pillar(sd * (OX - 0.5), z, CH, false, 0);
+      if (z > IZ0 && z < IZ1) pillar(sd * (IX + 0.5), z, CH, Math.round(z / 2.9) % 2 === 0, sd > 0 ? -HP : HP);
+    });
+    // brass lamps hanging along the corridor
+    const lamps = [];
+    for (let x = -OX + 3; x <= OX - 3; x += 6) lamps.push([x, (OZ0 + IZ0) / 2], [x, (OZ1 + IZ1) / 2]);
+    for (let z = IZ0 + 3; z <= IZ1 - 3; z += 6) lamps.push([-(OX + IX) / 2, z], [(OX + IX) / 2, z]);
+    lamps.forEach(([x, z]) => { part(g, G.cyl(0.02, 0.02, 1.6, 4), gold, x, CF + CH - 0.8, z); part(g, G.cyl(0.25, 0.12, 0.15, 10), gold, x, CF + CH - 1.65, z); for (let k = 0; k < 5; k++) part(g, G.cone(0.035, 0.1, 5), flame, x + Math.cos(k * 1.26) * 0.2, CF + CH - 1.52, z + Math.sin(k * 1.26) * 0.2); });
+    // the golden flagstaff and the stone altar (balikkal) before the corridor
+    part(g, G.box(2.2, 1.0, 2.2), granite, 0, 0.5, -7.5);
+    part(g, G.cyl(0.28, 0.48, 20, 10), gold, 0, 11, -7.5);
+    for (let k = 0; k < 10; k++) part(g, G.cyl(0.5, 0.5, 0.12, 10), gold, 0, 2 + k * 1.8, -7.5);
+    part(g, G.box(1.6, 0.12, 0.6), gold, 0, 20.8, -7.5);
+    part(g, G.cyl(0.9, 1.1, 0.8, 12), granite, 5, 0.4, -9.5);
+    C.push({ type: 'box', x: 0, z: -7.5, hw: 1.1, hd: 1.1 });
+    // the sanctum (sreekovil): granite walls on a plinth, three doors in front
+    // through which the reclining Padmanabha is seen, a golden two-tier roof
+    const SZ0 = -50, SZ1 = -34, SX = 9, SP = 1.0, SH = 5.2;
+    part(g, G.box(2 * SX + 1, SP, SZ1 - SZ0 + 1), granite2, 0, SP / 2, (SZ0 + SZ1) / 2);
+    part(g, G.box(2 * SX, 0.3, 0.4), granite, 0, SP + 0.15, SZ1 + 0.3);
+    part(g, G.box(2 * SX, SH, 0.5), granite, 0, SP + SH / 2, SZ0 + 0.25);
+    [-1, 1].forEach((sd) => part(g, G.box(0.5, SH, SZ1 - SZ0), granite, sd * (SX - 0.25), SP + SH / 2, (SZ0 + SZ1) / 2));
+    // the front wall, with three doorways (face, navel, feet)
+    const DW = 2.6, DH = 3.6, doors = [-5.4, 0, 5.4];
+    let x0 = -SX;
+    doors.concat([SX + DW / 2]).forEach((dx, k) => {
+      const x1 = k < 3 ? dx - DW / 2 : SX;
+      part(g, G.box(x1 - x0, SH, 0.5), granite, (x0 + x1) / 2, SP + SH / 2, SZ1 - 0.25);
+      if (k < 3) {
+        part(g, G.box(DW, SH - DH, 0.5), granite, dx, SP + DH + (SH - DH) / 2, SZ1 - 0.25);
+        part(g, G.box(DW + 0.6, 0.3, 0.6), gold, dx, SP + DH + 0.15, SZ1 - 0.1);
+        [-1, 1].forEach((s2) => part(g, G.box(0.2, DH, 0.6), gold, dx + s2 * (DW / 2 + 0.1), SP + DH / 2, SZ1 - 0.1));
+      }
+      x0 = dx + DW / 2;
+    });
+    // carved bands round the outside of the walls (the front one above the doors)
+    for (let k = 0; k < 3; k++) {
+      const y = SP + 1.4 + k * 1.4;
+      part(g, G.box(2 * SX + 0.4, 0.25, 0.3), granite2, 0, y, SZ0 - 0.1);
+      [-1, 1].forEach((sd) => part(g, G.box(0.3, 0.25, SZ1 - SZ0 + 0.4), granite2, sd * (SX + 0.1), y, (SZ0 + SZ1) / 2));
+    }
+    part(g, G.box(2 * SX + 0.4, 0.3, 0.3), granite2, 0, SP + DH + 0.9, SZ1 + 0.1);
+    part(g, G.box(2 * SX - 1, 0.1, SZ1 - SZ0 - 1), mat('ptSanctumFloor', 0x3a3230, 0.7), 0, SP + 0.05, (SZ0 + SZ1) / 2);
+    part(g, G.box(2 * SX + 0.8, 0.5, SZ1 - SZ0 + 0.8), granite2, 0, SP + SH + 0.25, (SZ0 + SZ1) / 2);
+    part(g, KT.hipRoofGeometry(2 * SX + 3, SZ1 - SZ0 + 3, 3.2, 0.3), gold, 0, SP + SH + 0.5, (SZ0 + SZ1) / 2);
+    part(g, KT.hipRoofGeometry(2 * SX - 4, SZ1 - SZ0 - 5, 2.6, 0.3), gold, 0, SP + SH + 3.1, (SZ0 + SZ1) / 2);
+    [-4, 0, 4].forEach((x) => { part(g, G.sph(0.4, 10, 8), gold, x, SP + SH + 6.0, (SZ0 + SZ1) / 2); part(g, G.cone(0.2, 0.9, 8), gold, x, SP + SH + 6.6, (SZ0 + SZ1) / 2); });
+    C.push({ type: 'box', x: 0, z: (SZ0 + SZ1) / 2 - 0.5, hw: SX + 0.5, hd: (SZ1 - SZ0) / 2 + 0.2 });
+    // the reclining Padmanabha on the coiled serpent Anantha, the five hoods
+    // over his head, the lotus rising from his navel with Brahma on it
+    const DZ = (SZ0 + SZ1) / 2 + 1, DY = SP + 0.1;
+    const serpent = mat('ptAnantha', 0x5a6266, 0.6), skin = mat('ptVishnu', 0x24304a, 0.45), lotusM = mat('ptLotus', 0xf08aa8, 0.6);
+    [0, 0.55, 1.1].forEach((y, k) => part(g, G.torus(1.25 - k * 0.1, 0.32, 8, 28), serpent, 0, DY + 0.3 + y, DZ, HP, 0, 0, 5.4 - k * 0.3, 1, 1));
+    part(g, G.box(12.6, 0.4, 2.2), serpent, 0, DY + 1.55, DZ);
+    for (let k = 0; k < 5; k++) { const a = -0.9 + k * 0.45; part(g, G.sph(0.55, 10, 8), serpent, -6.4 + Math.sin(a) * 1.0, DY + 3.6 + Math.cos(a) * 0.8, DZ - 0.3, 0, 0, 0, 1, 0.6, 0.35); part(g, G.sph(0.08, 6, 4), gold, -6.4 + Math.sin(a) * 1.0, DY + 3.6 + Math.cos(a) * 0.8, DZ + 0.0); }
+    part(g, G.cyl(0.35, 0.45, 2.6, 10), serpent, -6.6, DY + 2.5, DZ - 0.6);
+    // the god: head (crowned) to the south, raised on the left arm; the body
+    // and legs along the serpent; golden ornaments
+    part(g, G.sph(0.55, 12, 10), skin, -5.6, DY + 2.5, DZ + 0.1);
+    part(g, G.cyl(0.38, 0.5, 1.1, 10), gold, -5.7, DY + 3.2, DZ + 0.1);
+    part(g, G.capsule(0.75, 3.6, 6, 12), skin, -2.6, DY + 2.2, DZ + 0.15, 0, 0, HP - 0.06);
+    part(g, G.capsule(0.5, 4.6, 6, 10), skin, 2.8, DY + 2.05, DZ + 0.3, 0, 0, HP);
+    part(g, G.capsule(0.45, 4.4, 6, 10), skin, 2.9, DY + 2.0, DZ - 0.4, 0, 0, HP + 0.04);
+    part(g, G.capsule(0.3, 1.6, 6, 8), skin, -4.4, DY + 2.9, DZ + 0.9, 0.3, 0, 0.5);
+    part(g, G.capsule(0.28, 2.0, 6, 8), skin, -1.2, DY + 2.9, DZ + 0.9, 0, 0, HP);
+    part(g, G.box(4.6, 0.25, 1.7), gold, -1.6, DY + 2.95, DZ + 0.15);   // the golden waistband
+    [-3.6, -0.4].forEach((x) => part(g, G.torus(0.6, 0.06, 6, 16), gold, x, DY + 2.95, DZ + 0.15, HP, 0, 0));
+    part(g, G.cyl(0.04, 0.04, 2.4, 5), mat('ptStalk', 0x3f7a32, 0.8), -1.6, DY + 4.3, DZ + 0.4);
+    for (let k = 0; k < 8; k++) part(g, G.cone(0.2, 0.55, 6), lotusM, -1.6 + Math.cos(k * 0.785) * 0.22, DY + 5.6, DZ + 0.4 + Math.sin(k * 0.785) * 0.22, Math.sin(k * 0.785) * 0.6, 0, -Math.cos(k * 0.785) * 0.6);
+    part(g, G.sph(0.2, 8, 6), gold, -1.6, DY + 5.95, DZ + 0.4);
+    // tall brass oil lamps (nilavilakku) burning before the god
+    [-6, -2, 2, 6].forEach((x) => { part(g, G.cyl(0.25, 0.35, 0.12, 10), gold, x, SP + 0.1, SZ1 - 1.3); part(g, G.cyl(0.06, 0.06, 1.4, 6), gold, x, SP + 0.8, SZ1 - 1.3); part(g, G.cyl(0.3, 0.18, 0.12, 10), gold, x, SP + 1.5, SZ1 - 1.3); for (let k = 0; k < 5; k++) part(g, G.cone(0.04, 0.14, 5), flame, x + Math.cos(k * 1.26) * 0.24, SP + 1.62, SZ1 - 1.3 + Math.sin(k * 1.26) * 0.24); });
+    // the ottakkal mandapam: a platform of one great stone before the doors,
+    // on four pillars under a stone roof, with steps up from the courtyard
+    const MZ0 = SZ1, MZ1 = SZ1 + 6;
+    part(g, G.box(13, SP, MZ1 - MZ0), granite2, 0, SP / 2, (MZ0 + MZ1) / 2);
+    [[-6, MZ0 + 0.6], [6, MZ0 + 0.6], [-6, MZ1 - 0.6], [6, MZ1 - 0.6]].forEach(([x, z]) => { part(g, G.box(0.7, 4.2, 0.7), granite, x, SP + 2.1, z); C.push({ type: 'circle', x, z, r: 0.45 }); });
+    part(g, G.box(14, 0.5, MZ1 - MZ0 + 1), granite2, 0, SP + 4.4, (MZ0 + MZ1) / 2);
+    part(g, KT.hipRoofGeometry(14.6, MZ1 - MZ0 + 1.6, 1.6, 0.2), gold, 0, SP + 4.65, (MZ0 + MZ1) / 2);
+    for (let k = 0; k < 4; k++) part(g, G.box(5, SP * (4 - k) / 4, 0.5), granite, 0, SP * (4 - k) / 4 / 2, MZ1 + 0.25 + k * 0.5);
+    root.userData.inner = { CF, OX, IX, OZ0, OZ1, IZ0, IZ1, SP, MZ0, MZ1 };
     // the east gopuram in the front wall
     const gp = gopuramEast();
-    gp.position.set(0, 0, TZ1 - 2); root.add(gp);
-    gp.userData.colliders.forEach((c) => C.push(Object.assign({}, c, { z: c.z + TZ1 - 2 })));
+    gp.position.set(0, 0, GP_Z); root.add(gp);
+    gp.userData.colliders.forEach((c) => C.push(Object.assign({}, c, { z: c.z + GP_Z })));
     // ---- the streets: a ring round the compound and the East Nada to the road
     const RW = 8, FZ = 26;            // ring street width; the front street's centre z
     part(g, G.box(TX1 - TX0 + 2 * RW + 4, 0.1, RW), road, 0, 0.05, FZ);
@@ -317,8 +463,9 @@
     });
     // brass lamp towers either side of the steps
     [-9, 9].forEach((x) => { const lt = Models.lampTower(5); lt.position.set(x, 0, 14); top.add(lt); });
-    // ---- the Padmatheertham tank in its own walled compound
-    const PX = -46, PZ = 54, PW = 34, PD = 28;
+    // ---- the Padmatheertham tank: a great sunken tank whose stone steps go
+    // down on every side to the water, in its own walled compound
+    const PX = TANK.x, PZ = TANK.z, RX = TANK.hx, RZ = TANK.hz, BAND = TANK.band, NS = TANK.steps, SW = BAND / NS;
     const pondWall = (x0, z0, x1, z1) => {
       const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0) + HP, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       part(g, G.box(len, 1.4, 0.6), white, cx, 0.7, cz, 0, ang, 0);
@@ -326,38 +473,66 @@
       for (let t = 0; t <= len + 0.01; t += 3.5) part(g, G.box(0.8, 2, 0.8), white, x0 + (x1 - x0) * t / len, 1, z0 + (z1 - z0) * t / len);
       C.push({ type: 'box', x: cx, z: cz, hw: Math.max(0.5, Math.abs(x1 - x0) / 2), hd: Math.max(0.5, Math.abs(z1 - z0) / 2) });
     };
-    const wx0 = PX - PW / 2 - 7, wx1 = PX + PW / 2 + 4, wz0 = PZ - PD / 2 - 8, wz1 = PZ + PD / 2 + 4;
+    const WM = 6, wx0 = PX - RX - WM, wx1 = PX + RX + WM, wz0 = PZ - RZ - WM, wz1 = PZ + RZ + WM;
     pondWall(wx0, wz0, wx1, wz0); pondWall(wx0, wz1, wx1, wz1); pondWall(wx0, wz0, wx0, wz1);
     pondWall(wx1, wz0, wx1, PZ - 3); pondWall(wx1, PZ + 3, wx1, wz1);       // the gate faces the East Nada
     [-1, 1].forEach((sd) => { part(g, G.box(1.2, 3.2, 1.2), white, wx1, 1.6, PZ + sd * 3); part(g, KT.hipRoofGeometry(1.8, 1.8, 0.8, 0.2), roofM, wx1, 3.2, PZ + sd * 3); });
-    part(g, G.box(wx1 - wx0, 0.1, wz1 - wz0), pave, (wx0 + wx1) / 2, 0.05, (wz0 + wz1) / 2);
-    // the tank: stone steps down on every side to the water
-    // (a raised rim stepping down to the water at ground level)
-    for (let k = 0; k < 4; k++) {
-      const w2 = PW - k * 1.4, d2 = PD - k * 1.4, y2 = 0.95 - k * 0.28;
-      [[0, -d2 / 2, w2, 0.8], [0, d2 / 2, w2, 0.8], [-w2 / 2, 0, 0.8, d2], [w2 / 2, 0, 0.8, d2]].forEach(([dx, dz, sx, sz]) => part(g, G.box(sx, 0.3, sz), stone, PX + dx, y2, PZ + dz));
+    // the stone deck round the rim (it also covers where the ground falls away)
+    [[PX, wz0 + WM / 2, 2 * (RX + WM), WM], [PX, wz1 - WM / 2, 2 * (RX + WM), WM], [wx0 + WM / 2, PZ, WM, 2 * RZ], [wx1 - WM / 2, PZ, WM, 2 * RZ]].forEach(([x, z, w, d]) => part(g, G.box(w, 0.3, d), pave, x, -0.12, z));
+    // the steps: each ring a little lower and further in, solid down to the bottom
+    const tankStone = mat('ptTankStone', 0x8f8472, 0.9), tankStone2 = mat('ptTankStone2', 0x7d7262, 0.9);
+    for (let k = 0; k < NS; k++) {
+      const hx = RX - k * SW, hz = RZ - k * SW, top_ = -(k + 1) * (-TANK.water + 0.3) / NS, hgt = top_ - TANK.floor;
+      const m = k % 2 ? tankStone : tankStone2;
+      [[0, -hz + SW / 2, 2 * hx, SW], [0, hz - SW / 2, 2 * hx, SW], [-hx + SW / 2, 0, SW, 2 * hz - 2 * SW], [hx - SW / 2, 0, SW, 2 * hz - 2 * SW]].forEach(([dx, dz, sx, sz]) => part(g, G.box(sx, hgt, sz), m, PX + dx, TANK.floor + hgt / 2, PZ + dz));
     }
-    const water = new T.Mesh(new T.PlaneGeometry(PW - 5, PD - 5), KT.Highway.waterMaterial());
-    water.rotation.x = -HP; water.position.set(PX, 0.12, PZ); root.add(water);
-    box(PX, PZ, PW / 2, PD / 2);
-    // white Kerala houses with tiled roofs and wooden shutters along two banks
-    [[PX - 10, PZ - PD / 2 - 4.5, 9, 0], [PX + 2, PZ - PD / 2 - 4.5, 7, 0], [PX + 12, PZ - PD / 2 - 4.5, 8, 0], [PX - PW / 2 - 4, PZ - 6, 8, HP], [PX - PW / 2 - 4, PZ + 6, 8, HP]].forEach(([x, z, w, r], k) => {
-      const h = new T.Group();
-      part(h, G.box(w, k % 2 ? 6 : 4, 5), white, 0, (k % 2 ? 6 : 4) / 2, 0);
-      part(h, KT.hipRoofGeometry(w + 1.4, 6.4, 2.4, 0.3), roofOld, 0, k % 2 ? 6 : 4, 0);
-      for (let n = 0; n < Math.round(w / 2.5); n++) part(h, G.box(0.9, 1.1, 0.1), mat('ptShutter', 0xe0a020, 0.6), -w / 2 + 1.4 + n * 2.5, k % 2 ? 4.4 : 2.4, 2.55);
+    part(g, G.box(2 * RX + 0.6, 0.35, 0.5), tankStone2, PX, 0.05, PZ - RZ); part(g, G.box(2 * RX + 0.6, 0.35, 0.5), tankStone2, PX, 0.05, PZ + RZ);
+    part(g, G.box(0.5, 0.35, 2 * RZ), tankStone2, PX - RX, 0.05, PZ); part(g, G.box(0.5, 0.35, 2 * RZ), tankStone2, PX + RX, 0.05, PZ);
+    const water = new T.Mesh(new T.PlaneGeometry(2 * (RX - BAND) + 2, 2 * (RZ - BAND) + 2), KT.Highway.waterMaterial());
+    water.rotation.x = -HP; water.position.set(PX, TANK.water, PZ); root.add(water);
+    box(PX, PZ, RX - BAND + 0.2, RZ - BAND + 0.2);                            // (you can go down to the water, not into it)
+    // white Kerala houses with tiled roofs and yellow shutters along two sides
+    [[PX - 16, wz0 + 3, 10, 0], [PX - 3, wz0 + 3, 8, 0], [PX + 11, wz0 + 3, 10, 0], [wx0 + 3, PZ - 8, 9, HP], [wx0 + 3, PZ + 8, 9, HP]].forEach(([x, z, w, r], k) => {
+      const h = new T.Group(), hh = k % 2 ? 6 : 4.4;
+      part(h, G.box(w, hh, 5), white, 0, hh / 2, 0);
+      part(h, KT.hipRoofGeometry(w + 1.4, 6.4, 2.4, 0.3), roofOld, 0, hh, 0);
+      for (let n = 0; n < Math.round(w / 2.5); n++) part(h, G.box(0.9, 1.1, 0.1), mat('ptShutter', 0xe0a020, 0.6), -w / 2 + 1.4 + n * 2.5, hh - 1.6, 2.55);
       h.position.set(x, 0, z); h.rotation.y = r; g.add(h);
       box(x, z, r ? 2.6 : w / 2, r ? w / 2 : 2.6);
     });
-    // the stone colonnade (a pillared corridor) along the bank nearest the temple
-    for (let k = 0; k < 9; k++) part(g, G.box(0.5, 2.6, 0.5), stone, PX - 12 + k * 3, 1.3, PZ + PD / 2 + 1.2);
-    part(g, G.box(27, 0.4, 2.2), stone, PX, 2.8, PZ + PD / 2 + 1.6);
-    part(g, KT.hipRoofGeometry(28, 3, 0.9, 0.2), roofM, PX, 3.0, PZ + PD / 2 + 1.6);
-    // the yellow-pillared mandapam at the tank's corner
-    const mx = PX + PW / 2 + 0.5, mz = PZ + PD / 2 + 1;
-    part(g, G.box(4, 0.4, 4), stone, mx, 0.2, mz);
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => part(g, G.box(0.3, 2.6, 0.3), mat('ptYellow', 0xe8b830, 0.6), mx + a * 1.6, 1.7, mz + b * 1.6));
-    part(g, KT.hipRoofGeometry(5, 5, 1.5, 0.25), roofOld, mx, 3.0, mz);
+    // the stone colonnade on the deck along the north bank
+    for (let k = 0; k < 11; k++) part(g, G.box(0.5, 2.6, 0.5), tankStone, PX - 18 + k * 3, 1.3, wz1 - 2.5);
+    part(g, G.box(32, 0.4, 2.2), tankStone, PX - 3, 2.8, wz1 - 2.2);
+    part(g, KT.hipRoofGeometry(33, 3, 0.9, 0.2), roofM, PX - 3, 3.0, wz1 - 2.2);
+    // the yellow-pillared mandapam, standing on its own plinth down on the steps
+    const mx = PX + RX - 3.2, mz = PZ + RZ - 3.2;
+    part(g, G.box(4.4, -TANK.floor + 0.4, 4.4), tankStone2, mx, (TANK.floor + 0.4) / 2, mz);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => part(g, G.box(0.3, 2.6, 0.3), mat('ptYellow', 0xe8b830, 0.6), mx + a * 1.8, 1.7, mz + b * 1.8));
+    part(g, KT.hipRoofGeometry(5.4, 5.4, 1.5, 0.25), roofOld, mx, 3.0, mz);
+    // where you can stand: the gopuram's porch, steps and passage; the
+    // corridor; the mandapam and its steps; the tank's deck and steps
+    root.userData.floor = (lx, lz) => {
+      // the gopuram
+      const gz = lz - GP_Z, F = GP_FLOOR, ST = GP_STEPS, BD = GP_BD;
+      if (Math.abs(lx) < 8 && gz >= BD / 2 && gz < BD / 2 + 3.6) return F;
+      if (Math.abs(lx) < 8 && gz >= BD / 2 + 3.6 && gz < BD / 2 + 3.6 + ST * 0.6) return F * (ST - Math.floor((gz - BD / 2 - 3.6) / 0.6)) / ST;
+      if (Math.abs(lx) < 3 && gz >= -BD / 2 && gz < BD / 2) return F;
+      if (Math.abs(lx) < 3 && gz < -BD / 2 && gz >= -BD / 2 - ST * 0.6) return F * (ST - Math.floor((-BD / 2 - gz) / 0.6)) / ST;
+      // the corridor floor
+      if (Math.abs(lx) < OX && lz > OZ0 && lz < OZ1 && !(Math.abs(lx) < IX && lz > IZ0 && lz < IZ1)) return CF;
+      // the mandapam and its steps
+      if (Math.abs(lx) < 6.5 && lz >= MZ0 && lz < MZ1) return SP;
+      if (Math.abs(lx) < 2.5 && lz >= MZ1 && lz < MZ1 + 2) return SP * (4 - Math.floor((lz - MZ1) / 0.5)) / 4;
+      // the tank
+      const tx = Math.abs(lx - PX), tz = Math.abs(lz - PZ);
+      if (tx < RX + WM && tz < RZ + WM) {
+        const d = Math.min(RX - tx, RZ - tz);                 // how far in from the rim
+        if (d < 0) return 0.03;
+        if (d < BAND) return -(Math.floor(d / SW) + 1) * (-TANK.water + 0.3) / NS;
+        return null;
+      }
+      return null;
+    };
     // ---- a few palms and old trees, and the drive's kerb
     const baked = KT.bake(g);
     root.add(baked);
@@ -377,14 +552,21 @@
     let lastK = null;
     it.anim.push((t) => { const dt = lastK === null ? 0 : Math.min(0.1, Math.max(0, t - lastK)); lastK = t; keepers.forEach((ch, i) => KT.Models.animateCharacter(ch, Math.sin(t * 0.4 + i) > 0.5 ? 'serve' : 'idle', dt, 1)); });
     // devotees: up the East Nada to the gopuram, round the four nadas, to the tank
-    const RZ = TZ0 - RW / 2 - 2, RX = TX1 + RW / 2 + 2;
+    const NZ = TZ0 - RW / 2 - 2, NX = TX1 + RW / 2 + 2, gx = wx1 + 2.5;
     devotees(it, people, [
-      [[2, 76], [2, 40], [2, 18], [0, 12]], [[-2, 12], [-2, 30], [-2, 60], [-2, 76]],
-      [[3, 76], [3, 30], [RX, FZ], [RX, RZ], [-RX, RZ], [-RX, FZ], [-3, FZ], [-3, 76]],
-      [[-4, 44], [wx1 + 2, PZ], [wx1 - 3, PZ], [PX + 4, PZ + PD / 2 - 1], [PX - 6, PZ + PD / 2 - 1]],
-      [[RX, -20], [RX, FZ], [6, FZ], [6, 14]], [[-6, 14], [-RX, FZ], [-RX, -40]],
-      [[4, 70], [4, 20], [8, 15]], [[-5, 74], [-5, 22], [-8, 15]]
+      [[2, 76], [2, 40], [2, 18.5]], [[-2, 18.5], [-2, 30], [-2, 60], [-2, 76]],
+      [[3, 76], [3, 30], [NX, FZ], [NX, NZ], [-NX, NZ], [-NX, FZ], [-3, FZ], [-3, 76]],
+      [[-4, 46], [gx, 46], [gx, PZ], [wx1 - 3, PZ], [wx1 - 3, wz1 - 4], [PX - 10, wz1 - 4]],
+      [[NX, -20], [NX, FZ], [6, FZ], [6, 19]], [[-6, 19], [-NX, FZ], [-NX, -40]],
+      [[4, 70], [4, 20], [8, 19]], [[-5, 74], [-5, 22], [-8, 19]]
     ], 23);
+    // inside: round the corridor, and up to the mandapam to see the god
+    const cz1 = (OZ1 + IZ1) / 2, cz0 = (OZ0 + IZ0) / 2, cx = (OX + IX) / 2;
+    devotees(it, people, [
+      [[1, -6], [1, cz1], [cx, cz1], [cx, cz0], [-cx, cz0], [-cx, cz1], [-1, cz1], [-1, -6]],
+      [[-1.5, -6], [-1.5, -20], [-1.5, MZ1 + 2.2]], [[1.5, MZ1 + 2.2], [1.5, -20], [1.5, -6]],
+      [[cx, -20], [cx, -50], [-cx, -50]].map(([x, z]) => [x, z])
+    ], 41);
     it.fauna = people;
     root.userData.colliders = C;
     return root;
@@ -1738,7 +1920,9 @@
   const BUILD = {
     gopuramTemple(it) {
       const root = place(it, padmanabhaTemple(it), 0, 0);
-      void root;
+      // the steps, porch, passage, corridor, mandapam and the tank's steps
+      const floor = root.userData.floor, y0 = root.position.y;
+      KT.Highway.addPlatform(root.position.x, root.position.z, root.rotation.y, 150, (lx, lz) => { const y = floor(lx, lz); return y === null ? null : y0 + y; });
     },
     palace(it) {
       place(it, Models.heritageHall(it.sg.def.colors), 0, 4);
