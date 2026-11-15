@@ -165,6 +165,8 @@
   };
 
   // ------------------------------------------------------------ retarget
+  HD.jawOpen = 0.3;
+  const _qj = new T.Quaternion(), _ax = new T.Vector3(1, 0, 0);
   const Q = {}, _q = new T.Quaternion(), _q2 = new T.Quaternion(), _e = new T.Euler(), _id = new T.Quaternion();
   JOINTS.forEach((j) => { Q[j] = new T.Quaternion(); });
   HD.pose = function (e) {
@@ -193,6 +195,9 @@
     const hb = e.bones.Hips;
     hb.position.copy(e.restPos);
     hb.position.y += (rig.hips.position.y - 0.93) * e.src.legRatio;
+    // talking: the jaw opens with the voice (root.userData.mouth, 0..1)
+    const jaw = e.bones.Jaw, m = e.root.userData.mouth || 0;
+    if (jaw && m > 0.01) jaw.quaternion.multiply(_qj.setFromAxisAngle(_ax, m * HD.jawOpen));
   };
 
   function show(e, on) {

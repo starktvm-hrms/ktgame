@@ -2214,8 +2214,9 @@
         place(it, rk, 62 + Math.cos(a) * r * 1.1, 16 + Math.sin(a) * r, k, { colliders: false });
       }
       const lh = Models.lighthouse({ H: 30 });
-      place(it, lh, 62, 16, 0);
+      place(it, lh, 62, 16, 0, { colliders: false });
       if (lh.userData.beam) it.anim.push((t) => { lh.userData.beam.rotation.y = t * 0.9; });
+      kovalamLighthouse(lh);
     },
     mermaidBeach(it) {
       // Shankhumugham: the mermaid in her shell back from the water, the old
@@ -2387,6 +2388,35 @@
     const m = new T.Mesh(g, KT.mat('varkalaLateriteFace', { vertexColors: true, roughness: 0.95, flatShading: true, side: T.DoubleSide }));
     m.castShadow = m.receiveShadow = true;
     return m;
+  }
+  // the Kovalam lighthouse can be entered and climbed: a door at its foot
+  // (into the tower's interior level) and the walkable gallery on top
+  function kovalamLighthouse(lh) {
+    const Hw = KT.Highway, base = lh.position.y, deck = base + lh.userData.deck;
+    lh.updateMatrixWorld(true);
+    const W = (x, y, z) => lh.localToWorld(new T.Vector3(x, y, z));
+    const c = W(0, 0, 0);
+    Hw.addCollider({ type: 'circle', x: c.x, z: c.z, r: 3.0, maxY: deck - 1.2 });
+    Hw.addPlatform(c.x, c.z, 0, 3.6, (lx, lz) => (Math.hypot(lx, lz) < 3.35 ? deck : null));
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2;
+      Hw.addCollider({ type: 'circle', x: c.x + Math.cos(a) * 3.55, z: c.z + Math.sin(a) * 3.55, r: 0.4, minY: deck - 0.6 });
+    }
+    Hw.addCollider({ type: 'circle', x: c.x, z: c.z, r: 1.45, minY: deck - 0.6 });
+    const door = W(0, 0, 2.95), out = W(0, 0, 6.3), gal = W(0, 0, -2.35), side = W(1, 0, -2.35);
+    const heading = lh.rotation.y;
+    const tx = side.x - gal.x, tz = side.z - gal.z, ox = gal.x - c.x, oz = gal.z - c.z;
+    KT.Lighthouse.kovalam = {
+      outside: { x: out.x, z: out.z, heading },
+      galleryAt: { x: gal.x, z: gal.z, heading: Math.atan2(tx, tz), camYaw: Math.atan2(-tx + ox * 0.4, -tz + oz * 0.4) },
+      gallery: new T.Vector3(gal.x, deck, gal.z),
+      deckY: deck
+    };
+    const doorV = new T.Vector3(door.x, Hw.groundY(door.x, door.z).y, door.z), dn = W(0, 0, 2.35), downV = new T.Vector3(dn.x, deck, dn.z);
+    Hw.interactables.push({ id: 'kov-lh-in', label: 'Enter the Kovalam lighthouse', radius: 3.4, pos: () => doorV,
+      enabled: () => KT.Player.pos.y < deck - 4, action: () => KT.Game.enterLighthouse({ site: 'kovalam' }) });
+    Hw.interactables.push({ id: 'kov-lh-down', label: 'Go back down the stairs', radius: 2.4, pos: () => downV,
+      enabled: () => KT.Player.pos.y > deck - 1, action: () => KT.Game.enterLighthouse({ site: 'kovalam', from: 'gallery' }) });
   }
   function sandSheet(it, X0, X1, Z0, Z1, color, minY) {
     const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz, Hw = KT.Highway;

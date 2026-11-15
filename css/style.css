@@ -663,6 +663,8 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
 #ss-role { font-size: 0.85rem; color: #d8c08e; }
 #ss-text { margin: 0; font-size: 1.08rem; line-height: 1.45; font-weight: 500; }
 #ss-next { justify-self: end; }
+.ss-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; }
+#ss-voice { font-size: 1.05rem; padding: 0.35rem 0.8rem; border-radius: 999px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(216, 160, 50, 0.6); color: #fff3d6; }
 @media (max-width: 600px) { #ss-portrait { width: 64px; height: 64px; } #ss-text { font-size: 0.98rem; } }
 
 /* chapter title card */
@@ -711,3 +713,13 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
 #story-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 49; }
 #story-flash.go { animation: flash 0.45s ease; }
 @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+
+/* filmed conversations: cinema bars, the line as a subtitle in the lower bar */
+#story-scene.cinema { top: 0; padding: 0; background: none; flex-direction: column; justify-content: space-between; align-items: stretch; pointer-events: none; }
+#story-scene.cinema::before { content: ''; height: 11vh; background: #000; animation: barIn 0.4s ease; }
+#story-scene.cinema .ss-card { pointer-events: auto; width: 100%; max-width: none; min-height: 19vh; border: 0; border-radius: 0; box-shadow: none; background: #000;
+  justify-content: center; padding: 0.8rem max(1rem, calc((100vw - 900px) / 2)); animation: barIn 0.4s ease; }
+#story-scene.cinema #ss-portrait { width: 64px; height: 64px; }
+#story-scene.cinema #ss-text { font-size: 1.18rem; color: #fff; text-shadow: 0 1px 2px #000; }
+#story-scene.cinema #ss-name { font-size: 1.05rem; }
+@keyframes barIn { from { transform: scaleY(0); } to { transform: none; } }

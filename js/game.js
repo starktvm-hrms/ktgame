@@ -321,13 +321,16 @@
     if (Game.level === 'home') {
       if (P.mode === 'foot') d.pos = { x: P.pos.x, y: P.pos.y, z: P.pos.z };
       d.heading = P.heading;
+    } else if (Game.level === 'lighthouse' && KT.Lighthouse.site === 'kovalam' && KT.Lighthouse.kovalam) {
+      // inside the Kovalam lighthouse: resume on the highway by its door
+      d.hwHub = KT.Highway.status(KT.Lighthouse.kovalam.outside).nearest;
     } else if (Game.level === 'lighthouse') {
       // inside the lighthouse: resume just outside its door
       const o = KT.Lighthouse.outside;
       d.pos = { x: o.x, y: KT.Geo.height(o.x, o.z), z: o.z };
       d.heading = o.heading;
     } else d.hwHub = KT.Highway.status(P.pos).nearest;
-    d.map = Game.level === 'lighthouse' ? 'home' : Game.level;
+    d.map = Game.level === 'lighthouse' ? (KT.Lighthouse.site === 'kovalam' ? 'highway' : 'home') : Game.level;
     d.cfg = Game.cfg;
     d.playTime = Math.round(d.playTime * 10) / 10;
     if (Game.user) {
@@ -1023,9 +1026,10 @@
     Game.switching = true;
     KT.Audio.play('door');
     Game.setState('travel');
-    await fade(true, opts.from === 'gallery' ? 'Down the spiral stairs\u2026' : 'Alappuzha Lighthouse');
+    const site = opts.site || (opts.from === 'gallery' ? LH.site : 'alappuzha');
+    LH.build(site);
+    await fade(true, opts.from === 'gallery' ? 'Down the spiral stairs\u2026' : LH.siteInfo().title);
     await nextFrame();
-    LH.build();
     const sp = opts.at || (opts.from === 'gallery' ? LH.spawnStairs : LH.spawnIn);
     const P = KT.Player;
     P.pos.set(sp.x, 0, sp.z);
@@ -1039,17 +1043,31 @@
     await fade(false);
     Game.switching = false;
     if (!opts.quiet && opts.from !== 'gallery') {
-      KT.UI.banner('Alappuzha Lighthouse', 'ആലപ്പുഴ വിളക്കുമാടം  \u2022  1862', 'title');
+      KT.UI.banner(LH.siteInfo().title, LH.siteInfo().ml, 'title');
       const d = Game.data;
       if (!d.lhVisited) { d.lhVisited = true; Game.addXP(20); setTimeout(() => KT.UI.toast('Read the exhibits and climb the spiral stairs to the gallery at the top!', 'info'), 1500); }
     }
   };
   Game.leaveLighthouse = function () {
-    const o = KT.Lighthouse.outside;
+    const LH = KT.Lighthouse;
+    if (LH.site === 'kovalam' && LH.kovalam) { const o = LH.kovalam.outside; return Game.goHighway({ spot: { x: o.x, z: o.z, heading: o.heading }, quiet: true }); }
+    const o = LH.outside;
     return Game.goHome({ at: o, heading: o.heading, quiet: true, title: 'Alappuzha Beach' });
   };
   Game.climbLighthouse = async function () {
-    const LH = KT.Lighthouse, g = LH.galleryAt;
+    const LH = KT.Lighthouse;
+    if (LH.site === 'kovalam' && LH.kovalam) {
+      const k = LH.kovalam, g = k.galleryAt;
+      await Game.goHighway({ spot: { x: g.x, z: g.z, heading: g.heading }, quiet: true });
+      const P = KT.Player;
+      P.pos.y = k.deckY + 0.3; P.vy = 0;
+      KT.CameraRig.yaw = g.camYaw; KT.CameraRig.snap = true;
+      KT.UI.toast('The three beaches of Kovalam below you! Press E by the door to go back down.', 'info');
+      const d = Game.data;
+      if (!d.kovTop) { d.kovTop = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the Kovalam lighthouse! +20 coins', 'star'); }
+      return;
+    }
+    const g = LH.galleryAt;
     await Game.goHome({ at: g, heading: g.heading, y: LH.deckY + 0.3, quiet: true, title: '142 steps up\u2026' });
     KT.CameraRig.yaw = g.camYaw; KT.CameraRig.snap = true;
     const d = Game.data;

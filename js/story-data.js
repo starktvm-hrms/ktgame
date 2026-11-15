@@ -279,7 +279,7 @@
         { type: 'reach', at: 'Jatayu Earth’s Center', title: 'Visit Jatayu Earth’s Center', desc: 'The fragment shows the great bird on the rock. Go there.' },
         { type: 'photo', count: 3, at: 'Varkala Cliff', title: 'The coastal photography challenge', desc: 'Take three photos of the cliffs from the marked viewpoints for the journal.', verb: '\u{1F4F7} Take the photo' },
         { type: 'travel', at: 'Kovalam Beach', title: 'Travel to Kovalam' },
-        { type: 'reach', at: 'Kovalam Beach', title: 'Climb to the lighthouse', desc: 'Cross Lighthouse Beach and climb Kurumkal hill to the red-and-white lighthouse.' },
+        { type: 'find', count: 1, look: 'key', at: 'Kovalam Beach', spot: 'kovalamGallery', item: 'the last clue', title: 'Climb to the lighthouse', desc: 'Go up Kurumkal hill, enter the lighthouse, climb the spiral stairs and find the last clue on the gallery.' },
         { type: 'puzzle', name: 'The final map', title: 'Solve the final map puzzle', icons: ['\u{1F33F}', '\u{1F3DB}️', '\u{1F418}', '\u{1FA94}', '\u{1F3AD}', '\u{1F9ED}'], length: 6,
           hint: 'Place the six symbols you have found in the order the lighthouse beam shows them.' },
         { type: 'scene', lines: [

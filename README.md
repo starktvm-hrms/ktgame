@@ -56,6 +56,18 @@ before **the Collector** does.
 | 11 | Varkala – Kovalam | The Coastal Mystery | |
 | 12 | Thiruvananthapuram | The Heart of Kerala | Unity |
 
+Conversations are filmed like a storyboard: the speakers turn to face each
+other and the camera cuts on every line, from an establishing wide shot to
+reverse shots over the listener's shoulder, close-ups on questions and
+exclamations, and two-shots, always from one side of the line between
+them and clear of walls, with cinema bars and the line as a subtitle.
+Each character speaks with a voice of their own (the browser's built-in
+speech: Appuppan low and slow, Meera brighter, the Collector deep), and
+the speaker's jaw opens on every word (the HD bodies have a jaw bone).
+Lines move on when the voice finishes; Next skips ahead and the speaker
+button turns the voices off. Where speech is not available the mouth
+keeps time with the words.
+
 Chapters unlock one after another on the campaign map (K, or the 📖
 button), which also shows the symbols found, badges and travel points, and
 the journal (the story so far). Each chapter takes you to its places and
@@ -563,7 +575,10 @@ Two coastal sights south of the capital, each at the end of its own road:
   boats and people on the sand.
 - **Kovalam Beach**: Lighthouse Beach, a crescent of sand below a promenade
   of beach shacks and palms, with umbrellas and swimmers, and the red-and-
-  white lighthouse on the rocky Kurumkal headland, its beam turning.
+  white lighthouse on the rocky Kurumkal headland, its beam turning. Its door
+  opens into the tower (the keeper Thankappan, exhibits on the lighthouse
+  and the three beaches, the great lens), and the spiral stairs climb to the
+  gallery at the top, 44 m above the sea; Chapter 11's last clue waits there.
 
 ## Alappuzha lighthouse
 

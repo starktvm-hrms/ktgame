@@ -98,38 +98,218 @@
   }
   // hold the game while an overlay is up, and give it back after
   function hold() { const G = KT.Game, before = G.state; if (before !== 'story') G.setState('story'); return () => { if (KT.Game.state === 'story') KT.Game.setState(before === 'story' || before === 'travel' ? 'playing' : before); }; }
+  // ------------------------------------------------- cinematic scenes
+  // Conversations are filmed: the speakers face each other, the camera
+  // cuts per line between an establishing wide shot, two-shots, reverse
+  // shots over the listener's shoulder and close-ups (keeping to one side
+  // of the line between them), with letterbox bars and subtitles. Each
+  // character speaks with their own voice (the browser's speech), and
+  // their jaw opens on every word; without speech the mouth keeps time.
+  const VOICES = {
+    appuppan: { pitch: 0.75, rate: 0.86 }, meera: { pitch: 1.15, rate: 1.0 }, collector: { pitch: 0.5, rate: 0.9 },
+    agent: { pitch: 0.7, rate: 1.0 }, narrator: { pitch: 0.95, rate: 0.92, male: true }
+  };
+  S.voiceOn = (() => { try { return localStorage.getItem('kt-voices') !== '0'; } catch (e) { return true; } })();
+  let voiceList = null;
+  function pickVoice(male) {
+    const syn = window.speechSynthesis;
+    if (!syn) return null;
+    if (!voiceList || !voiceList.length) voiceList = syn.getVoices().filter((v) => /^en/i.test(v.lang));
+    if (!voiceList.length) return null;
+    const F = /female|woman|zira|samantha|heera|veena|susan|karen|moira|tessa|fiona|victoria|kate|serena|google uk english female|aria|jenny|sonia|neerja/i;
+    const Mm = /\bmale\b|man|david|ravi|daniel|alex|fred|george|guy|ryan|rishi|prabhat|google uk english male|arthur|thomas/i;
+    const pool = voiceList.filter((v) => (male ? Mm.test(v.name) && !F.test(v.name) : F.test(v.name)));
+    const order = (l) => l.slice().sort((a, b) => (/en-IN/i.test(b.lang) ? 1 : 0) - (/en-IN/i.test(a.lang) ? 1 : 0));
+    return order(pool)[0] || order(voiceList)[0];
+  }
+  // say a line; onWord on each word, onEnd when done (a timer stands in
+  // when speech is off or unavailable)
+  function speak(who, text, onWord, onEnd) {
+    const syn = window.speechSynthesis;
+    let done = false, fake = null;
+    const end = () => { if (done) return; done = true; if (fake) clearInterval(fake); onEnd(); };
+    const fallback = () => {
+      if (done || fake) return;
+      const words = text.split(/\s+/).length, per = 0.27, t0 = performance.now();
+      let n = 0;
+      fake = setInterval(() => {
+        if (done) return;
+        if (n < words) { onWord(); n++; } else if ((performance.now() - t0) / 1000 > words * per + 0.3) end();
+      }, per * 1000);
+    };
+    const c = castOf(who), male = who === 'narrator' ? true : !(c.cfg && c.cfg.gender === 'female');
+    const vs = VOICES[who] || { pitch: male ? 0.9 : 1.1, rate: 0.98 };
+    if (S.voiceOn && syn && typeof SpeechSynthesisUtterance !== 'undefined') {
+      try {
+        syn.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const v = pickVoice(vs.male !== undefined ? vs.male : male);
+        if (v) u.voice = v;
+        u.pitch = vs.pitch; u.rate = vs.rate; u.volume = 1;
+        let started = false;
+        u.onstart = () => { started = true; };
+        u.onboundary = (e) => { if (!e.name || e.name === 'word') onWord(); };
+        u.onend = end;
+        u.onerror = () => { if (!started) fallback(); else end(); };
+        syn.speak(u);
+        setTimeout(() => { if (!started && !done) { syn.cancel(); fallback(); } }, 1600);
+        return () => { done = true; if (fake) clearInterval(fake); try { syn.cancel(); } catch (e) { /* ignore */ } };
+      } catch (e) { /* fall through */ }
+    }
+    fallback();
+    return () => { done = true; if (fake) clearInterval(fake); };
+  }
+
+  const _a = new T.Vector3(), _b = new T.Vector3();
+  function headOf(o) {
+    const h = o.userData.rig && o.userData.rig.head;
+    if (h) { h.getWorldPosition(_a); return _a.clone().add(new T.Vector3(0, 0.12, 0)); }
+    return o.position.clone().add(new T.Vector3(0, 1.55, 0));
+  }
+  function actorOf(who) {
+    if (who === 'player') return KT.Player.obj;
+    const o = S.chars[who];
+    return o && o.parent && o.position.distanceTo(KT.Player.pos) < 30 ? o : null;
+  }
+
+  // nothing solid between the camera and what it looks at
+  function clearShot(from, to) {
+    for (let k = 1; k <= 6; k++) {
+      const t = k / 7, x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t;
+      if (KT.Highway.isBlocked && KT.Highway.isBlocked(x, z, 0.25)) return false;
+    }
+    return !(KT.Highway.isBlocked && KT.Highway.isBlocked(from.x, from.z, 0.35));
+  }
+
   S.scene = function (lines, opts) {
     opts = opts || {};
     return new Promise((resolve) => {
       if (!lines || !lines.length) return resolve();
+      const G = KT.Game, P = KT.Player;
+      const film = G.level === 'highway' && G.state === 'playing' && P.mode === 'foot';
       const release = hold(), box = $('story-scene');
-      let i = 0;
+      // the cast on set: the player and the first other speaker who is here
+      const other = film ? lines.map((l) => l[0]).filter((w) => w !== 'player' && w !== 'narrator').map(actorOf).find(Boolean) : null;
+      const cam = G.camera, fov0 = cam.fov;
+      if (film) P.obj.position.copy(P.pos); // (the body follows the player only while playing)
+      if (film && other) {
+        // stand face to face, a conversation apart
+        const d = new T.Vector3().subVectors(P.pos, other.position); d.y = 0;
+        const len = d.length() || 1;
+        if (len > 2.4 || len < 1.2) {
+          const np = other.position.clone().add(d.multiplyScalar(1.75 / len));
+          np.y = KT.Highway.groundY(np.x, np.z).y;
+          P.pos.copy(np); P.obj.position.copy(np);
+        }
+        P.heading = Math.atan2(other.position.x - P.pos.x, other.position.z - P.pos.z);
+        P.obj.rotation.y = P.heading;
+        other.rotation.y = Math.atan2(P.pos.x - other.position.x, P.pos.z - other.position.z);
+      }
+      box.classList.toggle('cinema', film);
+      let sideSign = 0;
+      let i = 0, shotT = 0, shot = null, mouth = 0, stop = null, raf = 0, last = performance.now(), auto = null;
+      const speakerObj = () => { const w = lines[i][0]; return w === 'narrator' ? null : actorOf(w); };
+      function makeShot() {
+        if (!film) return null;
+        const who = lines[i][0], A = headOf(P.obj);
+        if (!other) {
+          // the player alone (a call, the narrator): a close shot, then wider
+          const f = new T.Vector3(Math.sin(P.heading), 0, Math.cos(P.heading));
+          const sd = new T.Vector3(f.z, 0, -f.x);
+          const wide = who === 'narrator' || i === 0;
+          return { pos: A.clone().add(f.clone().multiplyScalar(wide ? 4.2 : 1.25)).add(sd.multiplyScalar(wide ? 1.6 : 0.35)).add(new T.Vector3(0, wide ? 0.9 : 0.05, 0)), look: A.clone().add(new T.Vector3(0, wide ? -0.3 : 0, 0)), fov: wide ? 45 : 32 };
+        }
+        const B = headOf(other), mid = A.clone().add(B).multiplyScalar(0.5);
+        const ab = B.clone().sub(A); ab.y = 0; ab.normalize();
+        // one side of the line between them, all scene long: the side the
+        // wide shot can see from
+        if (sideSign === 0) sideSign = clearShot(mid.clone().add(new T.Vector3(ab.z, 0, -ab.x).multiplyScalar(5.4)), mid) ? 1 : clearShot(mid.clone().add(new T.Vector3(-ab.z, 0, ab.x).multiplyScalar(5.4)), mid) ? -1 : 1;
+        const side = new T.Vector3(ab.z, 0, -ab.x).multiplyScalar(sideSign);
+        const S1 = who === 'player' ? A : who === 'narrator' ? null : B, L1 = who === 'player' ? B : A;
+        const text = lines[i][1];
+        let kind;
+        if (i === 0 || !S1) kind = 'wide';
+        else if (/[!?]\s*$/.test(text) || i % 4 === 2) kind = 'close';
+        else if (i % 4 === 3) kind = 'two';
+        else kind = 'ots';
+        if (kind === 'wide') {
+          // as wide as the walls allow
+          for (const d of [5.4, 4.0, 2.8]) {
+            const pos = mid.clone().add(side.clone().multiplyScalar(d)).add(ab.clone().multiplyScalar(-d * 0.22)).add(new T.Vector3(0, 0.2 + d * 0.17, 0));
+            if (clearShot(pos, mid) || d === 2.8) return { pos, look: mid.clone().add(new T.Vector3(0, -0.35, 0)), fov: d > 3 ? 46 : 52 };
+          }
+        }
+        if (kind === 'two') return { pos: mid.clone().add(side.clone().multiplyScalar(2.7)).add(new T.Vector3(0, 0.15, 0)), look: mid, fov: 40 };
+        const toL = L1.clone().sub(S1); toL.y = 0; toL.normalize();
+        if (kind === 'close') return { pos: S1.clone().add(toL.clone().multiplyScalar(1.15)).add(side.clone().multiplyScalar(0.28)).add(new T.Vector3(0, 0.02, 0)), look: S1.clone(), fov: 30 };
+        // over the listener's shoulder at the speaker
+        return { pos: L1.clone().add(toL.clone().multiplyScalar(0.7)).add(side.clone().multiplyScalar(0.48)).add(new T.Vector3(0, 0.14, 0)), look: S1.clone(), fov: 34 };
+      }
+      function frame() {
+        const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000);
+        last = now;
+        shotT += dt;
+        mouth = Math.max(0, mouth - dt * 5.5);
+        const sp = speakerObj();
+        const open = mouth * (0.55 + 0.45 * Math.sin(now / 1000 * 24));
+        [P.obj, other].forEach((o) => {
+          if (!o) return;
+          const talking = o === sp;
+          o.userData.mouth = talking ? Math.max(0, open) : 0;
+          KT.Models.animateCharacter(o, talking ? 'chat' : 'idle', dt, 1);
+        });
+        if (shot) {
+          const k = Math.min(1, shotT / 5) * 0.06; // a slow push in
+          cam.position.lerpVectors(shot.pos, shot.look, k);
+          cam.lookAt(shot.look);
+          if (cam.fov !== shot.fov) { cam.fov = shot.fov; cam.updateProjectionMatrix(); }
+        }
+        raf = requestAnimationFrame(frame);
+      }
       const show = () => {
         const [who, text] = lines[i];
         const c = castOf(who);
         const url = who === 'narrator' ? '' : portrait(who);
         $('ss-portrait').src = url || '';
-        $('ss-portrait').classList.toggle('hidden', !url);
+        $('ss-portrait').classList.toggle('hidden', !url || (film && !!speakerObj()));
         $('ss-name').textContent = who === 'narrator' ? '' : c.name;
         $('ss-role').textContent = who === 'narrator' ? '' : c.role || '';
         $('ss-text').textContent = text;
         box.classList.toggle('villain', who === 'collector' || who === 'agent');
         box.classList.toggle('narrator', who === 'narrator');
         $('ss-next').textContent = i < lines.length - 1 ? 'Next ▶' : (opts.last || 'Continue ▶');
-        KT.Audio.play('talk');
+        shot = makeShot(); shotT = 0;
+        if (stop) stop();
+        clearTimeout(auto);
+        stop = speak(who, text, () => { mouth = 1; }, () => { auto = setTimeout(next, 900); });
       };
       const next = () => {
+        clearTimeout(auto);
+        if (stop) { stop(); stop = null; }
         i++;
         if (i < lines.length) return show();
+        cancelAnimationFrame(raf);
         document.removeEventListener('keydown', key);
+        [P.obj, other].forEach((o) => { if (o) o.userData.mouth = 0; });
         box.classList.add('hidden');
+        box.classList.remove('cinema');
+        if (cam.fov !== fov0) { cam.fov = fov0; cam.updateProjectionMatrix(); }
+        KT.CameraRig.yaw = P.heading + Math.PI; KT.CameraRig.snap = true;
         release();
         resolve();
       };
       const key = (e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'e' || e.key === 'E') { e.preventDefault(); next(); } };
       $('ss-next').onclick = next;
+      $('ss-voice').textContent = S.voiceOn ? '\u{1F50A}' : '\u{1F507}';
+      $('ss-voice').onclick = () => {
+        S.voiceOn = !S.voiceOn;
+        try { localStorage.setItem('kt-voices', S.voiceOn ? '1' : '0'); } catch (e) { /* ignore */ }
+        $('ss-voice').textContent = S.voiceOn ? '\u{1F50A}' : '\u{1F507}';
+        show();
+      };
       document.addEventListener('keydown', key);
       box.classList.remove('hidden');
+      raf = requestAnimationFrame(frame);
       show();
     });
   };
@@ -393,7 +573,7 @@
   }
   function placeChar(who, at) {
     let o = S.chars[who];
-    if (!o) { o = KT.Models.character(Object.assign({ lite: true }, castOf(who).cfg)); S.chars[who] = o; }
+    if (!o) { o = KT.Models.character(Object.assign({ lite: true }, castOf(who).cfg)); S.chars[who] = o; if (KT.HD) KT.HD.always(o); }
     o.position.copy(at);
     if (o.parent !== KT.Game.scene) KT.Game.scene.add(o);
     const P = KT.Player.pos;
@@ -480,7 +660,22 @@
           if (s.with) [].concat(s.with).forEach((w, k) => placeChar(w, near.clone().add(new T.Vector3(1.6 + k, 0, 1.2 - k))));
           break;
         }
-        case 'find': addItems(s.count || 3, s.look || 'clue', sg, s.spread || 8); break;
+        case 'find':
+          if (s.spot === 'kovalamGallery') {
+            // up on the lighthouse gallery (it exists once the beach is built)
+            for (let k = 0; k < 40 && !KT.Lighthouse.kovalam; k++) await sleep(250);
+            const g = KT.Lighthouse.kovalam;
+            if (g) {
+              const o = makeItem(s.look || 'clue');
+              o.position.copy(g.gallery);
+              o.userData.item = s.look || 'clue'; o.userData.idx = 0;
+              KT.Game.scene.add(o);
+              S.objs.push(o);
+              break;
+            }
+          }
+          addItems(s.count || 3, s.look || 'clue', sg, s.spread || 8);
+          break;
         case 'press': addItems(s.count || 3, 'press', sg, s.spread || 8); break;
         case 'photo': addItems(s.count || 1, 'photo', sg, 6, 0.7); break;
         case 'symbol': {

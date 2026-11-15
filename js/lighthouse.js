@@ -35,6 +35,30 @@
       'When you’re ready, take the spiral stairs — the view from the gallery at the top is the best on the whole coast!']
   };
 
+  // The same tower interior serves two lighthouses; the words change.
+  const SITES = {
+    alappuzha: { title: 'Alappuzha Lighthouse', ml: 'ആലപ്പുഴ വിളക്കുമാടം  \u2022  1862', rose: 'ALAPPUZHA 1862', exit: 'EXIT \u2022 Alappuzha Beach', exitLabel: 'Go outside to Alappuzha beach',
+      board: ['Built in 1862', 'Once lit with coconut oil', 'Guarding the Alappuzha coast'], beachTitle: 'Alappuzha Beach', beachLines: ['Golden sand \u2022 the old pier', 'Ships, coir and spices', 'Climb up for the view!'], keeperName: 'Abdul' },
+    kovalam: { title: 'Kovalam Lighthouse', ml: 'കോവളം വിളക്കുമാടം  \u2022  1972', rose: 'KOVALAM 1972', exit: 'EXIT \u2022 Lighthouse Beach', exitLabel: 'Go outside to Lighthouse Beach',
+      board: ['Opened in 1972', 'On Kurumkal hill', 'Guarding Vizhinjam harbour'], beachTitle: 'Kovalam\u2019s beaches', beachLines: ['Lighthouse Beach \u2022 Hawa Beach', 'Samudra Beach', 'Climb up for the view!'], keeperName: 'Thankappan' }
+  };
+  const SITE_FACTS = {
+    kovalam: {
+      history: ['This lighthouse stands on Kurumkal hill above Kovalam\u2019s Lighthouse Beach. It was opened in 1972 and is about 36 m tall.',
+        'Its light guides fishing boats and ships into Vizhinjam, one of the oldest harbours on the coast, just to the south.',
+        'Its tower is painted in red and white bands, so it is easy to see by day as well.'],
+      beaches: ['Kovalam has three crescent beaches: Lighthouse Beach below this tower, Hawa Beach and Samudra Beach.',
+        'Rocky headlands between the beaches make calm bays for swimming.',
+        'From the gallery at the top you can see all three beaches, the fishing harbour and the palm coast far to the north.'],
+      keeper: ['Namaskaram! I\u2019m Thankappan, the keeper. Welcome to the Kovalam lighthouse.',
+        'Read the exhibits and press E to look closely. The great lens is at the back.',
+        'Then climb the spiral stairs. The view of the three beaches from the gallery is wonderful!']
+    }
+  };
+  let SITE = SITES.alappuzha;
+  LH.site = 'alappuzha';
+  LH.siteInfo = () => SITE;
+
   // ------------------------------------------------------------ helpers
   function addCol(c) {
     if (c.type === 'box') { c.cos = Math.cos(c.rot || 0); c.sin = Math.sin(c.rot || 0); c.ext = Math.hypot(c.hw, c.hd); } else c.ext = c.r;
@@ -72,8 +96,14 @@
   }
 
   // -------------------------------------------------------------- build
-  LH.build = function () {
-    if (LH.built) return;
+  LH.cache = {};
+  LH.build = function (site) {
+    site = site || 'alappuzha';
+    SITE = SITES[site] || SITES.alappuzha;
+    LH.site = site;
+    if (LH.cache[site]) { Object.assign(LH, LH.cache[site]); return; }
+    LH.colliders = []; LH.interactables = [];
+    const F = Object.assign({}, FACTS, SITE_FACTS[site] || {});
     const M = KT.M, G = KT.G, part = KT.part;
     const scene = LH.scene = new T.Scene();
     scene.background = new T.Color(0x1a2430);
@@ -88,7 +118,7 @@
     const border = new T.Mesh(new T.RingGeometry(R - 0.9, R - 0.55, 48), new T.MeshStandardMaterial({ color: 0x9c2a22, roughness: 0.7 }));
     border.rotation.x = -Math.PI / 2; border.position.y = 0.01;
     room.add(border);
-    const rose = KT.textTexture([{ text: 'N', size: 90 }, { text: '✦', size: 150 }, { text: 'ALAPPUZHA 1862', size: 34 }], { width: 512, height: 512, bg: '#8a6a2e', borderColor: '#c9953a', color: '#f7e7b5' });
+    const rose = KT.textTexture([{ text: 'N', size: 90 }, { text: '✦', size: 150 }, { text: SITE.rose, size: 34 }], { width: 512, height: 512, bg: '#8a6a2e', borderColor: '#c9953a', color: '#f7e7b5' });
     const roseM = new T.Mesh(new T.CircleGeometry(1.1, 32), new T.MeshStandardMaterial({ map: rose, roughness: 0.5, metalness: 0.3 }));
     roseM.rotation.x = -Math.PI / 2; roseM.rotation.z = Math.PI; roseM.position.set(0, 0.012, 4.4);
     room.add(roseM);
@@ -142,10 +172,10 @@
     room.add(door);
     part(room, G.box(1.8, 0.2, 0.2), M.woodDark, dp.x, 2.6, dp.z - 0.05);
     part(room, G.sph(0.06, 8, 6), M.brass, 0.5, 1.2, dp.z - 0.06);
-    const exitSign = board('EXIT • Alappuzha Beach', [], 1.6, 0.4);
+    const exitSign = board(SITE.exit, [], 1.6, 0.4);
     exitSign.position.set(0, 3.0, dp.z - 0.05); exitSign.rotation.y = Math.PI;
     room.add(exitSign);
-    interact('lh-exit', 'Go outside to Alappuzha beach', { x: 0, z: R - 1.0 }, 2.0, () => KT.Game.leaveLighthouse());
+    interact('lh-exit', SITE.exitLabel, { x: 0, z: R - 1.0 }, 2.0, () => KT.Game.leaveLighthouse());
 
     // central spiral staircase
     part(room, G.cyl(0.3, 0.32, HGT + 0.6, 16), M.white, 0, (HGT + 0.6) / 2, 0);
@@ -184,12 +214,12 @@
     lensLight.position.set(lp.x, 2.0, lp.z);
     scene.add(lensLight);
     addCol({ type: 'circle', x: lp.x, z: lp.z, r: 0.95 });
-    interact('lh-lens', 'Look at the Fresnel lens', ring(Math.PI, 3.6), 1.8, read('The Fresnel lens', FACTS.lens, 'lens'));
+    interact('lh-lens', 'Look at the Fresnel lens', ring(Math.PI, 3.6), 1.8, read('The Fresnel lens', F.lens, 'lens'));
 
     // information boards on the wall
-    [[0.7, 'Alappuzha Lighthouse', ['Built in 1862', 'Once lit with coconut oil', 'Guarding the Alappuzha coast'], 'history', FACTS.history],
-     [-0.7, 'How it works', ['A lamp + a rotating lens', '= a sweeping beam of light', 'Every tower flashes its own rhythm'], 'works', FACTS.works],
-     [0.22, 'Alappuzha Beach', ['Golden sand • the old pier', 'Ships, coir and spices', 'Climb up for the view!'], 'beaches', FACTS.beaches]].forEach(([k, title, lines, key, facts]) => {
+    [[0.7, SITE.title, SITE.board, 'history', F.history],
+     [-0.7, 'How it works', ['A lamp + a rotating lens', '= a sweeping beam of light', 'Every tower flashes its own rhythm'], 'works', F.works],
+     [0.22, SITE.beachTitle, SITE.beachLines, 'beaches', F.beaches]].forEach(([k, title, lines, key, facts]) => {
       const a = Math.PI * k;
       const p = ring(a, R - 0.17);
       const b = board(title, lines, 2.1, 1.4);
@@ -248,7 +278,7 @@
     caseG.position.set(sc.x, 0, sc.z); caseG.rotation.y = -Math.PI * 0.2;
     room.add(caseG);
     addCol({ type: 'box', x: sc.x, z: sc.z, hw: 0.65, hd: 0.35, rot: -Math.PI * 0.2 });
-    interact('lh-ship', 'Look at the model ship', ring(-Math.PI * 0.2, 4.5), 1.6, read('Model ship', FACTS.ship, 'ship'));
+    interact('lh-ship', 'Look at the model ship', ring(-Math.PI * 0.2, 4.5), 1.6, read('Model ship', F.ship, 'ship'));
 
     // the keeper
     const kp = ring(Math.PI * 0.3, 4.9);
@@ -257,7 +287,7 @@
     keeper.rotation.y = Math.atan2(-kp.x, -kp.z) + 0.6;
     scene.add(keeper);
     addCol({ type: 'circle', x: kp.x, z: kp.z, r: 0.45 });
-    interact('lh-keeper', 'Talk to Abdul (Lighthouse Keeper)', kp, 2.4, () => { LH.keeperTalk = 3; read('Abdul (Lighthouse Keeper)', FACTS.keeper, null)(); });
+    interact('lh-keeper', 'Talk to ' + SITE.keeperName + ' (Lighthouse Keeper)', kp, 2.4, () => { LH.keeperTalk = 3; read(SITE.keeperName + ' (Lighthouse Keeper)', F.keeper, null)(); });
 
     // wall sconces
     [0.15, -0.15, 0.57, -0.57, 1].forEach((k) => {
@@ -277,6 +307,7 @@
 
     scene.add(KT.bake(room));
     LH.built = true;
+    LH.cache[site] = { scene, colliders: LH.colliders, interactables: LH.interactables, lens: LH.lens, bell: LH.bell, keeper: LH.keeper, hemi: LH.hemi, sky: LH.sky };
   };
 
   // ---------------------------------------------- level interface (KT.L)
