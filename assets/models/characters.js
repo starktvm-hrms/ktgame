@@ -115,12 +115,46 @@
   // ------------------------------------------------------------- head
   // Tall soft oval with full cheeks and a rounded chin (toy-figure style).
   const HEAD = { rx: 0.1, ry: 0.128, rz: 0.11 };
+  // The face is sculpted on the head: eye sockets under a brow, cheekbones,
+  // a nose bridge running down to the tip, a mouth area and a chin. The
+  // vertices also carry a skin shading (warmer cheeks and lips, shadow under
+  // the brow and the jaw) that skinify multiplies into the skin colour.
+  const gs = (x, y, cx, cy, sx, sy) => Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
+  function sculpt(female, x, y, z) {
+    if (z <= 0.2) return 0;
+    const f = KT.smoothstep(0.2, 0.75, z), m = female ? 0.7 : 1;
+    let d = 0;
+    d -= 0.075 * (gs(x, y, 0.36, 0.09, 0.2, 0.13) + gs(x, y, -0.36, 0.09, 0.2, 0.13));                 // eye sockets
+    d += 0.035 * m * gs(x, y, 0, 0.24, 0.62, 0.07);                                                      // brow ridge
+    d += 0.03 * (gs(x, y, 0.5, -0.12, 0.17, 0.14) + gs(x, y, -0.5, -0.12, 0.17, 0.14));                 // cheekbones
+    d += 0.11 * gs(x, 0, 0, 0, 0.085, 1) * KT.smoothstep(0.18, -0.28, y) * KT.smoothstep(-0.42, -0.3, y); // nose bridge to the tip
+    d += 0.035 * gs(x, y, 0, -0.52, 0.3, 0.1);                                                           // lips
+    d -= 0.02 * gs(x, y, 0, -0.66, 0.25, 0.05);                                                          // under the lower lip
+    d += (female ? 0.03 : 0.05) * gs(x, y, 0, -0.84, 0.22, 0.12);                                       // chin
+    return d * f;
+  }
+  function skinShade(female, x, y, z) {
+    if (z <= 0) return [1 - 0.05 * KT.smoothstep(-0.4, -1, y), 1 - 0.06 * KT.smoothstep(-0.4, -1, y), 1 - 0.06 * KT.smoothstep(-0.4, -1, y)];
+    const f = KT.smoothstep(0.1, 0.6, z);
+    const cheek = (gs(x, y, 0.5, -0.22, 0.2, 0.15) + gs(x, y, -0.5, -0.22, 0.2, 0.15)) * f * (female ? 1.3 : 0.8);
+    const lip = gs(x, y, 0, -0.53, 0.2, 0.06) * f * (female ? 1.4 : 1);
+    const socket = (gs(x, y, 0.36, 0.13, 0.17, 0.08) + gs(x, y, -0.36, 0.13, 0.17, 0.08)) * f;
+    const jaw = KT.smoothstep(-0.55, -1, y) * 0.5;
+    const r = 1 + 0.06 * cheek + 0.05 * lip - 0.1 * socket - 0.06 * jaw;
+    const gg = 1 - 0.05 * cheek - 0.2 * lip - 0.12 * socket - 0.07 * jaw;
+    const b = 1 - 0.05 * cheek - 0.16 * lip - 0.09 * socket - 0.07 * jaw;
+    return [r, gg, b];
+  }
   function headShape(female, full, ws, hs) {
-    const g = new T.SphereGeometry(1, ws || (full ? 40 : sg(40)), hs || (full ? 30 : sg(30)));
-    const P = g.attributes.position;
+    const g = new T.SphereGeometry(1, ws || (full ? 48 : sg(48)), hs || (full ? 36 : sg(36)));
+    const P = g.attributes.position, col = [];
     for (let i = 0; i < P.count; i++) {
       let x = P.getX(i), y = P.getY(i), z = P.getZ(i);
-      const wx = 1 + 0.08 * KT.smoothstep(0.5, -0.35, y) - 0.22 * KT.smoothstep(-0.55, -1, y) - 0.06 * KT.smoothstep(0.4, 1, y);
+      const sh = skinShade(female, x, y, z);
+      col.push(sh[0], sh[1], sh[2]);
+      z += sculpt(female, x, y, z);
+      // a defined jaw: narrower below the cheeks, a firmer angle for men
+      const wx = 1 + 0.03 * KT.smoothstep(0.5, -0.35, y) - (female ? 0.27 : 0.23) * KT.smoothstep(-0.45, -1, y) - 0.06 * KT.smoothstep(0.4, 1, y);
       const wz = 1 - 0.1 * KT.smoothstep(-0.5, -1, y);
       if (z > 0) z *= 0.94;
       x *= HEAD.rx * wx * (female ? 0.95 : 1);
@@ -128,7 +162,17 @@
       z *= HEAD.rz * wz;
       P.setXYZ(i, x, y, z);
     }
+    g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     g.computeVertexNormals();
+    // the face catches the light: its normals lean forward and a little up, so
+    // the lower face is not thrown into shadow (the usual trick for faces)
+    const N = g.attributes.normal, n = new T.Vector3(), fwd = new T.Vector3(0, 0.35, 1).normalize();
+    for (let i = 0; i < N.count; i++) {
+      const z = P.getZ(i);
+      if (z <= 0) continue;
+      n.fromBufferAttribute(N, i).lerp(fwd, 0.55 * KT.smoothstep(0, HEAD.rz * 0.8, z)).normalize();
+      N.setXYZ(i, n.x, n.y, n.z);
+    }
     return g;
   }
   const faceMesh = {};
@@ -276,61 +320,67 @@
     const rig = face.userData.rig;
     const dark = C(0x1a120c), white = C(0xffffff);
     const browMat = C(cfg.beard ? 0xd8d4cc : (cfg.hairColor || 0x2a1a12));
-    // the cel-shaded (Ghibli) look: bigger, glossier eyes, a small soft
-    // nose and a rosy blush
-    const toon = KT.Toon && KT.Toon.enabled;
-    const nose = tint(skinHex, 0xe06a5a, toon ? 0.1 : 0.18);
-    // eyes: small glossy ovals (blink via joint scale)
+    // Realistic features (in both looks): eyes with whites, a coloured iris,
+    // pupil and catch-light, under an upper lid with lashes and a crease; a
+    // nose with its tip and nostril wings; shaped lips; detailed ears.
+    const lidM = C(skinHex), crease = tint(skinHex, 0x5a3020, 0.25), lashM = C(0x120c08);
+    const sclera = C(0xf1ece2), irisM = C(cfg.eyeColor || [0x3a2414, 0x4a2c16, 0x2e1c10][(cfg.seed || 0) % 3]), pupil = C(0x080606);
+    const lipM = female ? tint(skinHex, 0xb03848, 0.45) : tint(skinHex, 0x8a3a34, 0.32), lipDark = tint(skinHex, 0x4a1a14, 0.55);
+    const ex = female ? 0.038 : 0.039, ey = 0.014;
     [-1, 1].forEach((s) => {
-      const x = s * 0.04, y = 0.012;
+      const x = s * ex, y = ey;
       const eye = new T.Group();
-      eye.position.set(x, y, fz(x, y) - 0.003);
-      eye.rotation.y = s * 0.3;
+      eye.position.set(x, y, fz(x, y) + 0.001);
+      eye.rotation.y = s * 0.28;
       face.add(eye);
       rig['eye' + (s > 0 ? 'L' : 'R')] = eye;
-      if (toon) {
-        ell(eye, dark, 0, -0.001, 0, 0.0125, female ? 0.02 : 0.0175, 0.0075, 0, 0, 0, 14);
-        ell(eye, white, s * 0.0038, 0.0068, 0.006, 0.0042, 0.0042, 0.002, 0, 0, 0, 8);
-        ell(eye, white, -s * 0.003, -0.0065, 0.006, 0.0019, 0.0019, 0.001, 0, 0, 0, 6);
-      } else {
-        ell(eye, dark, 0, 0, 0, 0.0105, female ? 0.015 : 0.0135, 0.007, 0, 0, 0, 12);
-        ell(eye, white, s * 0.003, 0.005, 0.005, 0.003, 0.003, 0.002, 0, 0, 0, 6);
-      }
-      if (female) part(eye, G.cone(0.003, 0.012, 5), dark, s * 0.011, 0.008, 0.002, 0, 0, -s * 0.9);
-      // brows: thick soft strokes
-      const bx = s * 0.045, by = female ? 0.046 : 0.044;
+      ell(eye, sclera, 0, 0.0004, -0.002, 0.0135, 0.0082, 0.006, 0, 0, s * 0.06, 14);           // the white, almond-shaped
+      ell(eye, irisM, s * 0.0005, 0.0006, 0.0034, 0.0066, 0.0066, 0.0016, 0, 0, 0, 14);     // iris
+      ell(eye, pupil, s * 0.0005, 0.0003, 0.0046, 0.0028, 0.0028, 0.0008, 0, 0, 0, 10);     // pupil
+      ell(eye, C(0xffffff), s * 0.0025, 0.0028, 0.0052, 0.0013, 0.0013, 0.0005, 0, 0, 0, 6); // catch-light
+      ell(eye, lidM, 0, 0.0082, 0.0004, 0.0152, 0.0052, 0.0072, 0.35, 0, s * 0.06, 12);       // upper lid
+      ell(eye, lashM, 0, 0.0058, 0.0048, 0.0145, 0.0011 * (female ? 1.6 : 1), 0.0016, 0.1, 0, s * 0.06, 10); // lash line
+      if (female) [0, 1, 2].forEach((k) => part(eye, G.cone(0.0012, 0.005, 4), lashM, s * (0.007 + k * 0.0035), 0.007, 0.0048, -0.4, 0, -s * (0.5 + k * 0.25)));
+      ell(eye, crease, 0, 0.0132, -0.0006, 0.0142, 0.0011, 0.003, 0.2, 0, s * 0.06, 8);       // crease
+      ell(eye, lidM, 0, -0.0072, 0.0002, 0.0138, 0.0024, 0.0058, -0.3, 0, s * 0.06, 10);     // lower lid
+      // brows: tapering, a little arched
+      const bx = s * 0.044, by = female ? 0.046 : 0.042;
       const brow = new T.Group();
-      brow.position.set(bx, by, fz(bx, by));
-      brow.rotation.set(-0.2, s * 0.3, s * (female ? -0.12 : -0.05));
+      brow.position.set(bx, by, fz(bx, by) + 0.002);
+      brow.rotation.set(-0.25, s * 0.3, s * (female ? -0.1 : -0.04));
       face.add(brow);
-      for (let i = 0; i < 7; i++) {
-        const t = i / 6;
-        const w = (female ? 0.0045 : 0.0065) * (1 - Math.abs(t - 0.35) * 0.6);
-        ell(brow, browMat, s * (-0.017 + t * 0.034), Math.sin(t * Math.PI) * 0.0045, 0, 0.008, w, 0.004, 0, 0, s * (0.3 - t * 0.6), 8);
+      for (let i = 0; i < 9; i++) {
+        const t = i / 8;
+        const w = (female ? 0.0026 : 0.0042) * (1.15 - t * 0.7);
+        ell(brow, browMat, s * (-0.018 + t * 0.036), Math.sin(t * Math.PI * 0.85) * (female ? 0.005 : 0.0032), 0, 0.0055, w, 0.0025, 0, 0, s * (0.25 - t * 0.5), 6);
       }
-      // ears
-      ell(face, C(skinHex), s * 0.098, -0.005, -0.012, 0.014, 0.03, 0.022, 0, s * 0.4, 0, 12);
-      ell(face, tint(skinHex, 0xc0604a, 0.25), s * 0.104, -0.005, -0.006, 0.006, 0.018, 0.012, 0, s * 0.4, 0, 8);
+      // ears: the outer rim (helix), the bowl and the lobe
+      const ear = new T.Group();
+      ear.position.set(s * 0.097, -0.004, -0.012); ear.rotation.set(0, s * 0.35, 0);
+      face.add(ear);
+      ell(ear, C(skinHex), 0, 0, 0, 0.01, 0.028, 0.019, 0, 0, 0, 12);
+      part(ear, G.torus(0.017, 0.0035, 6, 18, Math.PI * 1.5), C(skinHex), s * 0.006, 0.004, 0.0, 0, s * Math.PI / 2, -Math.PI / 4, 1, 1.3, 1);
+      ell(ear, tint(skinHex, 0x7a3a2a, 0.3), s * 0.007, 0.002, 0.003, 0.003, 0.013, 0.008, 0, 0, 0, 8);
+      ell(ear, tint(skinHex, 0xff8a7a, 0.12), s * 0.002, -0.022, 0.003, 0.007, 0.008, 0.007, 0, 0, 0, 8);
       if (female) {
-        part(face, G.sph(0.007, 8, 6), C(0xd4a434), s * 0.1, -0.04, -0.008);
-        part(face, G.cone(0.01, 0.016, 10), C(0xd4a434), s * 0.1, -0.053, -0.008);
+        part(face, G.sph(0.0055, 8, 6), C(0xd4a434), s * 0.1, -0.03, -0.006);
+        part(face, G.cone(0.008, 0.014, 10), C(0xd4a434), s * 0.1, -0.042, -0.006);
       }
-      // cheeks
-      const cx = s * 0.058, cy = -0.032;
-      if (toon) ell(face, tint(skinHex, 0xff8a8a, female ? 0.34 : 0.22), cx, cy - 0.004, fz(cx, cy - 0.004) - 0.005, 0.024, 0.013, 0.008, 0, s * 0.5, 0, 10);
-      else ell(face, tint(skinHex, 0xff7a7a, female ? 0.22 : 0.12), cx, cy, fz(cx, cy) - 0.006, 0.022, 0.014, 0.008, 0, s * 0.5, 0, 10);
     });
-    // nose: soft bridge and a round bulb
-    const nk = toon ? 0.62 : 1;
-    ell(face, nose, 0, -0.03, fz(0, -0.03) + 0.004 * nk, (female ? 0.017 : 0.02) * nk, (female ? 0.016 : 0.019) * nk, 0.016 * nk, 0, 0, 0, 14);
-    // mouth
-    const my = -0.066;
-    if (female) {
-      ell(face, C(0xd8333b), 0, my + 0.004, fz(0, my + 0.004) - 0.002, 0.018, 0.0055, 0.005, 0, 0, 0, 10);
-      ell(face, C(0xe0444a), 0, my - 0.005, fz(0, my - 0.005) - 0.002, 0.016, 0.006, 0.005, 0, 0, 0, 10);
-    } else {
-      part(face, G.torus(0.017, 0.0032, 6, 14, Math.PI), C(0x5a2a20), 0, my + 0.004, fz(0, my) - 0.002, -0.15, 0, Math.PI, 1, 0.6, 0.7);
-    }
+    // nose: the tip and the nostril wings (the bridge is in the head itself)
+    const noseM = tint(skinHex, 0xe07a6a, 0.08);
+    ell(face, noseM, 0, -0.035, fz(0, -0.035) - 0.004, female ? 0.0105 : 0.012, female ? 0.0095 : 0.011, 0.011, -0.2, 0, 0, 12);
+    [-1, 1].forEach((s) => {
+      ell(face, noseM, s * 0.011, -0.039, fz(s * 0.011, -0.039) - 0.004, 0.0072, 0.0065, 0.0072, 0, s * 0.4, 0, 10);
+      ell(face, C(0x2a1810), s * 0.0058, -0.043, fz(s * 0.006, -0.043) - 0.0035, 0.0028, 0.0013, 0.0035, 0.5, s * 0.3, 0, 6);
+    });
+    // mouth: the philtrum, a shaped upper lip (a bow), a fuller lower lip,
+    // and the line between them
+    const my = -0.063;
+    ell(face, tint(skinHex, 0x6a3020, 0.08), 0, my + 0.013, fz(0, my + 0.013) + 0.0005, 0.0045, 0.008, 0.002, 0, 0, 0, 6);
+    [-1, 1].forEach((s) => ell(face, lipM, s * 0.0075, my + 0.0035, fz(s * 0.0075, my + 0.0035) - 0.0015, 0.0105, 0.0038, 0.0045, 0, 0, s * -0.12, 10));
+    ell(face, lipM, 0, my - 0.0055, fz(0, my - 0.0055) - 0.0018, female ? 0.0148 : 0.0138, female ? 0.0056 : 0.0046, 0.005, 0, 0, 0, 12);
+    part(face, G.torus(0.0165, 0.0011, 4, 14, Math.PI), lipDark, 0, my + 0.0035, fz(0, my) + 0.0015, -0.1, 0, Math.PI, 1, 0.28, 0.6);
     if (cfg.beard) {
       const bm = C(0xe4e0d8);
       ell(face, bm, 0, -0.09, fz(0, -0.09) - 0.025, 0.07, 0.045, 0.04, 0.2, 0, 0, 16);
@@ -403,15 +453,27 @@
     part(ankle, G.torus(0.035, 0.005, 6, 16, Math.PI), sole, side * 0.06, -0.065, 0.03, 0, side * Math.PI / 2, 0.4, 1, 0.8, 1);
   }
 
-  // Hand: mitten-like palm, gently curled fingers and a thumb.
+  // Hand: a palm and the back of the hand, four fingers in two joints each,
+  // gently curled, and a thumb; knuckles and nails.
   function buildHand(el, skin, s, female) {
     const h = new T.Group();
     h.position.y = -0.25;
     el.add(h);
-    const k = female ? 0.9 : 1;
-    ell(h, skin, 0, -0.045 * k, 0.004, 0.027 * k, 0.05 * k, 0.017 * k);
-    ell(h, skin, 0, -0.095 * k, 0.012, 0.025 * k, 0.036 * k, 0.015 * k, 0.25, 0, 0);
-    ell(h, skin, -s * 0.024 * k, -0.04 * k, 0.016, 0.009 * k, 0.026 * k, 0.01 * k, 0.3, 0, -s * 0.55);
+    const k = female ? 0.88 : 1;
+    ell(h, skin, 0, -0.04 * k, 0.003, 0.027 * k, 0.04 * k, 0.014 * k, 0, 0, 0, 12);           // palm
+    const nail = C(0xf0d0c0);
+    for (let f = 0; f < 4; f++) {
+      const len = [0.026, 0.03, 0.028, 0.022][f] * k, x = (-0.017 + f * 0.0115) * k * s, r = (f === 3 ? 0.0052 : 0.006) * k;
+      const finger = new T.Group(); finger.position.set(x, -0.077 * k, 0.004); finger.rotation.set(0.25 + f * 0.04, 0, -x * 2); h.add(finger);
+      ell(finger, skin, 0, 0, 0, r * 1.05, r * 1.05, r * 1.05, 0, 0, 0, 6);                    // knuckle
+      part(finger, G.capsule(r, len, 3, sg(8)), skin, 0, -len / 2, 0);
+      const tip = new T.Group(); tip.position.set(0, -len, 0); tip.rotation.x = 0.45; finger.add(tip);
+      part(tip, G.capsule(r * 0.9, len * 0.75, 3, sg(8)), skin, 0, -len * 0.38, 0);
+      ell(tip, nail, 0, -len * 0.62, r * 0.6, r * 0.7, r * 0.9, r * 0.35, 0, 0, 0, 6);
+    }
+    const th = new T.Group(); th.position.set(-s * 0.022 * k, -0.035 * k, 0.012); th.rotation.set(0.5, 0, -s * 0.7); h.add(th);
+    part(th, G.capsule(0.0068 * k, 0.026 * k, 3, sg(8)), skin, 0, -0.016 * k, 0);
+    part(th, G.capsule(0.006 * k, 0.018 * k, 3, sg(8)), skin, 0, -0.038 * k, 0.004, 0.3, 0, 0);
     return h;
   }
 

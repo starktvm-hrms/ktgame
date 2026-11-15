@@ -514,6 +514,7 @@ window.KT = window.KT || {};
       if (!g.attributes.normal) g.computeVertexNormals();
       const P = g.attributes.position, N = g.attributes.normal;
       const c = (Array.isArray(m.material) ? m.material[0] : m.material).color || new T.Color(1, 1, 1);
+      const VC = g.attributes.color;   // (a mesh may shade its own colour per vertex: skin tones)
       // a skirt (mundu, saree) is cloth: lower down it moves with the legs
       // inside it, so they never poke through
       const sk = m.userData.skirt;
@@ -541,7 +542,8 @@ window.KT = window.KT || {};
         const k = vo + i;
         pos[k * 3] = _v.x; pos[k * 3 + 1] = _v.y; pos[k * 3 + 2] = _v.z;
         nor[k * 3] = _n.x; nor[k * 3 + 1] = _n.y; nor[k * 3 + 2] = _n.z;
-        col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+        if (VC) { col[k * 3] = c.r * VC.getX(i); col[k * 3 + 1] = c.g * VC.getY(i); col[k * 3 + 2] = c.b * VC.getZ(i); }
+        else { col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b; }
         if (!sk) { sIdx[k * 4] = bi; sW[k * 4] = 1; }
       }
       if (g.index) { for (let i = 0; i < g.index.count; i++) idx[io + i] = g.index.getX(i) + vo; io += g.index.count; }
