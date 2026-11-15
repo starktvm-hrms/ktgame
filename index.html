@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="description" content="Kerala Explorer - a 3D browser adventure through God's Own Country: backwaters, houseboats, Kathakali, temple elephants, Munnar tea hills, Periyar wildlife and Kovalam beach.">
   <meta name="theme-color" content="#1f5f3f">
-  <title>Kerala Explorer - God's Own Country</title>
+  <title>Kerala Saavari - God's Own Country</title>
   <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -16,7 +16,7 @@
   <div id="loading" class="screen">
     <div class="load-card">
       <img src="assets/icons/logo.svg" alt="" class="logo">
-      <h1>Kerala Explorer</h1>
+      <h1>Kerala Saavari</h1>
       <p class="tag">God's Own Country</p>
       <div class="bar"><div id="load-bar"></div></div>
       <p id="load-text">Loading...</p>
@@ -24,11 +24,21 @@
     </div>
   </div>
 
+  <!-- Title screen: the painted art, with real buttons over its painted ones -->
+  <div id="title" class="screen hidden">
+    <div class="title-bg"></div>
+    <div class="title-art">
+      <img src="assets/ui/title.webp" alt="Kerala Saavari: a houseboat on the backwaters, a Kathakali dancer and an elephant">
+      <button id="btn-title-play" class="hotspot play" aria-label="Play Game"></button>
+      <button id="btn-title-settings" class="hotspot settings" aria-label="Settings"></button>
+    </div>
+  </div>
+
   <!-- Sign in / register -->
   <div id="auth" class="screen hidden">
     <div class="auth-card">
       <img src="assets/icons/logo.svg" alt="" class="logo small">
-      <h1>Kerala Explorer</h1>
+      <h1>Kerala Saavari</h1>
       <p class="tag">Explore God's Own Country together</p>
       <div class="auth-tabs">
         <button data-auth-tab="login">Log in</button>
@@ -71,7 +81,7 @@
     <div class="menu-card">
       <div class="menu-left">
         <img src="assets/icons/logo.svg" alt="" class="logo small">
-        <h1>Kerala Explorer</h1>
+        <h1>Kerala Saavari</h1>
         <p class="tag">An adventure through God's Own Country</p>
         <label class="field">Your name
           <input id="name-input" maxlength="24" value="Explorer" autocomplete="off">
@@ -212,6 +222,7 @@
     <div class="modal">
       <h2>Paused</h2>
       <div class="modal-buttons">
+        <button id="btn-pause-back" class="btn primary title-only">&#x2190; Back</button>
         <button id="btn-resume" class="btn primary">Resume</button>
         <button id="btn-map" class="btn">Map</button>
         <button id="btn-album" class="btn">Photo Album</button>

@@ -10,6 +10,16 @@ together with other travellers online.
 
 ![Kerala Explorer](assets/icons/logo.svg)
 
+## Title screen
+
+The game opens on a painted title card, **Kerala Saavari**: a Kathakali
+dancer on a tiled verandah, an elephant, coconut palms, a waterfall and a
+houseboat on the backwaters (`assets/ui/title.webp`). **Play Game** goes
+on to sign-in (or straight to the character creator for a remembered
+player); **Settings** opens the settings on their own, with a Back button.
+Enter or Space also starts. The loading and sign-in screens use the same
+art, blurred and dimmed.
+
 ## How to play
 
 **Online at https://starktvm-hrms.github.io/ktgame/** — the game is
