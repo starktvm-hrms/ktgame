@@ -14,6 +14,89 @@
 <body data-state="loading">
   <canvas id="game"></canvas>
 
+  <!-- Game modes -->
+  <div id="modes" class="screen hidden">
+    <div class="modes-card">
+        <div class="brand brand-sm">
+          <svg class="brand-palm" viewBox="0 0 120 70" aria-hidden="true">
+            <path d="M60 68 C58 50 59 36 62 24" stroke="#7a4a22" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <g fill="#3fae3a" stroke="#22701f" stroke-width="2">
+              <path d="M62 24 C48 8 26 10 12 22 C30 16 46 20 62 26Z"/><path d="M62 24 C76 8 98 10 110 22 C92 16 78 20 62 26Z"/>
+              <path d="M62 24 C56 6 40 0 30 2 C44 8 54 14 61 26Z"/><path d="M62 24 C68 6 84 0 94 2 C80 8 70 14 63 26Z"/>
+              <path d="M62 24 C40 22 28 34 26 46 C36 34 48 30 62 28Z"/><path d="M62 24 C84 22 96 34 98 46 C88 34 76 30 62 28Z"/>
+            </g>
+            <circle cx="57" cy="29" r="3.4" fill="#8a5a2a"/><circle cx="64" cy="30" r="3.4" fill="#7a4a22"/>
+          </svg>
+          <div class="brand-plaque">
+            <span class="brand-1">Kerala</span>
+            <span class="brand-2">Saavari</span>
+          </div>
+          <svg class="brand-wave" viewBox="0 0 240 44" aria-hidden="true">
+            <path d="M6 30 C50 44 100 14 150 26 C185 34 210 30 234 18 C226 34 196 42 160 38 C110 32 70 46 6 30Z" fill="#2fa4d8" stroke="#0e5f8a" stroke-width="2.5"/>
+            <path d="M30 32 C70 38 110 24 150 30" stroke="#bfeaff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <g transform="translate(92 6)">
+              <path d="M0 16 L56 16 L50 24 L6 24Z" fill="#3a2414"/>
+              <path d="M6 16 L8 6 Q28 -2 48 6 L50 16Z" fill="#e8b94a" stroke="#8a5a1a" stroke-width="1.5"/>
+              <rect x="14" y="9" width="5" height="5" fill="#8a5a1a"/><rect x="25" y="8" width="5" height="6" fill="#8a5a1a"/><rect x="36" y="9" width="5" height="5" fill="#8a5a1a"/>
+            </g>
+          </svg>
+        </div>
+      <p class="tag">Choose how to play</p>
+      <div class="mode-list">
+        <button class="mode" data-mode="story">
+          <span class="mode-ic">&#x1F4D6;</span>
+          <span class="mode-txt"><b>Story Mode</b><small>Save Kerala&rsquo;s Legacy: 12 chapters from Bekal to Thiruvananthapuram. Find the seven symbols before the Shadow Collective.</small></span>
+        </button>
+        <button class="mode" data-mode="free">
+          <span class="mode-ic">&#x1F334;</span>
+          <span class="mode-txt"><b>Free Roam</b><small>Explore all 14 districts at your own pace: backwaters, buses, festivals and missions.</small></span>
+        </button>
+        <button class="mode soon" disabled>
+          <span class="mode-ic">&#x2694;&#xFE0F;</span>
+          <span class="mode-txt"><b>Online PVP</b><small>Race and compete with other travellers. Coming soon.</small></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Story Mode: the campaign map -->
+  <div id="campaign" class="screen hidden">
+    <div class="camp-card">
+      <div class="camp-head">
+        <h2>Save Kerala&rsquo;s Legacy</h2>
+        <p id="camp-count" class="camp-count"></p>
+      </div>
+      <div class="camp-symbols" id="camp-symbols"></div>
+      <p id="camp-badges" class="camp-badges"></p>
+      <div class="camp-route"><span>&#x2B06; North</span><span>South &#x2B07;</span></div>
+      <div class="camp-chapters" id="camp-chapters"></div>
+      <div class="camp-buttons">
+        <button id="camp-journal" class="btn">&#x1F4DC; Read the journal</button>
+        <button id="camp-free" class="btn">&#x1F334; Free roam</button>
+        <button id="camp-close" class="btn primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Story Mode: conversations and chapter titles -->
+  <div id="story-scene" class="hidden">
+    <div class="ss-card">
+      <img id="ss-portrait" alt="">
+      <div class="ss-body">
+        <div class="ss-who"><b id="ss-name"></b><span id="ss-role"></span></div>
+        <p id="ss-text"></p>
+        <button id="ss-next" class="btn primary">Next &#x25B6;</button>
+      </div>
+    </div>
+  </div>
+  <div id="story-game" class="screen hidden">
+    <div class="sg-card"><h3 id="sg-title"></h3><p id="sg-hint"></p><div id="sg-body"></div><p id="sg-foot"></p></div>
+  </div>
+  <div id="story-flash"></div>
+  <div id="story-card" class="hidden">
+    <div class="sc-inner"><span id="sc-num"></span><b id="sc-title"></b><span id="sc-place"></span></div>
+  </div>
+
   <!-- Sign in / register -->
   <!-- Loading, then sign in / register: one screen. The card shows the
        loading bar while the world builds, then the form in its place. -->
@@ -154,6 +237,7 @@
           <button id="btn-start" class="btn primary">Begin Journey</button>
           <button id="btn-continue" class="btn hidden">Continue</button>
           <button id="btn-save-look" class="btn primary hidden">Save appearance</button>
+          <button id="btn-modes" class="btn">&#x2190; Game modes</button>
         </div>
         <p class="muted small-print">WASD / arrows: move &middot; Shift: run &middot; Space: jump &middot; Mouse: look &middot; E: interact / board bus &middot; C: camera &middot; N: namaskaram &middot; M: map &middot; V: view &middot; J: profile &middot; O: players &middot; G: vehicles &middot; Esc: pause</p>
       </div>
@@ -205,6 +289,7 @@
       <button id="btn-online" class="chip-stat online-chip" title="Players online (O)"><span class="net-dot"></span><span id="online-count">offline</span></button>
       <button id="btn-groups" class="icon-btn" title="Groups &amp; chat (T)">&#x1F465;<span id="groups-badge" class="badge hidden"></span></button>
       <button id="btn-garage" class="icon-btn" title="My vehicles (G)">&#x1F6B2;</button>
+      <button id="btn-story" class="icon-btn" title="Story Mode (K)">&#x1F4D6;</button>
       <button id="btn-travel" class="icon-btn" title="Fast travel (Y)">&#x1F9ED;</button>
       <button id="btn-settings" class="icon-btn" title="Pause / settings">&#x2699;&#xFE0F;</button>
     </div>
@@ -313,6 +398,7 @@
         <tr><td>KSRTC bus</td><td>E to board / get off &middot; W/S accelerate &amp; brake &middot; A/D steer &middot; Space handbrake &middot; H horn &middot; V driver view</td></tr>
         <tr><td>Profile / Players / My vehicles</td><td>J / O / G</td></tr>
         <tr><td>Fast travel</td><td>Y</td></tr>
+        <tr><td>Story Mode (campaign map)</td><td>K</td></tr>
         <tr><td>Malayalam radio</td><td>U to switch on &middot; U again for the next station</td></tr>
         <tr><td>Fishing (Kochi)</td><td>E at a Fishing Point to cast &middot; E / Space to haul when the marker is in the green</td></tr>
       </table>
@@ -470,6 +556,8 @@
   <script src="js/vehicle.js"></script>
   <script src="js/player.js"></script>
   <script src="js/missions.js"></script>
+  <script src="js/story-data.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/lighthouse.js"></script>
   <script src="js/sky.js"></script>

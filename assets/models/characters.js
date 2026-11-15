@@ -22,7 +22,9 @@
       rain: { label: 'Rain Wear', topType: 'raincoat', top: 0xf2c230, bottom: 0x2a2f3a, bottomType: 'pants', shoeType: 'boot', shoes: 0x1f1f1f, sleeve: 'long', hood: true },
       sweater: { label: 'Sweater & Jeans', topType: 'sweater', top: 0xf0b21a, bottom: 0x7fbde8, bottomType: 'jeans', shoeType: 'sneaker', shoes: 0x1e1e1e, sleeve: 'long' },
       tee: { label: 'Tee & Shorts', topType: 'tee', top: 0x1f9a9a, bottom: 0xe2e2df, bottomType: 'shorts', shoeType: 'sneaker', shoes: 0x4a7088, sleeve: 'short' },
-      coat: { label: 'Long Coat', topType: 'coat', top: 0xf2c776, inner: 0xf6f4ee, bottom: 0x2e2e2e, bottomType: 'pants', shoeType: 'loafer', shoes: 0x5a3020, sleeve: 'long' }
+      coat: { label: 'Long Coat', topType: 'coat', top: 0xf2c776, inner: 0xf6f4ee, bottom: 0x2e2e2e, bottomType: 'pants', shoeType: 'loafer', shoes: 0x5a3020, sleeve: 'long' },
+      // earned by finishing Story Mode
+      legendary: { label: '\u2B50 Legendary Explorer', locked: true, topType: 'open', top: 0x7a4a22, inner: 0xf2e2b8, zip: false, bottom: 0x5a4a32, bottomType: 'pants', shoeType: 'boot', shoes: 0x3a2414, sleeve: 'rolled' }
     },
     female: {
       casual: { label: 'Casual Traveller', topType: 'open', top: 0x6b8a4e, inner: 0xf3ead8, bottom: 0x868356, bottomType: 'pants', shoeType: 'boot', shoes: 0x7a5233, sleeve: 'rolled' },
@@ -30,7 +32,8 @@
       churidar: { label: 'Churidar', topType: 'kurta', top: 0x3aa39a, bottom: 0xf2efe6, bottomType: 'leggings', dupatta: 0xf3c7d4, shoeType: 'sandal', shoes: 0x7a5233, sleeve: 'long' },
       hiking: { label: 'Cardigan & Jeans', topType: 'open', top: 0xe0337a, inner: 0xbfbfbf, bottom: 0x2f6fd0, bottomType: 'jeans', shoeType: 'sneaker', shoes: 0x2b2b2b, sleeve: 'long' },
       rain: { label: 'Rain Wear', topType: 'raincoat', top: 0xf2c230, bottom: 0x2a2f3a, bottomType: 'pants', shoeType: 'boot', shoes: 0xf2c230, sleeve: 'long', hood: true },
-      overalls: { label: 'Overalls', topType: 'tee', top: 0xf6f6f2, bottom: 0x3ea0e8, bottomType: 'overalls', shoeType: 'sneaker', shoes: 0xf0f0f0, sleeve: 'short' }
+      overalls: { label: 'Overalls', topType: 'tee', top: 0xf6f6f2, bottom: 0x3ea0e8, bottomType: 'overalls', shoeType: 'sneaker', shoes: 0xf0f0f0, sleeve: 'short' },
+      legendary: { label: '\u2B50 Legendary Explorer', locked: true, topType: 'open', top: 0x7a4a22, inner: 0xf2e2b8, bottom: 0x5a4a32, bottomType: 'jeans', shoeType: 'boot', shoes: 0x3a2414, sleeve: 'rolled' }
     }
   };
   Models.HAIR = {

@@ -22,6 +22,52 @@ fades into the live 3D backwaters. Anyone who signs in early sees a
 welcome and the bar, and goes on to the character creator as soon as the
 world is ready. A remembered player goes straight on.
 
+## Game modes
+
+After signing in you choose how to play:
+
+- **Story Mode**: *Save Kerala's Legacy*, a 12-chapter campaign (about four
+  hours) from Bekal in the north to Thiruvananthapuram in the south.
+- **Free Roam**: the open game as before, all 14 districts with buses,
+  festivals and the free-roam missions.
+- **Online PVP**: coming soon.
+
+### Story Mode
+
+The Shadow Collective wants to turn Kerala into a commercial tourism
+empire, and is hunting the **Heart of Kerala**: seven ancient symbols
+(Nature, Heritage, Wildlife, Tradition, Culture, Adventure, Unity). With
+**Appuppan** (the guide), **Meera** (the companion) and the people met
+along the way, you follow an old explorer's journal to find the symbols
+before **the Collector** does.
+
+| # | Destination | Chapter | Symbol |
+|---|---|---|---|
+| 01 | Kasaragod – Bekal | The Mysterious Discovery | Nature |
+| 02 | Kannur | The Secret of Theyyam | Heritage |
+| 03 | Wayanad | The Forest Mystery | Wildlife |
+| 04 | Kozhikode | The Lost Trading Route | Tradition |
+| 05 | Thrissur | The Festival Mystery | Culture |
+| 06 | Kochi | The Stolen Artefact | Adventure |
+| 07 | Athirappilly | The Waterfall Mission | |
+| 08 | Munnar | The Secret of the Mountains | |
+| 09 | Thekkady – Periyar | The Wildlife Rescue | |
+| 10 | Alappuzha – Kumarakom | The Great Backwater Challenge | |
+| 11 | Varkala – Kovalam | The Coastal Mystery | |
+| 12 | Thiruvananthapuram | The Heart of Kerala | Unity |
+
+Chapters unlock one after another on the campaign map (K, or the 📖
+button), which also shows the symbols found, badges and travel points, and
+the journal (the story so far). Each chapter takes you to its places and
+plays its missions: conversations, a movement tutorial, searches for clues,
+chases, timed runs and escapes, photography, press-to-use tasks (disable
+traps, clear drains, plant saplings), symbol puzzles, quizzes (Theyyam
+craft, spices, Kochi's history) and a rhythm game (the chenda melam and
+the snake-boat race). Finishing the campaign earns the title *Guardian of
+God's Own Country*, 1,000 bonus points and the Legendary Explorer outfit.
+The chapters are data (`js/story-data.js`) played by the engine in
+`js/story.js`, so the story can be rewritten without touching the code.
+
 ## How to play
 
 **Online at https://starktvm-hrms.github.io/ktgame/** — the game is

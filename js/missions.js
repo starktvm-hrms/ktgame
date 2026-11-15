@@ -22,11 +22,17 @@
   // tour works on both maps.
   const here = (m) => m.type === 'districts' || KT.Game.level === 'home';
 
+  // In Story Mode the story's objective takes the mission panel, the
+  // compass and the map (js/story.js); between chapters it says so.
+  const story = () => KT.Story && KT.Story.isOn();
+  const BETWEEN = { title: 'Story Mode', desc: 'Open the campaign map (\u{1F4D6} or K) to play the next chapter.', story: true };
   Ms.current = function () {
+    if (story()) return KT.Story.objective() || BETWEEN;
     return Ms.LIST[KT.Game.data.mission] || null;
   };
 
   Ms.progressInfo = function () {
+    if (story()) return KT.Story.progress();
     const m = Ms.current();
     const d = KT.Game.data;
     if (!m) return { done: 1, total: 1 };
@@ -47,6 +53,7 @@
 
   // Where should the compass / beacon point?
   Ms.target = function () {
+    if (story()) return KT.Story.target();
     const m = Ms.current();
     if (!m || !here(m)) return null;
     const P = KT.Player;
@@ -105,6 +112,8 @@
 
   // Called every frame with the player.
   Ms.update = function (dt) {
+    if (KT.Story) KT.Story.update(dt);
+    if (story()) return;
     const m = Ms.current();
     if (!m || !here(m)) return;
     const P = KT.Player, d = KT.Game.data;
@@ -150,10 +159,12 @@
   };
 
   Ms.onTalk = function (npcId) {
+    if (story()) return;
     const m = Ms.current();
     if (m && m.type === 'talk' && m.npc === npcId) Ms.complete();
   };
   Ms.onGesture = function (name) {
+    if (story()) return;
     const m = Ms.current();
     const P = KT.Player;
     if (m && m.type === 'gesture' && m.gesture === name && Math.hypot(P.pos.x - m.x, P.pos.z - m.z) < m.r) {

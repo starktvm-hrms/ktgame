@@ -131,8 +131,15 @@
     $('btn-start').classList.toggle('hidden', false);
     $('btn-save-look').classList.add('hidden');
     Game.creatorInGame = false;
-    Game.setState('menu');
+    // first the game mode, then the character
+    const sv = savedProgress();
+    Game.mode = Game.mode || (sv && sv.mode) || null;
+    Game.setState('modes');
     syncCreator();
+  }
+  function chooseMode(m) {
+    Game.mode = m;
+    Game.setState('menu');
   }
 
   // Change appearance from inside the game (profile page).
@@ -240,10 +247,10 @@
     Game.state = s;
     document.body.dataset.state = s;
     KT.Input.enabled = s === 'playing';
-    ['menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage', 'groups', 'fasttravel'].forEach((id) => {
+    ['modes', 'campaign', 'menu', 'hud', 'pause', 'bigmap', 'photo-ui', 'album', 'certificate', 'profile-page', 'players', 'district', 'garage', 'groups', 'fasttravel'].forEach((id) => {
       const el = $(id);
       if (!el) return;
-      const on = (id === 'menu' && s === 'menu') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') || (id === 'groups' && s === 'groups') || (id === 'fasttravel' && s === 'fasttravel') ||
+      const on = (id === 'menu' && s === 'menu') || (id === 'modes' && s === 'modes') || (id === 'campaign' && s === 'campaign') || (id === 'hud' && (s === 'playing' || s === 'dialog' || s === 'fishing')) || (id === 'garage' && s === 'garage') || (id === 'groups' && s === 'groups') || (id === 'fasttravel' && s === 'fasttravel') ||
         (id === 'pause' && s === 'paused') || (id === 'bigmap' && s === 'map') || (id === 'photo-ui' && s === 'photo') ||
         (id === 'album' && s === 'album') || (id === 'certificate' && s === 'certificate') ||
         (id === 'profile-page' && s === 'profile') || (id === 'players' && s === 'players') || (id === 'district' && s === 'district');
@@ -270,6 +277,7 @@
     if (Game.user) Game.data.name = Game.user.name;
     else if (!saved) Game.data.name = ($('name-input').value || 'Explorer').trim().slice(0, 24) || 'Explorer';
     Game.data.cfg = Game.cfg; // the look chosen on the title screen
+    Game.data.mode = Game.mode || Game.data.mode || 'free';
     // restore world state
     KT.Entities.coins.forEach((c) => { c.taken = Game.data.coinsTaken.indexOf(c.id) >= 0; });
     KT.Entities.plastics.forEach((p) => { p.taken = Game.data.plasticsTaken.indexOf(p.id) >= 0; p.obj.visible = !p.taken; });
@@ -297,6 +305,7 @@
       KT.UI.banner('Kerala', 'God’s Own Country', 'title');
       setTimeout(() => KT.UI.toast('Use W A S D to walk and Shift + W to run. Move the mouse to look around. Talk to the guide!', 'info'), 1800);
     } else KT.UI.toast('Welcome back, ' + Game.data.name + '!', 'info');
+    if (Game.data.mode === 'story') KT.Story.begin();
     Game.save();
   };
 
@@ -566,7 +575,7 @@
     const st = Game.state;
     const input = KT.Input;
     input.update();
-    if ((st === 'menu' || st === 'auth') && !Game.creatorInGame) {
+    if ((st === 'menu' || st === 'auth' || st === 'modes') && !Game.creatorInGame) {
       menuCamera(dt);
       KT.World.update(dt, { pos: Game.camera.position }, Game.camera);
       KT.Traffic.updateHome(dt, Game.camera.position);
@@ -607,7 +616,7 @@
       mapRedrawT = 0.5;
       drawMap();
     }
-    if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage' || st === 'groups' || st === 'fasttravel') {
+    if (st === 'paused' || st === 'map' || st === 'album' || st === 'certificate' || st === 'profile' || st === 'players' || st === 'district' || st === 'garage' || st === 'groups' || st === 'fasttravel' || st === 'campaign') {
       if (input.consume('pause') || (st === 'map' && input.consume('map')) || (st === 'profile' && input.consume('profile')) || (st === 'players' && input.consume('players')) || (st === 'garage' && input.consume('garage')) || (st === 'fasttravel' && input.consume('travel'))) {
         if (st === 'groups') KT.Groups.close(); else Game.setState('playing');
       }
@@ -666,6 +675,7 @@
     const I = KT.Input, P = KT.Player;
     if (I.consume('pause')) { Game.setState('paused'); return; }
     if (I.consume('map')) { Game.openMap(); return; }
+    if (I.consume('story')) { if (Game.data.mode !== 'story') Game.data.mode = 'story'; KT.Story.openCampaign(); return; }
     if (I.consume('profile')) { KT.Account.openProfile(); return; }
     if (I.consume('players')) { KT.Account.openPlayers(); return; }
     if (I.consume('garage')) { Game.openGarage(); return; }
@@ -1158,7 +1168,7 @@
   let hwUiT = 0;
   function highwayGameplay(dt) {
     const P = KT.Player, Hw = KT.Highway, d = Game.data;
-    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract(), streetRides(), palmInteract()));
+    const best = pickInteract(Hw.interactables.concat([boardHwBus], rideInteract(), streetRides(), palmInteract(), KT.Story.interactables()));
     Game.nearInteract = best;
     showPrompt(best);
     trackDistance();
@@ -1306,6 +1316,7 @@
     const ol = $('outfit-list');
     ol.innerHTML = '';
     Object.keys(outfits).forEach((k) => {
+      if (outfits[k].locked && !KT.Story.legendary()) return;
       const b = document.createElement('button');
       b.className = 'chip' + (cfg.outfit === k ? ' sel' : '');
       b.textContent = outfits[k].label;
@@ -1338,6 +1349,9 @@
       syncCreator();
     }));
     $('btn-start').onclick = () => Game.start(false);
+    document.querySelectorAll('#modes .mode[data-mode]').forEach((b) => { b.onclick = () => chooseMode(b.dataset.mode); });
+    $('btn-modes').onclick = () => Game.setState('modes');
+    KT.Story.bindUI();
     $('btn-save-look').onclick = saveLook;
     $('btn-profile').onclick = () => KT.Account.openProfile();
     $('profile').onclick = () => { if (Game.state === 'playing') KT.Account.openProfile(); };
