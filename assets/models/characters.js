@@ -767,6 +767,7 @@
     root.userData.anim = { phase: 0, t: 0, blink: 2 + Math.random() * 3 };
     SEG = 1;
     KT.skinify(root);
+    if (KT.HD) KT.HD.register(root, cfg);
     return root;
   };
 

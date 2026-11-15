@@ -53,6 +53,7 @@
     Pv.cfg = cfg;
     if (Pv.ch) Pv.scene.remove(Pv.ch);
     Pv.ch = KT.Models.character(JSON.parse(JSON.stringify(cfg)));
+    KT.HD.always(Pv.ch);
     Pv.scene.add(Pv.ch);
   };
 
@@ -63,6 +64,7 @@
     Pv.ch.rotation.y = Math.sin(Pv.t * 0.4) * 0.6 + Pv.spin;
     const pose = Math.sin(Pv.t * 0.25) > 0.75 ? 'namaskaram' : 'idle';
     KT.Models.animateCharacter(Pv.ch, pose, dt);
+    KT.HD.poseNow(Pv.ch);
     Pv.camera.position.set(0, 1.0, 5.4);
     Pv.camera.lookAt(0, 0.82, 0);
     Pv.renderer.render(Pv.scene, Pv.camera);
@@ -76,6 +78,7 @@
     const cam = new T.PerspectiveCamera(22, W / H, 0.1, 20);
     Pv.ch.rotation.y = 0.35;
     KT.Models.animateCharacter(Pv.ch, 'idle', 1);
+    KT.HD.poseNow(Pv.ch);
     Pv.ch.updateMatrixWorld(true);
     const head = new T.Vector3();
     Pv.ch.userData.rig.head.getWorldPosition(head);

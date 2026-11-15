@@ -57,6 +57,7 @@
     KT.Input.init(canvas);
     KT.FX.init(scene);
     KT.initMaterials();
+    KT.HD.enabled = Game.settings.chars !== 'light' && Game.settings.quality !== 'low';
     await KT.World.build(scene, { quality: Game.settings.quality }, KT.UI.progress);
     decorateMap();
     setupTowers();
@@ -614,6 +615,7 @@
     KT.Audio.updateMusic();
     if (Game.state !== 'menu' && Game.state !== 'loading' && Game.state !== 'auth' && Game.level === 'home') KT.Audio.updateAmbience(dt, KT.Player.pos);
     if ((toonT -= dt) <= 0) { toonT = 2; KT.Toon.tune(Game.scene); }
+    if (Game.state !== 'menu' || Game.creatorInGame) KT.HD.update(dt, Game.camera);
     KT.Toon.render(Game.renderer, Game.scene, Game.camera);
     if (Game.pendingPhoto) capturePhoto();
   }
@@ -1374,6 +1376,8 @@
     $('set-music').value = s.music; $('set-sfx').value = s.sfx;
     $('set-sens').value = s.sensitivity; $('set-invert').checked = s.invertY;
     $('set-quality').value = s.quality; $('set-lock').checked = s.mouseLook !== false;
+    $('set-chars').value = s.chars || 'hd';
+    $('set-chars').onchange = (e) => { s.chars = e.target.value; saveSettings(); $('quality-note').classList.remove('hidden'); };
     $('set-sky').value = s.sky || 'live';
     $('set-sky').onchange = (e) => { s.sky = e.target.value; KT.Sky.setMode(s.sky); saveSettings(); };
     $('weather-chip').onclick = () => KT.UI.toast(KT.Sky.describe(), 'info');

@@ -237,6 +237,12 @@
             <option value="classic">Classic</option>
           </select>
         </label>
+        <label>People
+          <select id="set-chars">
+            <option value="hd">HD people near you (realistic)</option>
+            <option value="light">Light (faster)</option>
+          </select>
+        </label>
         <label>Graphics quality
           <select id="set-quality">
             <option value="low">Low (fast)</option>
@@ -381,6 +387,7 @@
   </div>
 
   <script src="lib/three.min.js"></script>
+  <script src="lib/three-gltf.js"></script>
   <script src="assets/textures/textures.js"></script>
   <script src="js/core.js"></script>
   <script src="js/config.js"></script>
@@ -419,6 +426,7 @@
   <script src="js/sky.js"></script>
   <script src="js/graphics.js"></script>
   <script src="js/toon.js"></script>
+  <script src="js/hd.js"></script>
   <script src="js/preview.js"></script>
   <script src="lib/supabase.min.js"></script>
   <script src="js/net.js"></script>
