@@ -16,7 +16,9 @@ ROOT=/var/www/ktgame
 EMAIL=${1:-}
 DEPLOY_USER=${DEPLOY_USER:-deploy}
 
-apt-get update
+# a third-party package source that is out of date (e.g. one without a
+# release for this Ubuntu version) must not stop the setup
+apt-get update || echo "apt-get update reported errors; continuing with the sources that worked"
 apt-get install -y nginx rsync certbot python3-certbot-nginx
 
 # a user the GitHub workflow logs in as; it owns only the game folder
