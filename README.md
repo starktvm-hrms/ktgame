@@ -366,16 +366,17 @@ bodies with photo-based skin, real eyes, eyebrows, lashes and hair, and
 cloth that hangs and folds. They come in Kerala dress: a mundu with a
 half-sleeve shirt, a kasavu-style saree with its pallu over the shoulder,
 churidar with a dupatta, plus shirts, trousers, tees, shorts and jeans for
-travellers. The cloth is tinted per person, and skin tones are tinted from
+travellers, and children in tees and shorts. The cloth is tinted per person, and skin tones are tinted from
 fair to deep brown, so a handful of bodies make a varied crowd.
 
 The game still animates its own light rig (walking, running, jumping and
 flips, sitting, driving, paddling, climbing palms, namaskaram, waving,
 dancing, the jobs people do), and every frame those joint rotations are
 carried over onto the HD skeleton (js/hd.js), so every pose and prop keeps
-working. The ten nearest people within about 24 m wear HD bodies; further
-away the light models are shown, as before. Each body is a 1.1 to 1.9 MB
-file in `assets/hd/`, loaded only when someone dressed that way comes near.
+working. The sixteen nearest people within about 36 m wear HD bodies;
+further away the light models are shown, as before. Each body is a 1.1 to
+1.9 MB file in `assets/hd/`; all eight are fetched in the background as
+the game starts, so nobody waits on a download when they come near.
 
 The bodies were built with the open-source [Ara 3D Gen](https://github.com/olatunde85/3d-gen)
 (MIT) from the CC0 (public domain) MakeHuman data; see `assets/hd/LICENSE.txt`.

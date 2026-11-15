@@ -58,6 +58,7 @@
     KT.FX.init(scene);
     KT.initMaterials();
     KT.HD.enabled = Game.settings.chars !== 'light' && Game.settings.quality !== 'low';
+    KT.HD.preload();
     await KT.World.build(scene, { quality: Game.settings.quality }, KT.UI.progress);
     decorateMap();
     setupTowers();

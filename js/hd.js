@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   const T = THREE;
-  const HD = KT.HD = { enabled: true, near: 24, max: 10, list: [], ready: {}, loading: {} };
+  const HD = KT.HD = { enabled: true, near: 36, max: 16, list: [], ready: {}, loading: {} };
 
   // The outfits: one body per look, the cloth is white and tinted per person.
   const VARIANTS = {
@@ -19,10 +19,15 @@
     m_tee: 'assets/hd/m_tee.glb',
     f_saree: 'assets/hd/f_saree.glb',
     f_churidar: 'assets/hd/f_churidar.glb',
-    f_jeans: 'assets/hd/f_jeans.glb'
+    f_jeans: 'assets/hd/f_jeans.glb',
+    k_boy: 'assets/hd/k_boy.glb',
+    k_girl: 'assets/hd/k_girl.glb'
   };
+  // children are the adult rig scaled down (scale under 0.8)
+  const isKid = (cfg) => (cfg.scale || 1) < 0.8;
   function variantFor(cfg) {
     const female = cfg.gender === 'female';
+    if (isKid(cfg)) return female ? 'k_girl' : 'k_boy';
     const of = KT.Models.OUTFITS[female ? 'female' : 'male'][cfg.outfit] || {};
     if (female) {
       if (of.bottomType === 'saree') return 'f_saree';
@@ -88,6 +93,12 @@
     HD.ready[name] = { gltf, bones, pre, skinRef, hipsY: p.Hips ? scene.getObjectByName('Hips').position.y : 0.95, legRatio: legLen / 0.79 };
   }
 
+  // fetch every body in the background once the game is running, so
+  // nobody waits on a download when they come near
+  HD.preload = function () {
+    if (!HD.enabled) return;
+    Object.keys(VARIANTS).forEach((n, i) => setTimeout(() => HD.load(n), i * 400));
+  };
   HD.load = function (name) {
     if (HD.ready[name] || HD.loading[name] || !T.GLTFLoader) return;
     HD.loading[name] = true;
@@ -138,6 +149,8 @@
     model.updateMatrixWorld(true);
     e.baseQ = bones.Hips.parent.getWorldQuaternion(new T.Quaternion());
     e.src = src;
+    // a child's HD body is already child-sized: undo the rig's shrinking
+    if (isKid(cfg)) model.scale.setScalar(1 / (cfg.scale || 1));
     model.visible = false;
     e.root.add(model);
   }
