@@ -704,6 +704,76 @@
     return KT.bake(g);
   };
 
+  // ------------------------------------------- Kottakkal Arya Vaidya Sala
+  // The white building with red bands, and its stepped art-deco tower front
+  Models.aryaVaidyaSala = function () {
+    const g = new T.Group();
+    const white = mt('avsWhite', 0xf2efe6, 0.85), red = mt('avsRed', 0xa8322a, 0.8), glass = mt('avsGlass', 0x3a4650, 0.4), roofM = M().roof;
+    part(g, G.box(26, 10, 10), white, 0, 5, -4);
+    [3.4, 6.8].forEach((y) => part(g, G.box(26.2, 0.35, 10.2), red, 0, y, -4));
+    part(g, G.box(26.6, 0.4, 10.6), red, 0, 10.1, -4);
+    for (let i = 0; i < 8; i++) [1.8, 5.1, 8.4].forEach((y) => part(g, G.box(1.3, 1.5, 0.1), glass, -11 + i * 3.1 + (i > 3 ? 1.2 : -1.2), y, 1.02));
+    // the stepped tower over the entrance
+    [[7, 12, 0], [5.4, 15, 0.6], [3.8, 17.5, 1.2]].forEach(([w, h, dz]) => part(g, G.box(w, h, 3), white, 0, h / 2, 1.5 + dz * 0.2));
+    for (let k = 0; k < 7; k++) part(g, G.box(5.6 - (k % 2) * 0.6, 0.25, 0.4), red, 0, 4 + k * 1.7, 3.2);
+    for (let k = 0; k < 6; k++) part(g, G.box(0.9, 1.2, 0.1), glass, 0, 4.8 + k * 1.7, 3.3);
+    part(g, G.box(4, 1.4, 0.2), mt('avsSign', 0x2a2a2a, 0.6), 0, 16.2, 3.0);
+    // the entrance porch with its red canopy
+    part(g, G.box(8, 0.3, 3.4), red, 0, 3.4, 4.6);
+    [-3.6, 3.6].forEach((x) => part(g, G.box(0.4, 3.4, 0.4), white, x, 1.7, 6));
+    part(g, G.box(3, 2.8, 0.1), glass, 0, 1.4, 3.05);
+    // the older wing behind with sloping red tiled roofs
+    part(g, G.box(14, 7, 10), white, -16, 3.5, -12);
+    part(g, KT.hipRoofGeometry(16, 12, 3, 0.4), roofM, -16, 7, -12);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -2, hw: 13, hd: 6 }, { type: 'box', x: -16, z: -12, hw: 7, hd: 5 }];
+    return baked;
+  };
+
+  // A Kerala temple gateway (gopura-vathil): a granite plinth, timber
+  // pillars and two tiers of red tiled roofs with carved front gables
+  Models.keralaGateway = function () {
+    const g = new T.Group();
+    const stone = mt('kgStone', 0x3a3632, 0.9), wood = M().woodDark, white = mt('kgWhite', 0xefe8d8, 0.85), roofM = M().roof, gold = M().gold;
+    part(g, G.box(12, 1.2, 9), stone, 0, 0.6, 0);
+    [[-4.5, -3], [4.5, -3], [-4.5, 3], [4.5, 3], [-1.8, 3], [1.8, 3]].forEach(([x, z]) => part(g, G.box(0.5, 4, 0.5), wood, x, 3.2, z));
+    part(g, G.box(9.6, 4, 6.6), white, 0, 3.2, -0.5);
+    part(g, G.box(3, 3.4, 0.2), mt('kgDoor', 0x2a1a10, 0.7), 0, 2.9, 2.8);
+    part(g, KT.hipRoofGeometry(14, 11, 2.6, 0.3), roofM, 0, 5.2, 0);
+    part(g, G.box(8, 2, 6), wood, 0, 6.8, 0);
+    part(g, KT.hipRoofGeometry(10.5, 8, 2.8, 0.3), roofM, 0, 7.8, 0);
+    // carved front gables (mukhappu)
+    [[5.4, 4.6, 6.4], [8.6, 3.5, 4.6]].forEach(([y, w, z]) => part(g, KT.triangleGeometry(w, 1.8, 0.3), mt('kgGable', 0x7a4a2a, 0.8), 0, y, z * 0.62));
+    [9.9, 11].forEach((y, i) => part(g, G.cone(0.25 - i * 0.08, 0.9, 8), gold, 0, y, 0));
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: -3.4, z: 0, hw: 1.6, hd: 4 }, { type: 'box', x: 3.4, z: 0, hw: 1.6, hd: 4 }];
+    return baked;
+  };
+
+  // Vagamon's viewpoint frame: a tall red, yellow and blue steel frame at the edge
+  Models.viewFrame = function () {
+    const g = new T.Group();
+    const red = mt('vfRed', 0xd8322a, 0.5), yel = mt('vfYel', 0xf2c230, 0.5), blue = mt('vfBlue', 0x2c5fa8, 0.5), rail = mt('vfRail', 0x2a3a6a, 0.5);
+    [-1.6, 1.6].forEach((x) => part(g, G.box(0.25, 6, 0.25), red, x, 3, 0));
+    part(g, G.box(3.5, 0.25, 0.25), red, 0, 6, 0);
+    part(g, G.box(3.2, 0.2, 0.2), yel, 0, 3.8, 0);
+    part(g, G.box(3.2, 0.2, 0.2), blue, 0, 1.6, 0);
+    [-1.2, 1.2].forEach((x) => part(g, G.box(0.18, 2.2, 0.18), blue, x, 2.7, 0));
+    for (let i = 0; i < 9; i++) part(g, G.box(0.08, 1, 0.08), rail, -6 + i * 1.5, 0.5, -1.2);
+    part(g, G.box(13, 0.1, 0.1), rail, 0, 1, -1.2);
+    g.userData.colliders = [{ type: 'box', x: 0, z: -1.2, hw: 6.5, hd: 0.2 }];
+    return g;
+  };
+
+  // A casuarina: a tall thin trunk and a wispy, airy crown (beach shelterbelts)
+  Models.casuarina = function (seed) {
+    const g = new T.Group(), bark = mt('casBark', 0x4a3a2e, 0.9), leaf = mt('casLeaf', 0x3f5a3a, 0.95);
+    const h = 9 + (seed % 4) * 1.2, lean = ((seed * 37) % 10 - 5) * 0.01;
+    part(g, G.cyl(0.1, 0.18, h, 6), bark, 0, h / 2, 0, lean, 0, lean);
+    for (let k = 0; k < 4; k++) part(g, G.cone(1.1 - k * 0.15, 1.8, 7), leaf, Math.sin(k + seed) * 0.4, h - 2.8 + k * 1.1, Math.cos(k + seed) * 0.4);
+    return KT.bake(g);
+  };
+
   Models.eravikulam = function () {
     const g = new T.Group(), top = new T.Group();
     const grass = mt('eraGrass', 0x9ab54e, 0.95), grass2 = mt('eraGrass2', 0x7fa646, 0.95), rock = mt('eraRock', 0x5f5d58, 0.95), shola = mt('shola', 0x2f5a2a, 0.9);

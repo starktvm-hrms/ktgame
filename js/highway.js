@@ -1770,7 +1770,7 @@
       const def = hub.district.sights.find((x) => x.name === sg.name) || {};
       const wy = (al, la) => { const q = Hw.at(hub.s + al, la); return Hw.groundY(q.x, q.z).y; };
       switch (sg.kind) {
-        case 'museum': hubPlace(hub, def.model === 'paradesi' ? Models.synagogue() : Models.heritageHall(def.colors), a, l, rot); break;
+        case 'museum': hubPlace(hub, def.model === 'paradesi' ? Models.synagogue() : def.model === 'kottakkal' ? Models.aryaVaidyaSala() : Models.heritageHall(def.colors), a, l, rot); break;
         case 'cliff':
           sand(hub, a, l - side * 6, 26);
           hubPlace(hub, Models.cliff(), a, l + side * 12, rot);
@@ -2020,7 +2020,11 @@
           hubPlace(hub, Models.watchTower(), a - 18, l - side * 18, rot);
           break;
         }
-        case 'snakePark': hubPlace(hub, Models.snakePark(), a, l, rot); break;
+        case 'snakePark':
+          hubPlace(hub, Models.snakePark(), a, l, rot);
+          // the green entrance wall with the park's blue name board
+          hubPlace(hub, Models.placeSign(['PARASSINIKKADAVU', 'SNAKE PARK'], 5, '#1f4f9a'), a - 9, l - side * 18, rot);
+          break;
         default: break;
       }
       sightExtras(hub, sg, def, a, l, side, rot, heading);
@@ -2137,6 +2141,8 @@
         for (let k = 0; k < 12; k++) KT.part(mast, KT.G.cyl(0.42 - k * 0.015, 0.42 - k * 0.015, 0.12, 10), gold, 0, 2 + k * 1.5, 0);
         KT.part(mast, KT.G.box(1.4, 0.1, 0.5), gold, 0, 20.4, 0);
         hubPlace(hub, KT.bake(mast), a, l - side * 9, rot);
+        // the tiered, tile-roofed gateway in front of it
+        hubPlace(hub, Models.keralaGateway(), a, l - side * 17, rot);
         break;
       }
       case 'vagamon': {
@@ -2145,6 +2151,8 @@
         KT.part(cr, KT.G.box(0.5, 6, 0.5), KT.M.white, 0, 3, 0);
         KT.part(cr, KT.G.box(3, 0.5, 0.5), KT.M.white, 0, 4.4, 0);
         hubPlace(hub, KT.bake(cr), a + 4, l + side * 6, rot, { y: wyAt(a, l + side * 2) + 4.5, colliders: false });
+        // the colourful steel frame at the viewpoint railing, over the misty valley
+        hubPlace(hub, Models.viewFrame(), a - 8, l - side * 14, rot);
         break;
       }
       case 'calicut': {
@@ -2161,7 +2169,11 @@
         // the day's leaf in orange mesh sacks by the path, waiting for the lorry
         for (let i = 0; i < 6; i++) hubPlace(hub, Models.teaSack(i), a - 14 + (i % 3) * 1.1, l - side * (15 + Math.floor(i / 3) * 1.0), i, { colliders: false });
         break;
-      case 'kumarakom': hubPlace(hub, Models.houseboat(), a + 4, l + side * 2, 0, { absRot: heading + 0.6, y: wyAt(a, l) + 0.06, colliders: false }); break;
+      case 'kumarakom':
+        hubPlace(hub, Models.houseboat(), a + 4, l + side * 2, 0, { absRot: heading + 0.6, y: wyAt(a, l) + 0.06, colliders: false });
+        // the white "Bird Sanctuary" board at the trail into the woods
+        hubPlace(hub, Models.placeSign(['Bird Sanctuary', 'KUMARAKOM'], 3.2, '#2c6f9a'), a - 12, l - side * 18, rot);
+        break;
       case 'thenmala':
         // the canopy walk: an elevated wooden walkway with green railings
         // through the trees, and the deer rehabilitation enclosure
@@ -2244,6 +2256,8 @@
       case 'estuary': {
         const w = waterDisc(hub, a + 22, l + side * 4, 11);
         [[18, 2], [24, 6]].forEach(([x, z], i) => hubPlace(hub, Models.vallam(i + 7), a + x, l + side * z, 0, { absRot: heading + i, y: w.position.y + 0.02, colliders: false }));
+        // Padinharekara: the casuarina shelterbelt between the grass and the beach
+        if (Models.casuarina) for (let i = 0; i < 16; i++) hubPlace(hub, Models.casuarina(i), a - 22 + (i % 8) * 4.5 + (i > 7 ? 2 : 0), l - side * (14 + (i > 7 ? 4 : 0)), i, { colliders: false });
         break;
       }
       case 'city':

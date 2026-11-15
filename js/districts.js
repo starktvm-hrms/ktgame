@@ -122,7 +122,7 @@
     ],
     mlp: [
       { name: 'Malappuram Mosque', kind: 'main', icon: '\u{1F54C}', facts: ['Malappuram has some of Kerala’s oldest mosques.'] },
-      { name: 'Kottakkal Arya Vaidya Sala', kind: 'museum', icon: '\u{1F33F}', colors: [0xf4efe2, 0x2f7a3e, 0x8a3b24], facts: ['Founded in 1902 by Vaidyaratnam P.S. Varier, Kottakkal is world famous for Ayurveda.', 'Its herbal medicines are made from plants grown in its own gardens.'] },
+      { name: 'Kottakkal Arya Vaidya Sala', kind: 'museum', model: 'kottakkal', icon: '\u{1F33F}', colors: [0xf4efe2, 0x2f7a3e, 0x8a3b24], facts: ['Founded in 1902 by Vaidyaratnam P.S. Varier, Kottakkal is world famous for Ayurveda.', 'Its herbal medicines are made from plants grown in its own gardens.'] },
       { name: 'Football Ground', kind: 'football', icon: '\u26BD', facts: ['Malappuram loves football! Sevens tournaments fill local grounds with thousands of fans.', 'Many of Kerala’s best footballers grew up playing here.'] },
       { name: "Nilambur Teak Museum", kind: 'museum', model: 'nilambur', icon: '\u{1F333}', colors: [0xe9dcc0, 0x6b3f1e, 0x3a2a1a], facts: ["Nilambur has the world's oldest teak plantation, Conolly's Plot, planted in 1846.", "The Teak Museum tells the story of this precious wood."] },
       { name: "Padinharekara Beach", kind: 'beach', model: 'estuary', icon: '\u{1F3D6}\uFE0F', facts: ["At Padinharekara, the Bharathapuzha river meets the Arabian Sea.", "Migratory birds gather on the estuary."] },
