@@ -1790,7 +1790,11 @@
             [[-2, -14], [6, -12]].forEach(([x, z], i) => hubPlace(hub, Models.bambooRaft(), a + x, l + side * z, 0, { absRot: heading + i * 0.6, y: w.position.y + 0.05, colliders: false }));
             break;
           }
-          hubPlace(hub, Models.houseboat(), a - 4, l + side * 4, 0, { absRot: heading + 0.4, y: w.position.y + 0.05 });
+          if (def.model === 'pathiramanal' && Models.lakeIsland) {
+            // the island itself, low and wooded, out in the middle of the lake
+            const isl = Models.lakeIsland(); isl.scale.setScalar(0.62);
+            hubPlace(hub, isl, a + 6, l + side * 8, 0, { y: w.position.y - 0.05, colliders: false });
+          } else hubPlace(hub, Models.houseboat(), a - 4, l + side * 4, 0, { absRot: heading + 0.4, y: w.position.y + 0.05 });
           [[-8, -12], [10, -6]].forEach(([x, z]) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading - 0.6, y: w.position.y + Models.CANOE_FLOAT }));
           if (Models.motorBoat) hubPlace(hub, Models.motorBoat(), a + 9, l + side * 8, 0, { absRot: heading + 1.2, y: w.position.y + 0.02, colliders: false });
           for (let k = 0; k < 3; k++) hubPlace(hub, Models.jettySection(), a, l - side * (20 - k * 3), 0, { absRot: heading + Math.PI / 2, y: w.position.y + 0.3, colliders: false });
@@ -1825,7 +1829,7 @@
           }
           hubPlace(hub, Models.boardwalk(14), a - 6, l - side * 15, 0, { absRot: heading + Math.PI / 2, y: w.position.y, colliders: false });
           hubPlace(hub, Models.watchTower(), a + 16, l - side * 14, rot);
-          void w;
+          if (def.model === 'city') [[6, -9], [9, -6]].forEach(([x, z], i) => hubPlace(hub, Models.canoe(), a + x, l + side * z, 0, { absRot: heading + 0.3 + i * 0.4, y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
           break;
         }
         case 'tea': hubPlace(hub, Models.teaHill(), a, l, rot); break;
@@ -1885,7 +1889,7 @@
           break;
         }
         case 'church': {
-          hubPlace(hub, def.model === 'stfrancis' ? Models.stFrancis() : Models.church(), a, l + side * 6, rot);
+          hubPlace(hub, def.model === 'stfrancis' ? Models.stFrancis() : def.model === 'arthunkal' ? Models.arthunkal() : Models.church(), a, l + side * (def.model === 'arthunkal' ? 12 : 6), rot);
           [-9, 9].forEach((x, i) => hubPlace(hub, Models.coconutPalm(i + 30), a + x, l - side * 6, 0));
           break;
         }
@@ -2245,7 +2249,11 @@
       case 'city':
         // the city round the mangroves
         [[-26, 18], [-14, 26], [14, 26], [26, 18]].forEach(([x, z], i) => hubPlace(hub, Models.townBuilding(i + 3), a + x, l + side * z, rot));
+        // Mangalavanam: the white gate with its name board on the road side,
+        // and old country boats pulled up among the mangroves
+        if (Models.sanctuaryGate) hubPlace(hub, Models.sanctuaryGate('MANGALAVANAM BIRD SANCTUARY'), a - 10, l - side * 22, rot);
         break;
+
       default: break;
     }
   }

@@ -615,6 +615,95 @@
   // Rajamala: rolling grassland under a great rock face, shola forest in
   // the folds, blue neelakurinji, Nilgiri tahr grazing by the road and the
   // forest department's shuttle van.
+  // ------------------------------------------------- Arthunkal Basilica
+  // St. Andrew's: a tall brown Gothic front with twin pinnacled towers, a
+  // big pointed-arch door and lancet windows, a red-tiled nave behind, and
+  // a wide sandy forecourt with a tall flag mast.
+  Models.arthunkal = function () {
+    const g = new T.Group();
+    const brown = mt('artBrown', 0x7a5640, 0.9), dark = mt('artDark', 0x4e3628, 0.9), trim = mt('artTrim', 0xd9cdb5, 0.85);
+    const glass = mt('artGlass', 0x2a3640, 0.4), sand = mt('artSand', 0xb89a6c, 1), roofM = M().roof;
+    // the sandy forecourt
+    part(g, G.box(30, 0.06, 22), sand, 0, 0.03, 12);
+    // the nave and its tiled roof
+    part(g, G.box(12, 9, 26), brown, 0, 4.5, -14);
+    part(g, KT.gableRoofGeometry(28, 13, 4), roofM, 0, 9, -14, 0, Math.PI / 2);
+    for (let i = 0; i < 5; i++) [-1, 1].forEach((sd) => part(g, G.box(0.1, 3.4, 1.2), glass, sd * 6.03, 4.6, -5 - i * 4.5));
+    // the front: a central gable between two towers
+    part(g, G.box(8, 15, 1.6), brown, 0, 7.5, 0);
+    part(g, KT.triangleGeometry(8, 3.4, 1.6), brown, 0, 15, -0.8);
+    part(g, G.box(0.3, 2.2, 0.3), M().gold, 0, 19.4, 0); part(g, G.box(1.2, 0.3, 0.3), M().gold, 0, 19.8, 0);
+    // pointed-arch door with a trim band, a big lancet window above
+    part(g, G.box(3.2, 4.6, 0.3), dark, 0, 2.3, 0.75);
+    part(g, KT.triangleGeometry(3.2, 1.6, 0.3), dark, 0, 4.6, 0.6);
+    part(g, G.box(4, 0.25, 0.4), trim, 0, 6.5, 0.8);
+    part(g, G.box(2.6, 4.2, 0.2), glass, 0, 9.4, 0.82);
+    part(g, KT.triangleGeometry(2.6, 1.3, 0.2), glass, 0, 11.5, 0.72);
+    part(g, G.cyl(0.7, 0.7, 0.2, 14), trim, 0, 13.6, 0.82, Math.PI / 2, 0, 0);
+    // the towers: square, buttressed, four storeys of lancets, pinnacles on top
+    [-1, 1].forEach((sd) => {
+      const x = sd * 5.6;
+      part(g, G.box(3.6, 22, 3.6), brown, x, 11, 0);
+      [-1, 1].forEach((c) => part(g, G.box(0.6, 20, 0.6), dark, x + c * 1.75, 10, 1.75));
+      [5, 10, 15].forEach((y) => part(g, G.box(3.9, 0.3, 3.9), trim, x, y, 0));
+      [2.6, 7.6, 12.6, 18].forEach((y, k) => {
+        const h = k === 3 ? 3 : 2.4;
+        [-0.6, 0.6].forEach((dx) => part(g, G.box(0.5, h, 0.2), glass, x + dx, y, 1.82));
+      });
+      part(g, G.box(4, 0.4, 4), trim, x, 22.2, 0);
+      // spire and the four corner pinnacles
+      part(g, G.cone(1.5, 5, 4), dark, x, 25, 0, 0, Math.PI / 4, 0);
+      [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([a, b]) => part(g, G.cone(0.32, 2.4, 4), dark, x + a * 1.65, 23.6, b * 1.65, 0, Math.PI / 4, 0));
+      part(g, G.box(0.2, 1.2, 0.2), M().gold, x, 28, 0); part(g, G.box(0.7, 0.2, 0.2), M().gold, x, 28.2, 0);
+    });
+    // the flag mast in the forecourt, on a stepped base
+    part(g, G.box(2.4, 0.5, 2.4), trim, 0, 0.25, 16); part(g, G.box(1.6, 0.5, 1.6), trim, 0, 0.75, 16);
+    part(g, G.cyl(0.12, 0.2, 18, 8), mt('artMast', 0xd8d4c8, 0.5, { metalness: 0.3 }), 0, 10, 16);
+    part(g, G.box(0.1, 1.2, 0.1), M().gold, 0, 19.6, 16); part(g, G.box(0.6, 0.1, 0.1), M().gold, 0, 19.8, 16);
+    const baked = KT.bake(g);
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -12, hw: 7.5, hd: 14 }, { type: 'circle', x: 0, z: 16, r: 1.3 }];
+    return baked;
+  };
+
+  // A sanctuary gate: two square posts and an arched name board
+  Models.sanctuaryGate = function (name) {
+    const g = new T.Group();
+    const post = mt('sgPost', 0xf0ede4, 0.85), band = mt('sgBand', 0x3f8f9a, 0.8), iron = mt('sgIron', 0x2f6b3f, 0.6);
+    [-1, 1].forEach((sd) => {
+      part(g, G.box(1, 4.4, 1), post, sd * 3, 2.2, 0);
+      part(g, G.box(1.05, 0.9, 1.05), band, sd * 3, 0.45, 0);
+    });
+    part(g, G.box(7.2, 0.4, 1.2), post, 0, 4.6, 0);
+    const tex = canvasTex(512, 96, (c, w, h) => {
+      c.fillStyle = '#5a3a24'; c.fillRect(0, 0, w, h);
+      c.fillStyle = '#f4ead2'; c.font = 'bold 38px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(name, w / 2, h / 2 + 2);
+    }, 1, 1);
+    const board = new T.Mesh(G.box(5.6, 1.0, 0.12), [mt('sgWood', 0x5a3a24, 0.8), mt('sgWood', 0x5a3a24, 0.8), mt('sgWood', 0x5a3a24, 0.8), mt('sgWood', 0x5a3a24, 0.8),
+      new T.MeshStandardMaterial({ map: tex, roughness: 0.8 }), mt('sgWood', 0x5a3a24, 0.8)]);
+    board.position.set(0, 3.7, 0.55);
+    g.add(board);
+    // a green iron gate, half open
+    for (let i = 0; i < 9; i++) part(g, G.box(0.06, 1.6, 0.06), iron, -2.4 + i * 0.3, 0.8, 0.2);
+    part(g, G.box(2.6, 0.08, 0.08), iron, -1.2, 1.55, 0.2);
+    part(g, G.box(2.6, 0.08, 0.08), iron, -1.2, 0.2, 0.2);
+    g.userData.colliders = [{ type: 'circle', x: -3, z: 0, r: 0.7 }, { type: 'circle', x: 3, z: 0, r: 0.7 }];
+    return g;
+  };
+
+  // A low wooded island in the lake (Pathiramanal)
+  Models.lakeIsland = function () {
+    const g = new T.Group();
+    const sand = mt('islSand', 0xcdb88a, 1), green = mt('islGreen', 0x3f6f2e, 0.95), green2 = mt('islGreen2', 0x2f5a26, 0.95);
+    part(g, G.cyl(15, 16, 0.6, 28), sand, 0, 0.2, 0, 0, 0, 0, 1, 1, 0.45);
+    part(g, G.cyl(13.5, 14.5, 0.4, 28), green, 0, 0.6, 0, 0, 0, 0, 1, 1, 0.42);
+    for (let i = 0; i < 26; i++) {
+      const a = i * 2.39, r = 2 + (i * 3.7) % 11;
+      part(g, KT.blob(1.8 + (i % 3) * 0.6, 1, 0.3, 700 + i), i % 2 ? green : green2, Math.cos(a) * r, 2.6 + (i % 4) * 0.5, Math.sin(a) * r * 0.42, 0, 0, 0, 1.3, 0.9, 1);
+    }
+    return KT.bake(g);
+  };
+
   Models.eravikulam = function () {
     const g = new T.Group(), top = new T.Group();
     const grass = mt('eraGrass', 0x9ab54e, 0.95), grass2 = mt('eraGrass2', 0x7fa646, 0.95), rock = mt('eraRock', 0x5f5d58, 0.95), shola = mt('shola', 0x2f5a2a, 0.9);
@@ -634,7 +723,28 @@
     if (Models.car) add(top, Models.car(0xf3f3f0, 'suv'), 13, 0, 6, -0.3);
     baked.add(top);
     for (let i = 0; i < 4; i++) mist(baked, -16 + i * 10, 10 + i, -24, 18, 0.3);
-    baked.userData.colliders = [{ type: 'box', x: 0, z: -22, hw: 22, hd: 8 }];
+    baked.userData.colliders = [{ type: 'box', x: 0, z: -22, hw: 22, hd: 8 }, { type: 'box', x: -6, z: 10, hw: 4.2, hd: 0.8 }];
+    // the entrance: a rubble-stone wall with the park's name and a tahr's head
+    const sign = new T.Group();
+    sign.position.set(-6, 0, 10);
+    part(sign, G.box(8, 2.6, 1.2), mt('eraWall', 0x9a8f80, 0.95), 0, 1.3, 0);
+    for (let i = 0; i < 30; i++) part(sign, G.box(0.7 + (i % 3) * 0.15, 0.42, 0.06), mt('eraStone' + (i % 3), [0xb0a594, 0x8f8576, 0xa39a8a][i % 3], 0.95), -3.5 + (i % 10) * 0.78, 0.35 + Math.floor(i / 10) * 0.75, 0.62);
+    const tex = canvasTex(512, 160, (c, w, h) => {
+      c.clearRect(0, 0, w, h); c.fillStyle = '#4a3a3a'; c.font = 'bold 52px serif'; c.textAlign = 'left';
+      c.fillText('eravikulam', 10, 52); c.fillText('national', 10, 100); c.fillText('park', 10, 148);
+    }, 1, 1);
+    const plate = new T.Mesh(new T.PlaneGeometry(5, 1.6), new T.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8 }));
+    plate.position.set(-0.8, 1.6, 0.66);
+    sign.add(plate);
+    const head = mt('eraHead', 0x4a3a3a, 0.7);
+    part(sign, G.sph(0.55, 10, 8), head, 2.7, 1.8, 0.7, 0, 0, 0, 0.8, 1.1, 0.5);
+    part(sign, G.torus(0.42, 0.09, 6, 12, Math.PI * 1.3), head, 2.75, 2.1, 0.75, 0, 0, 0.4);
+    part(sign, G.box(8.4, 0.5, 0.4), mt('eraBamboo', 0x9a8a6a, 0.9), 0, 0.35, 1.1);
+    baked.add(sign);
+    // Rajamala's bare rock dome over the grassland
+    const dome = new T.Mesh(KT.blob(12, 2, 0.18, 777), mt('eraDome', 0x56524c, 0.95));
+    dome.scale.set(1.4, 1.0, 0.8); dome.position.set(6, 6, -40);
+    baked.add(dome);
     return baked;
   };
 
