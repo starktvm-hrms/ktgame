@@ -189,7 +189,8 @@
           { q: 'The floor of the Paradesi Synagogue is famous for...', a: ['Hand-painted Chinese tiles', 'Marble mosaics', 'Teak planks'], c: 0, why: 'No two of its blue willow-pattern tiles are alike.' },
           { q: 'Vasco da Gama was first buried in Kochi at...', a: ['St. Francis Church', 'Santa Cruz Basilica', 'Mattancherry Palace'], c: 0, why: 'His remains were later taken back to Portugal.' }
         ] },
-        { type: 'chase', who: 'agent', at: 'Paradesi Synagogue', title: 'Boss: The Collector’s Agent', desc: 'The agent is escaping through the narrow streets with the artefact. Catch him!', time: 55, speed: 6.3, shout: 'That’s the agent!', caught: 'You recovered the astrolabe!', fail: 'The agent slipped away into the lanes.' },
+        { type: 'chase', who: 'agent', at: 'Paradesi Synagogue', title: 'Boss: The Collector’s Agent', desc: 'The agent is running through the narrow streets with the artefact. Catch him!', time: 55, speed: 6.3, shout: 'That’s the agent!', caught: 'You grab his bag, but he twists free and jumps into a waiting car!', fail: 'The agent slipped away into the lanes.' },
+        { type: 'drive', vehicle: 'scooter', title: 'Boss: The getaway car', desc: 'Ride the scooter after the agent’s black car. Stay right behind it to force it to stop!', time: 120, speed: 15, caught: 'The car skids to a stop. You recovered the astrolabe!', fail: 'The car got away.' },
         { type: 'scene', lines: [
           ['narrator', 'In the agent’s bag, beside the astrolabe, is a folded blueprint: an operation in Kerala’s forests and mountains.'],
           ['appuppan', 'And look, a compass emblem is set into the astrolabe. The sixth symbol: Adventure.']] },
@@ -205,6 +206,7 @@
           ['meera', 'We need to locate the dumping site.']] },
         { type: 'timed', time: 45, distance: 75, title: 'Navigate the forest trail', desc: 'Follow the trail along the river to the marker before dark!', made: 'You found the dumping site.' },
         { type: 'photo', count: 2, title: 'Find the dumping vehicles', desc: 'Photograph the two trucks dumping waste near the river.', verb: '\u{1F4F7} Photograph the truck' },
+        { type: 'drive', vehicle: 'car', target: 'lorry', title: 'Vehicle chase: the dumping truck', desc: 'A truck is fleeing with the evidence! Drive after it and force it to stop.', time: 120, speed: 13, caught: 'The truck pulls over. The driver hands over the dumping papers.', fail: 'The truck got away.' },
         { type: 'find', count: 3, item: 'evidence', title: 'Collect environmental evidence', desc: 'Collect water samples and waste labels.' },
         { type: 'press', count: 3, title: 'Clear the blocked drainage', desc: 'Pull the waste out of three blocked drainage channels.', verb: 'Clear the channel', done: 'The water flows again.' },
         { type: 'press', count: 1, title: 'Stop the pollution operation', desc: 'Shut the valve on the dumping pipe.', verb: 'Shut the valve', done: 'The dumping has stopped!' },
@@ -226,7 +228,8 @@
         { type: 'timed', time: 45, distance: 80, title: 'Navigate the mountain trail', desc: 'Climb the misty trail to the marker before the fog closes in!' },
         { type: 'photo', count: 1, at: 'Eravikulam National Park', title: 'Photograph the Nilgiri Tahr', desc: 'Find the rare Nilgiri Tahr on the grassland and photograph them.', verb: '\u{1F4F7} Photograph the tahr' },
         { type: 'find', count: 1, look: 'key', item: 'the ancient stone marker', title: 'Locate the ancient stone marker', desc: 'The journal says the stone lies on the high grassland.' },
-        { type: 'timed', time: 40, distance: 85, title: 'Boss: The Mountain Pursuer', desc: 'The Collector’s agent is after the stone! Escape down the trail to the jeep!', made: 'You escaped with the stone!', fail: 'The pursuer cut you off.' },
+        { type: 'timed', time: 40, distance: 60, title: 'Boss: The Mountain Pursuer', desc: 'The Collector’s agent is after the stone! Run down the trail to the jeep!', made: 'You reach the jeep!', fail: 'The pursuer cut you off.' },
+        { type: 'drive', mode: 'escape', vehicle: 'car', distance: 450, title: 'Escape down the mountain road', desc: 'Drive down the mountain road to the checkpoint before the pursuer catches you!', time: 90, speed: 15, made: 'You escaped with the stone!', fail: 'The pursuer caught you.' },
         { type: 'scene', lines: [['appuppan', 'It is not the key itself. It is a map fragment.'], ['meera', 'It points towards Thekkady.']] }
       ] },
     // ---------------------------------------------------------------- 09
@@ -264,18 +267,19 @@
           ['appuppan', 'But read the end... the Collector has already reached the destination.']] }
       ] },
     // ---------------------------------------------------------------- 11
-    { n: 11, place: 'Varkala – Kovalam', title: 'The Coastal Mystery', to: 'Kollam Beach',
+    { n: 11, place: 'Varkala – Kovalam', title: 'The Coastal Mystery', to: 'Varkala Cliff',
       reward: { badge: 'Coastal Explorer Badge', points: 350 },
       steps: [
-        { type: 'travel', at: 'Kollam Beach', title: 'Travel to the southern coast' },
+        { type: 'travel', at: 'Varkala Cliff', title: 'Explore Varkala Cliff' },
         { type: 'talk', who: 'historian', with: 'meera', title: 'Meet the local historian', lines: [
           ['historian', 'The sea has always been a gateway to Kerala. Many travellers came here, but some stories were never recorded.'],
           ['meera', 'The last clue must be hidden somewhere along this coastline.'],
           ['historian', 'The old map fragment is near the cliffs. But be quick: men in black boats were here at dawn.']] },
-        { type: 'find', count: 1, look: 'key', item: 'the ancient map fragment', title: 'Find the ancient map fragment', desc: 'Search the cliffs above the beach.' },
+        { type: 'find', count: 1, look: 'key', at: 'Varkala Cliff', item: 'the ancient map fragment', title: 'Find the ancient map fragment', desc: 'Search the cliff top and the steps down to Papanasam beach.' },
         { type: 'reach', at: 'Jatayu Earth’s Center', title: 'Visit Jatayu Earth’s Center', desc: 'The fragment shows the great bird on the rock. Go there.' },
-        { type: 'photo', count: 3, title: 'The coastal photography challenge', desc: 'Take three photos from the marked viewpoints for the journal.', verb: '\u{1F4F7} Take the photo' },
-        { type: 'reach', at: 'Thangassery Lighthouse', title: 'Climb to the lighthouse', desc: 'The last clue is at the striped lighthouse by the sea.' },
+        { type: 'photo', count: 3, at: 'Varkala Cliff', title: 'The coastal photography challenge', desc: 'Take three photos of the cliffs from the marked viewpoints for the journal.', verb: '\u{1F4F7} Take the photo' },
+        { type: 'travel', at: 'Kovalam Beach', title: 'Travel to Kovalam' },
+        { type: 'reach', at: 'Kovalam Beach', title: 'Climb to the lighthouse', desc: 'Cross Lighthouse Beach and climb Kurumkal hill to the red-and-white lighthouse.' },
         { type: 'puzzle', name: 'The final map', title: 'Solve the final map puzzle', icons: ['\u{1F33F}', '\u{1F3DB}️', '\u{1F418}', '\u{1FA94}', '\u{1F3AD}', '\u{1F9ED}'], length: 6,
           hint: 'Place the six symbols you have found in the order the lighthouse beam shows them.' },
         { type: 'scene', lines: [
@@ -302,6 +306,7 @@
         { type: 'press', count: 3, title: 'Stop the mechanism', desc: 'The Collector has started the ancient mechanism. Pull the three levers to stop it!', verb: 'Pull the lever', done: 'A lever pulled.' },
         { type: 'timed', time: 40, distance: 80, title: 'Stage 2: The obstacle course', desc: 'Get through the collapsing passages to the marker!' },
         { type: 'find', count: 6, look: 'key', item: 'a scattered symbol', title: 'Stage 3: Recover the symbols', desc: 'The symbols scattered as the mechanism shook. Gather them!', spread: 6 },
+        { type: 'drive', vehicle: 'car', title: 'The final chase', desc: 'The Collector races off in his car with the last symbol. Chase him through the city!', time: 120, speed: 17, caught: 'His car spins out by the temple walls. He runs on foot!', fail: 'The Collector got away. After him!' },
         { type: 'chase', who: 'collector', title: 'Stage 4: The final confrontation', desc: 'The Collector is fleeing with the last symbol. Stop him!', time: 60, speed: 6.4, shout: 'The Collector is running!', caught: 'You stopped the Collector!', fail: 'The Collector got away. After him again!' },
         { type: 'scene', lines: [
           ['collector', 'How can you protect something so vast? Kerala has thousands of places, millions of people and endless stories.'],

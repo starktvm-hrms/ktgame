@@ -425,7 +425,11 @@
     { nh: 'Aruvikkara Road', name: 'Aruvikkara Dam', city: 'tvm', from: { road: 'Ponmudi Road', town: 'Nedumangad', shift: -90 },
       via: [['Aruvikkara', 8.574, 77.025]], dest: 'Aruvikkara Dam' },
     { nh: 'Ponnumthuruthu Road', name: 'Ponnumthuruthu', city: 'tvm', from: { way: 'Attingal' },
-      via: [['Ponnumthuruthu Jetty', 8.674, 76.802]], dest: 'Ponnumthuruthu Island' }
+      via: [['Ponnumthuruthu Jetty', 8.674, 76.802]], dest: 'Ponnumthuruthu Island' },
+    { nh: 'Varkala Road', name: 'Varkala', city: 'tvm', from: { road: 'Ponnumthuruthu Road', town: 'Ponnumthuruthu Jetty', shift: -70 },
+      via: [['Varkala', 8.7334, 76.709]], dest: 'Varkala Cliff' },
+    { nh: 'Kovalam Road', name: 'Kovalam', city: 'tvm', from: { road: 'MG Road', town: 'Shankhumugham', shift: 70 },
+      via: [['Vizhinjam Junction', 8.43, 76.965], ['Kovalam', 8.388, 76.975]], dest: 'Kovalam Beach' }
   ];
   // where a branch meets another road: { road, s }
   function junctionOn(spec, toward) {
@@ -885,7 +889,7 @@
   // { x, z, r, cos, sin, y(lx, lz) -> height or null } in the platform's own axes
   const PLATFORMS = Hw.PLATFORMS = [];
   let SANDY_ = null;
-  const sandySights = () => SANDY_ || (SANDY_ = Hw.sightList().filter((sg) => sg.dest && sg.kind === 'mermaidBeach'));
+  const sandySights = () => SANDY_ || (SANDY_ = Hw.sightList().filter((sg) => sg.dest && (sg.kind === 'mermaidBeach' || sg.kind === 'varkalaCliff' || sg.kind === 'kovalamBeach')));
   Hw.addPlatform = function (x, z, rot, r, fn) { PLATFORMS.push({ x, z, r, cos: Math.cos(rot), sin: Math.sin(rot), y: fn }); };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
   Hw.deepWater = (x, z, gy) => gy < Hw.waterLevelAt(x, z) - 0.6;
@@ -1648,7 +1652,7 @@
   const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 30, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
-  const DEST_R = { gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
+  const DEST_R = { gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, varkalaCliff: 46, kovalamBeach: 46, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
   Hw.sightList = function () {
     if (sightCache) return sightCache;
     sightCache = [];
@@ -2968,7 +2972,7 @@
         const hub = Hw.hubs[hi];
         if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
         if (PADS.some((P) => P.paved && Math.hypot(x - P.x, z - P.z) < P.r)) continue; // paved grounds
-        if (sandySights().some((sg) => Math.abs(x - sg.x) < 75 && Math.hypot(x - sg.x, z - sg.z) < 75)) continue; // (Shankhumugham's sand)
+        if (sandySights().some((sg) => Math.abs(x - sg.x) < 115 && Math.hypot(x - sg.x, z - sg.z) < (sg.kind === 'mermaidBeach' ? 75 : 115))) continue; // (Shankhumugham's sand)
         const h = Hw.height(x, z);
         if (Hw.waterLevelAt(x, z) > h - 0.4) continue;
         const r = hash(gx, gz, 4);

@@ -60,7 +60,8 @@
     const desc = s.desc || ({
       travel: c.place + ': ' + c.title, talk: 'Find ' + castOf(s.who).name + ' nearby and press E to talk.',
       tutorial: tutorialText(), reach: 'Walk up to ' + placeOf(s) + '.', symbol: 'Follow the light and press E to take the symbol.',
-      chase: 'Run (Shift + W) and catch them!', photo: 'Go to the camera marker and press E to take the photo.'
+      chase: 'Run (Shift + W) and catch them!', photo: 'Go to the camera marker and press E to take the photo.',
+      drive: s.mode === 'escape' ? 'Drive to the checkpoint before the pursuer catches you!' : 'Drive after them (W/S, A/D) and get right behind them to force them to stop!'
     }[s.type]) || '';
     return { title: head + title + timer, desc };
   };
@@ -76,6 +77,7 @@
     if (!s) return null;
     if ((s.type === 'talk' || s.type === 'timed') && S.chars[s.who]) return S.chars[s.who].position;
     if (s.type === 'chase' && S.runner) return S.runner.position;
+    if (s.type === 'drive' && S.drive) return S.drive.mode === 'escape' ? S.drive.goal.position : S.drive.obj.position;
     if (['find', 'press', 'photo', 'symbol'].indexOf(s.type) >= 0) {
       const P = KT.Player.pos;
       let best = null, bd = 1e9;
@@ -300,6 +302,7 @@
 
   // ------------------------------------------------------ world props
   function clearObjs(keepChars) {
+    endDrive(false);
     S.objs.forEach((o) => { if (o.parent) o.parent.remove(o); });
     S.objs = [];
     if (S.runner && S.runner.parent) S.runner.parent.remove(S.runner);
@@ -489,6 +492,7 @@
           break;
         }
         case 'chase': startChase(s, sg); break;
+        case 'drive': startDrive(s); break;
         case 'timed': {
           // the person (or place) to get to, a run away from here
           const P = KT.Player.pos, dist = s.distance || 70;
@@ -514,6 +518,7 @@
   function next() {
     const cur = st().cur;
     if (!cur) return;
+    endDrive(true);
     cur.step++;
     cur.found = [];
     S.timer = 0;
@@ -527,6 +532,7 @@
     run();
   }
   function retry(msg) {
+    endDrive(false);
     KT.UI.toast('⏱ ' + msg + ' Try again!', 'info');
     KT.Audio.play('land');
     S.objs.forEach((o) => { if (o.parent) o.parent.remove(o); });
@@ -582,6 +588,97 @@
     o.position.y = ground(o.position.x, o.position.z);
     o.rotation.y = Math.atan2(fx, fz);
     KT.Models.animateCharacter(o, 'run', dt, sp / 7);
+  }
+
+  // ------------------------------------------------- vehicle chases
+  // You are put in a vehicle on the nearest road. 'chase': the agent's car
+  // (or truck) speeds off along the road; stay right behind it to force it
+  // to stop. 'escape': a pursuer follows you; reach the checkpoint first.
+  function startDrive(s) {
+    const Hw = KT.Highway, P = KT.Player, G = KT.Game, V = KT.Vehicle;
+    if (P.mode === 'bus') P.leaveBus();
+    const p = Hw.nearestRoad(P.pos.x, P.pos.z), R = p.road;
+    const s0 = KT.clamp(p.s, 30, R.len - 30);
+    const dir = R.len - s0 > s0 ? 1 : -1, lane = 1.9;
+    const f0 = R.frame(s0), h0 = f0.heading + (dir < 0 ? Math.PI : 0);
+    const at0 = R.at(s0, -dir * lane);
+    if (G.ride) { V.remove(G.ride); G.ride = null; }
+    const veh = V.create(G.scene, at0.x, at0.z, h0, s.vehicle || 'car');
+    G.ride = veh;
+    P.boardBus(veh);
+    S.driveVeh = veh;
+    const escape = s.mode === 'escape';
+    const obj = s.target === 'lorry' && KT.Models.lorry ? KT.Models.lorry(0x6a5a3a) : KT.Models.car(s.color || 0x1c1c22, s.style || 'saloon');
+    G.scene.add(obj);
+    const d = S.drive = { R, dir, lane, s: s0 + dir * (escape ? -34 : 40), v: 0, obj, mode: escape ? 'escape' : 'chase', close: 0, base: s.speed || 16 };
+    if (escape) {
+      d.goalS = KT.clamp(s0 + dir * (s.distance || 420), 20, R.len - 20);
+      const g = makeItem('key'), q = R.at(d.goalS, 0);
+      g.position.set(q.x, Hw.groundY(q.x, q.z).y, q.z);
+      g.scale.setScalar(2.2);
+      G.scene.add(g);
+      d.goal = g;
+    }
+    placeCar(d);
+    S.timer = s.time || 90;
+    KT.UI.toast(escape ? '\u{1F699} Drive! Get to the checkpoint before they catch you. W/S to drive, A/D to steer.' : '\u{1F697} After them! W/S to drive, A/D to steer. Stay right behind them to force them to stop.', 'info');
+  }
+  function placeCar(d) {
+    const f = d.R.frame(d.s), q = d.R.at(d.s, -d.dir * d.lane);
+    d.obj.position.set(q.x, KT.Highway.groundY(q.x, q.z).y, q.z);
+    d.obj.rotation.y = f.heading + (d.dir < 0 ? Math.PI : 0);
+  }
+  function updateDrive(dt, s) {
+    const d = S.drive, P = KT.Player;
+    if (!d) return;
+    const me = (S.driveVeh && S.driveVeh.obj.position) || P.pos;
+    const dist = Math.hypot(d.obj.position.x - me.x, d.obj.position.z - me.z);
+    if (d.mode === 'chase') {
+      // the agent keeps a lead: slower when far ahead, faster when you close in
+      const want = dist > 110 ? d.base * 0.55 : dist < 18 ? d.base * 1.18 : d.base;
+      d.v += (want - d.v) * Math.min(1, dt * 1.5);
+      d.s += d.dir * d.v * dt;
+      if (d.s > d.R.len - 15 || d.s < 15) { d.dir = -d.dir; d.s = KT.clamp(d.s, 15, d.R.len - 15); }
+      placeCar(d);
+      if (dist < 7) d.close += dt; else d.close = Math.max(0, d.close - dt * 0.5);
+      if (d.close > 1.1) {
+        KT.Audio.play('mission');
+        KT.UI.toast('\u{1F6A8} ' + (s.caught || 'You forced them to stop!'), 'level');
+        S.timer = 0;
+        return next();
+      }
+      if (dist > 260) return retry(s.fail || 'They got away!');
+    } else {
+      // the pursuer follows along the road towards you
+      const myS = d.R.project(me.x, me.z).s;
+      const gap = (myS - d.s) * d.dir;
+      const want = gap > 60 ? d.base * 1.25 : gap < 12 ? d.base * 0.95 : d.base;
+      d.v += (want - d.v) * Math.min(1, dt * 1.5);
+      d.s += d.dir * d.v * dt;
+      placeCar(d);
+      if (dist < 4.5) return retry(s.fail || 'The pursuer caught you!');
+      const g = d.goal.position;
+      if (Math.hypot(g.x - me.x, g.z - me.z) < 10 || (myS - d.goalS) * d.dir > 0) {
+        KT.Audio.play('mission');
+        KT.UI.toast('✔ ' + (s.made || 'You got away!'), 'level');
+        S.timer = 0;
+        return next();
+      }
+    }
+  }
+  function endDrive(keepVehicle) {
+    const d = S.drive;
+    if (d) {
+      if (d.obj.parent) d.obj.parent.remove(d.obj);
+      if (d.goal && d.goal.parent) d.goal.parent.remove(d.goal);
+      S.drive = null;
+    }
+    const P = KT.Player, v = S.driveVeh;
+    if (v) {
+      if (P.mode === 'bus' && P.bus === v) P.leaveBus();
+      if (!keepVehicle && KT.Game.ride === v) { KT.Vehicle.remove(v); KT.Game.ride = null; }
+      S.driveVeh = null;
+    }
   }
 
   async function finish() {
@@ -718,6 +815,7 @@
         break;
       }
       case 'chase': updateChase(dt, s); break;
+      case 'drive': updateDrive(dt, s); break;
       case 'timed': {
         const goal = s.who ? S.chars[s.who] : S.goal;
         if (goal && Math.hypot(goal.position.x - P.pos.x, goal.position.z - P.pos.z) < 3) {

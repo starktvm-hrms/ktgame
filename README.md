@@ -60,7 +60,10 @@ Chapters unlock one after another on the campaign map (K, or the 📖
 button), which also shows the symbols found, badges and travel points, and
 the journal (the story so far). Each chapter takes you to its places and
 plays its missions: conversations, a movement tutorial, searches for clues,
-chases, timed runs and escapes, photography, press-to-use tasks (disable
+chases on foot, vehicle chases (a scooter after the getaway car in Fort
+Kochi, a car after the dumping truck at Athirappilly, the escape by jeep
+down the Munnar road, the final car chase in Thiruvananthapuram), timed
+runs, photography, press-to-use tasks (disable
 traps, clear drains, plant saplings), symbol puzzles, quizzes (Theyyam
 craft, spices, Kochi's history) and a rhythm game (the chenda melam and
 the snake-boat race). Finishing the campaign earns the title *Guardian of
@@ -548,6 +551,19 @@ The Secretariat is a large compound modelled on photos.
 
 The Arabian Sea lies along the whole coast. Beaches are only where the land
 meets the sea.
+
+## Varkala and Kovalam
+
+Two coastal sights south of the capital, each at the end of its own road:
+
+- **Varkala Cliff**: red laterite cliffs straight above the sea, the only
+  ones on Kerala's coast. A path with a railing runs along the top past
+  cafés, an Ayurveda centre, a juice bar and shops among the palms; steps cut
+  through the cliff lead down to Papanasam beach, with umbrellas, fishing
+  boats and people on the sand.
+- **Kovalam Beach**: Lighthouse Beach, a crescent of sand below a promenade
+  of beach shacks and palms, with umbrellas and swimmers, and the red-and-
+  white lighthouse on the rocky Kurumkal headland, its beam turning.
 
 ## Alappuzha lighthouse
 

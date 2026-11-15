@@ -27,6 +27,7 @@
       const sg = it.sg, k = sg.kind;
       if (sg.within) return;            // (built as part of its host: Kuthiramalika by the temple tank)
       if (k === 'mermaidBeach') return; // the beach itself
+      if (k === 'varkalaCliff' || k === 'kovalamBeach') { coastLandform(it); return; }
       if (k === 'lakeVillage') {
         // the backwater: a long river along the far side of the park, straight
         // by the promenade and winding beyond it (clear of the roads and the
@@ -2143,6 +2144,79 @@
       it.anim.push((t) => { if (jets) jets.scale.y = 1 + Math.sin(t * 3) * 0.12; });
     },
     zoo(it) { const root = place(it, zoo(it), 0, 0); KT.Life.zoo(it, root); },
+    varkalaCliff(it) {
+      // Varkala North Cliff: the red laterite wall over Papanasam beach, the
+      // cliff-top path with its railing, cafés and palms, and steps down
+      const top = it.cliffTop, red = mat('laterite', 0xa8482a, 0.95), red2 = mat('laterite2', 0x8a3a22, 0.95), ochre = mat('laterite3', 0xc0703a, 0.95);
+      // the cliff face: one rough wall of laterite in red and ochre bands,
+      // from the beach up to the edge of the path (cut where the steps go)
+      void red; void red2; void ochre;
+      [[-96, STAIR[0] - 0.5], [STAIR[1] + 0.5, 96]].forEach(([a, b]) => it.group.add(cliffWall(it, a, b)));
+      // the path along the top, paved, with a railing at the edge
+      const pave = mat('cliffPave', 0xb89a6c, 0.9);
+      const path = new T.Mesh(new THREE.BoxGeometry(140, 0.25, 6), pave);
+      place(it, path, 0, -2.5, 0, { y: top + 0.05, colliders: false });
+      const rail = mat('cliffRail', 0xe8e4d8, 0.6);
+      for (let dx = -69; dx <= 69; dx += 3) {
+        if (dx > STAIR[0] - 1 && dx < STAIR[1] + 1) continue;
+        const post = new T.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), rail);
+        place(it, post, dx, 0.6, 0, { y: top + 0.55, colliders: false });
+      }
+      const bar = new T.Mesh(new THREE.BoxGeometry(140, 0.08, 0.08), rail);
+      place(it, bar, 0, 0.6, 0, { y: top + 1.05, colliders: false });
+      // a collider line along the edge (except at the steps)
+      const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz;
+      [[-70, STAIR[0] - 1], [STAIR[1] + 1, 70]].forEach(([a, b]) => {
+        const mid = (a + b) / 2, half = (b - a) / 2;
+        const x = it.sg.x + ax * mid + it.out.x * 0.9, z = it.sg.z + az * mid + it.out.z * 0.9;
+        KT.Highway.addCollider({ type: 'box', x, z, hw: half, hd: 0.25, rot: it.rot });
+      });
+      // the steps down to the beach
+      for (let i = 0; i < 16; i++) {
+        const st = new T.Mesh(new THREE.BoxGeometry(6, 0.3, 1.1), mat('cliffStep', 0x9a8a72, 0.9));
+        const y = KT.lerp(top, it.beachY, KT.clamp((i + 0.5) / 16, 0, 1));
+        place(it, st, (STAIR[0] + STAIR[1]) / 2, -0.5 + i * 1.0, 0, { y: y - 0.1, colliders: false });
+      }
+      // cafés, shops and Ayurveda centres along the cliff
+      const SH = [[0x2c8fb8, 'Café Sunset'], [0xf2c230, 'Ayurveda'], [0xd84a7a, 'Shop'], [0x3fae6a, 'Juice Bar'], [0xe8742a, 'Seafood'], [0x8a5ad8, 'Books'], [0x2c5fa8, 'Yoga']];
+      SH.forEach(([c, n], k) => {
+        const dx = -58 + k * 18;
+        if (dx > STAIR[0] - 6 && dx < STAIR[1] + 6) return;
+        place(it, shack(c, n, k), dx, -11, 0, { y: top + 0.1 });
+      });
+      for (let k = 0; k < 11; k++) place(it, Models.coconutPalm(70 + k), -64 + k * 13 + (k % 2) * 3, -18 - (k % 3) * 2, k);
+      // the sand below, umbrellas, a few fishing boats, people on the beach
+      sandSheet(it, -80, 80, 5, 34, 0xe8c48c);
+      [[-50, 14, 0xd8322a], [-12, 16, 0x2c8fd8], [10, 13, 0xf2c230], [44, 15, 0x3fae3a]].forEach(([dx, dz, c]) => place(it, umbrella(c), dx, dz, 0, { colliders: false }));
+      [[-64, 24, 0.2, 2], [62, 26, -0.3, 6]].forEach(([dx, dz, r, k]) => place(it, Models.vallam(k), dx, dz, HP + r, { colliders: false }));
+      beachCrowd(it, 14, -60, 60, 9, 28, 2300);
+      for (let k = 0; k < 6; k++) place(it, Models.lampPost(), -60 + k * 24, -5.5, 0, { y: top });
+    },
+    kovalamBeach(it) {
+      // Lighthouse Beach: the sand crescent, the promenade with shacks and
+      // palms, umbrellas, and the red-and-white lighthouse on the headland
+      sandSheet(it, -78, 50, -3, 36, 0xe6c088);
+      const prom = new T.Mesh(new THREE.BoxGeometry(130, 0.4, 6), mat('kovPave', 0x9a8a72, 0.9));
+      place(it, prom, -14, -8, 0, { colliders: false });
+      const wall = new T.Mesh(new THREE.BoxGeometry(130, 0.8, 0.5), mat('kovWall', 0xd8d0b8, 0.85));
+      place(it, wall, -14, -4.8, 0, { colliders: false });
+      const SH = [[0x2c8fb8, 'Sea Breeze'], [0xf2c230, 'Fresh Fish'], [0xd84a7a, 'Surf School'], [0x3fae6a, 'Coconut Café'], [0xe8742a, 'Ayurveda'], [0x2c5fa8, 'Lighthouse View']];
+      SH.forEach(([c, n], k) => place(it, shack(c, n, k + 3), -70 + k * 22, -16, 0));
+      for (let k = 0; k < 10; k++) place(it, Models.coconutPalm(90 + k), -76 + k * 13, -24 - (k % 3) * 3, k);
+      for (let k = 0; k < 6; k++) place(it, Models.lampPost(), -66 + k * 22, -5.5, 0);
+      [[-56, 10, 0xd8322a], [-36, 13, 0xf2c230], [-14, 9, 0x2c8fd8], [4, 14, 0x3fae3a], [22, 10, 0xe8742a]].forEach(([dx, dz, c]) => place(it, umbrella(c), dx, dz, 0, { colliders: false }));
+      [[-70, 26, 0.1, 4], [30, 28, -0.2, 8]].forEach(([dx, dz, r, k]) => place(it, Models.vallam(k), dx, dz, HP + r, { colliders: false }));
+      beachCrowd(it, 18, -66, 30, 6, 26, 2400);
+      // the headland: rocks round its foot and the lighthouse on top
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2, r = 22 + (k % 3) * 4;
+        const rk = new T.Mesh(KT.blob(2.4 + (k % 3), 1, 0.3, 960 + k), mat('kovRock', 0x5a524a, 0.95));
+        place(it, rk, 62 + Math.cos(a) * r * 1.1, 16 + Math.sin(a) * r, k, { colliders: false });
+      }
+      const lh = Models.lighthouse({ H: 30 });
+      place(it, lh, 62, 16, 0);
+      if (lh.userData.beam) it.anim.push((t) => { lh.userData.beam.rotation.y = t * 0.9; });
+    },
     mermaidBeach(it) {
       // Shankhumugham: the mermaid in her shell back from the water, the old
       // stone mandapam on the sand, fishing boats drawn up, and crowds out
@@ -2234,6 +2308,146 @@
       [[-6, -40], [6, -36]].forEach(([x, z], i) => place(it, Models.canoe(), x, z, i, { y: w.position.y + Models.CANOE_FLOAT, colliders: false }));
     }
   };
+
+
+  // ------------------------------------------------- Varkala and Kovalam
+  // Land shaped in "place" coordinates (dx along, dz away from the road
+  // towards the sea), so the models line up with the cliffs and hills.
+  function placeFrame(it) {
+    const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz;
+    const c = Math.cos(it.rot), s = Math.sin(it.rot);
+    return (lx, lz) => {
+      const wx = lx * c + lz * s, wz = -lx * s + lz * c;
+      return [wx * ax + wz * az, wx * it.out.x + wz * it.out.z];
+    };
+  }
+  const VARKALA_TOP = 9, STAIR = [-34, -27];
+  function coastLandform(it) {
+    const Hw = KT.Highway, toP = placeFrame(it), sea = Hw.SEA_Y, beach = sea + 1.1, ss = KT.smoothstep, lerp = KT.lerp;
+    if (it.sg.kind === 'varkalaCliff') {
+      // a slope up from the road to the cliff top, a sheer drop of red
+      // laterite, and Papanasam beach below; steps cut down the cliff
+      const top = it.y + VARKALA_TOP;
+      it.cliffTop = top; it.beachY = beach;
+      Hw.addLandform(it.sg.x, it.sg.z, it.rot, 140, (h, lx, lz) => {
+        const [dx, dz] = toP(lx, lz), ax = Math.abs(dx);
+        if (dz < -30 || ax > 95) return h;
+        let t;
+        if (dz < -12) t = lerp(it.y, top, ss(-28, -12, dz));
+        else if (dz < 2) t = top;
+        else if (dz < 6) t = lerp(top, beach, ss(2, 6, dz));
+        else t = lerp(beach, sea - 1.6, ss(20, 52, dz));
+        // the steps: a steady slope down through the cliff
+        if (dx > STAIR[0] && dx < STAIR[1] && dz > -1 && dz < 16) t = lerp(top, beach, KT.clamp((dz + 1) / 17, 0, 1));
+        const k = 1 - ss(72, 100, ax);
+        // the beach is raised out of the sea; further out the seabed stays
+        return dz > 24 ? Math.min(h, lerp(h, t, k)) : lerp(h, t, k);
+      });
+    } else {
+      // Kovalam: the sand runs down from the promenade to the sea, with
+      // the lighthouse on its rocky headland (Kurumkal hill) at one end
+      it.beachY = beach;
+      Hw.addLandform(it.sg.x, it.sg.z, it.rot, 150, (h, lx, lz) => {
+        const [dx, dz] = toP(lx, lz), ax = Math.abs(dx);
+        if (dz < -24 || ax > 110) return h;
+        let t = dz < -4 ? lerp(it.y, it.y, 0) : lerp(it.y, beach, ss(-4, 8, dz));
+        if (dz > 18) t = lerp(beach, sea - 1.6, ss(18, 50, dz));
+        const k = 1 - ss(70, 100, ax);
+        let out = dz > 24 ? Math.min(h, lerp(h, t, k)) : lerp(h, t, k);
+        // the headland
+        const hx = dx - 62, hz = dz - 16, hr = Math.hypot(hx / 1.1, hz);
+        if (hr < 34) out = Math.max(out, it.y + 11 * (1 - ss(10, 34, hr)));
+        return out;
+      });
+    }
+  }
+  // a rough wall of rock from the beach to the cliff edge between dx a..b
+  function cliffWall(it, a, b) {
+    const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz, Hw = KT.Highway;
+    const W = (dx, dz) => ({ x: it.sg.x + ax * dx + it.out.x * dz, z: it.sg.z + az * dx + it.out.z * dz });
+    const cols = Math.max(2, Math.round((b - a) / 1.6)), rows = 12, pos = [], col = [], idx = [];
+    const BANDS = [[0.62, 0.24, 0.13], [0.72, 0.36, 0.18], [0.55, 0.2, 0.11], [0.78, 0.47, 0.25], [0.66, 0.29, 0.15]];
+    for (let i = 0; i <= cols; i++) {
+      const dx = a + (b - a) * i / cols;
+      const tq = W(dx, -0.5), bq = W(dx, 9);
+      const yTop = Hw.groundY(tq.x, tq.z).y + 0.15, yBot = Math.min(Hw.groundY(bq.x, bq.z).y, Hw.SEA_Y + 0.4) - 0.8;
+      for (let j = 0; j <= rows; j++) {
+        const t = j / rows, y = KT.lerp(yBot, yTop, t);
+        const n = Math.sin(dx * 1.7 + j * 2.1) * 0.5 + Math.sin(dx * 0.43 + j * 0.9) * 0.7 + Math.sin(dx * 3.1 - j) * 0.25;
+        const dz = 2.6 + n * 0.55 - t * 1.6 + (j === rows ? -0.8 : 0);
+        const q = W(dx, dz);
+        pos.push(q.x, y, q.z);
+        const c = BANDS[(j + Math.floor(Math.sin(dx * 0.2) * 1.5 + 2)) % BANDS.length], v = 0.9 + 0.12 * Math.sin(dx * 2.3 + j * 1.3);
+        col.push(c[0] * v, c[1] * v, c[2] * v);
+      }
+    }
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) { const p0 = i * (rows + 1) + j, p1 = p0 + rows + 1; idx.push(p0, p1, p0 + 1, p1, p1 + 1, p0 + 1); }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new T.Mesh(g, KT.mat('varkalaLateriteFace', { vertexColors: true, roughness: 0.95, flatShading: true, side: T.DoubleSide }));
+    m.castShadow = m.receiveShadow = true;
+    return m;
+  }
+  function sandSheet(it, X0, X1, Z0, Z1, color, minY) {
+    const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz, Hw = KT.Highway;
+    const NX = Math.round((X1 - X0) / 2), NZ = Math.round((Z1 - Z0) / 2), pos = [], uv = [], idx = [];
+    for (let i = 0; i <= NZ; i++) for (let k = 0; k <= NX; k++) {
+      const dx = X0 + (X1 - X0) * k / NX, dz = Z0 + (Z1 - Z0) * i / NZ;
+      const x = it.sg.x + ax * dx + it.out.x * dz, z = it.sg.z + az * dx + it.out.z * dz;
+      pos.push(x, Math.max(Hw.groundY(x, z).y, Hw.SEA_Y - 0.4) + 0.3, z); uv.push(dx / 6, dz / 6);
+    }
+    for (let i = 0; i < NZ; i++) for (let k = 0; k < NX; k++) { const a = i * (NX + 1) + k, b = a + NX + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new T.Mesh(geo, KT.mat('coastSand' + color, { map: KT.tex('sand', 1, 1), color: color || 0xe2bb80, side: T.DoubleSide }, 0.15));
+    m.receiveShadow = true;
+    it.group.add(m);
+    return m;
+  }
+  // a beach shack café: bamboo posts, a palm-thatch or tin roof, a painted sign
+  function shack(color, sign, seed) {
+    const g = new T.Group(), wood = mat('shackWood', 0x8a5a2a), wall = mat('shack' + color, color, 0.85);
+    part(g, G.box(5, 0.25, 4), mat('shackDeck', 0x9a6a3a), 0, 0.12, 0);
+    part(g, G.box(5, 2.6, 0.2), wall, 0, 1.4, -1.9);
+    [-1, 1].forEach((sd) => part(g, G.box(0.2, 2.6, 4), wall, sd * 2.4, 1.4, 0));
+    [[-2.4, 1.9], [2.4, 1.9]].forEach(([x, z]) => part(g, G.cyl(0.1, 0.1, 2.8, 6), wood, x, 1.4, z));
+    part(g, KT.hipRoofGeometry(6.2, 5.2, 1.4, 0.3), seed % 2 ? KT.M.thatch : mat('tinRoof', 0x6a7a8a, 0.5), 0, 2.8, 0);
+    const tex = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#f4ead2'; x.fillRect(0, 0, 256, 64); x.fillStyle = '#7a2a1a'; x.font = 'bold 34px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(sign, 128, 34); const t = new T.CanvasTexture(c); return t; })();
+    const board = new T.Mesh(new T.PlaneGeometry(3.6, 0.9), new T.MeshStandardMaterial({ map: tex, roughness: 0.8 }));
+    board.position.set(0, 2.55, 2.0);
+    g.add(board);
+    // a table and two stools in front
+    part(g, G.cyl(0.5, 0.5, 0.08, 10), wood, 0.8, 0.85, 2.8); part(g, G.cyl(0.07, 0.07, 0.8, 6), wood, 0.8, 0.45, 2.8);
+    [-0.1, 1.7].forEach((x) => part(g, G.cyl(0.22, 0.22, 0.5, 8), mat('stool', 0x2c5fa8), x, 0.3, 2.8));
+    g.userData.colliders = [{ type: 'box', x: 0, z: -0.4, hw: 2.6, hd: 1.6 }];
+    return g;
+  }
+  function umbrella(color) {
+    const g = new T.Group();
+    part(g, G.cyl(0.05, 0.05, 2.4, 6), mat('umbPole', 0xd8d4c8), 0, 1.2, 0);
+    part(g, G.cone(1.6, 0.6, 10), mat('umb' + color, color, 0.7), 0, 2.5, 0);
+    part(g, G.box(0.7, 0.1, 1.8), mat('lounger', 0xf2efe6), 1.0, 0.3, 0.2, 0, 0.3, 0);
+    return g;
+  }
+  function beachCrowd(it, n, X0, X1, Z0, Z1, seed) {
+    const crowd = new T.Group(); it.group.add(crowd);
+    const rng = KT.makeRng(seed), people = [];
+    const LOOKS = [['male', 'tee'], ['female', 'casual'], ['male', 'mundu'], ['female', 'saree'], ['male', 'hiking'], ['female', 'hiking'], ['male', 'casual'], ['female', 'churidar']];
+    for (let k = 0; k < n; k++) {
+      const look = LOOKS[k % LOOKS.length], female = look[0] === 'female', sit = k % 3 === 1;
+      const ch = Models.character({ gender: look[0], outfit: look[1], lite: true, hair: female ? ['bun', 'braid', 'loose'][k % 3] : ['short', 'default', 'wavy'][k % 3],
+        skin: [0xc08660, 0xe8c8a8, 0x8d5a3b, 0xd9a27c][k % 4], acc: { sunglasses: rng() < 0.5, hat: rng() < 0.3 }, seed: seed + k });
+      place(it, ch, X0 + rng() * (X1 - X0), Z0 + rng() * (Z1 - Z0), Math.PI + (rng() - 0.5) * 1.2, { colliders: false });
+      crowd.attach(ch);
+      people.push({ ch, sit, ph: rng() * 9 });
+    }
+    let last = null;
+    it.anim.push((t) => {
+      const dt = last === null ? 0 : Math.min(0.1, Math.max(0, t - last)); last = t;
+      people.forEach((p) => KT.Models.animateCharacter(p.ch, p.sit ? 'sit' : Math.sin(t * 0.4 + p.ph) > 0.85 ? 'wave' : 'idle', dt, 1));
+    });
+    it.fauna = crowd;
+  }
 
   function build(it) {
     const Hw = KT.Highway;
