@@ -27,8 +27,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ------------------------------------------------------------- screens */
 .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; }
-#loading { background: radial-gradient(ellipse at 50% 30%, #2d7a55 0%, #12372a 60%, #0a1d16 100%); z-index: 50; }
-.load-card { text-align: center; width: min(460px, 90vw); }
 .logo { width: 120px; height: 120px; filter: drop-shadow(0 6px 18px rgba(0,0,0,0.4)); }
 .logo.small { width: 72px; height: 72px; }
 h1 { font-family: Georgia, "Times New Roman", serif; font-size: 2.6rem; margin: 0.3rem 0 0; letter-spacing: 0.02em; }
@@ -449,26 +447,80 @@ body.toon #loading { background: radial-gradient(ellipse at 50% 30%, #7fb36a 0%,
 body.toon .travel-btn, body.toon .garage-card { background: rgba(255, 240, 210, 0.07); border-color: rgba(255, 230, 190, 0.16); }
 body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: rgba(124, 192, 107, 0.25); border-color: rgba(165, 220, 136, 0.7); }
 
-/* ---------------------------------------------------------- title screen */
-#title { z-index: 45; overflow: hidden; background: #2f6a46; }
-.title-bg { position: absolute; inset: -40px; background: url(../assets/ui/title-small.webp) center / cover; filter: blur(16px) brightness(0.85) saturate(1.1); }
-.title-art { position: relative; flex: none; width: min(100vw, 150vh); aspect-ratio: 3 / 2; box-shadow: 0 0 60px rgba(0, 0, 0, 0.35); }
-.title-art img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
-/* on tall phone screens the art is shown a little larger (only the far left and right edges are cut) */
-@media (max-aspect-ratio: 1/1) { .title-art { width: 128vw; } }
-.hotspot { position: absolute; border: 0; padding: 0; background: transparent; border-radius: 999px; cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; -webkit-tap-highlight-color: transparent; }
-.hotspot:hover, .hotspot:focus-visible { animation: none; transform: scale(1.035); box-shadow: 0 0 0 3px rgba(255, 244, 196, 0.9), 0 0 28px rgba(255, 214, 102, 0.85); outline: none; }
-.hotspot:active { transform: scale(0.98); }
-.hotspot.play { left: 29.4%; top: 60.6%; width: 41.2%; height: 15.4%; animation: titlePulse 2.4s ease-in-out infinite; }
-.hotspot.settings { left: 38.1%; top: 79.4%; width: 23.8%; height: 9%; }
-@keyframes titlePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 102, 0); } 50% { box-shadow: 0 0 26px 4px rgba(255, 214, 102, 0.55); } }
-/* settings opened from the title screen: only the settings and a Back button */
-.title-only { display: none; }
-#pause.from-title .title-only { display: inline-block; }
-#pause.from-title .modal > h2, #pause.from-title .modal-buttons > .btn:not(.title-only) { display: none; }
-/* the loading and sign-in screens share the title art, dimmed */
-#loading, #auth { background: #0a1d16; }
-#loading::before, #auth::before { content: ''; position: fixed; inset: -40px; z-index: -1; pointer-events: none;
-  background: url(../assets/ui/title-small.webp) center / cover; filter: blur(18px) brightness(0.42) saturate(1.1); }
-#pause.from-title { z-index: 50; }
+/* ------------------------------------- loading + sign-in (one screen)
+   A game-styled card in the painted look: a wooden name plaque with a
+   palm and a houseboat on a wave, a dark wood panel trimmed in gold, and
+   chunky yellow buttons. While the world loads the card shows the bar
+   over a painted sky and backwater; then the form takes its place and the
+   live 3D backwaters show through behind it. */
+#auth { z-index: 50; padding: 4.2rem 0 1.5rem; align-items: flex-start; font-family: 'Fredoka', 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(ellipse at 50% 120%, rgba(8, 24, 18, 0.15), rgba(8, 24, 18, 0.55) 75%); transition: background 0.8s ease; }
+#auth.loading { background:
+  radial-gradient(circle at 78% 18%, rgba(255, 246, 200, 0.9) 0 4%, rgba(255, 230, 150, 0) 14%),
+  linear-gradient(180deg, #7cc4ef 0%, #bfe6f5 34%, #6fb36a 35%, #3f8a4a 44%, #2a8fb4 45%, #1d6f93 72%, #155873 100%); }
+#auth.loading::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+  background:
+    radial-gradient(ellipse 22% 9% at 12% 35%, #2f6e35 60%, transparent 62%),
+    radial-gradient(ellipse 26% 11% at 40% 35%, #3a7d3c 60%, transparent 62%),
+    radial-gradient(ellipse 24% 10% at 72% 35%, #2f6e35 60%, transparent 62%),
+    radial-gradient(ellipse 18% 8% at 95% 35%, #3a7d3c 60%, transparent 62%),
+    repeating-linear-gradient(180deg, transparent 0 18px, rgba(255, 255, 255, 0.07) 18px 20px) 0 46% / 100% 54% no-repeat; }
+.auth-card { width: min(430px, 92vw); text-align: center; padding: 0.4rem 1.4rem 1.3rem; margin: auto;
+  background: linear-gradient(180deg, rgba(74, 44, 22, 0.94), rgba(46, 26, 12, 0.95));
+  border: 3px solid #d8a032; border-radius: 26px;
+  box-shadow: 0 0 0 5px rgba(58, 32, 14, 0.85), 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 2px 0 rgba(255, 220, 140, 0.25); }
+#auth .tag { font-family: inherit; font-weight: 500; color: #ffe7a8; margin: 0.1rem 0 0.9rem; font-style: normal; }
+
+/* the name plaque */
+.brand { position: relative; margin: -3.4rem auto 0.1rem; width: min(330px, 84vw); }
+.brand-palm { display: block; width: 92px; margin: 0 auto -16px; position: relative; z-index: 2; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.3)); }
+.brand-plaque { position: relative; display: grid; line-height: 0.88; padding: 0.55rem 1rem 0.7rem;
+  background: linear-gradient(180deg, #8a5527, #5c3416); border: 4px solid #3a1f0c; border-radius: 22px;
+  box-shadow: inset 0 3px 0 rgba(255, 200, 120, 0.35), 0 6px 0 #2a1608, 0 10px 20px rgba(0, 0, 0, 0.35); }
+.brand-1, .brand-2 { font-weight: 700; letter-spacing: 0.01em; paint-order: stroke fill; -webkit-text-stroke: 7px #3a1f0c; }
+.brand-1 { font-size: clamp(2.1rem, 8.5vw, 2.8rem); color: #fff3d6; }
+.brand-2 { font-size: clamp(2.6rem, 10.5vw, 3.6rem); color: #ffc61a; }
+@supports not (paint-order: stroke) { .brand-1, .brand-2 { -webkit-text-stroke: 2px #3a1f0c; } }
+.brand-1, .brand-2 { text-shadow: 0 4px 0 #2a1608; }
+.brand-wave { display: block; width: 86%; margin: -14px auto 0; position: relative; z-index: 2; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.3)); }
+
+/* the loading bar: a wooden track filling with gold */
+.load-box { display: none; }
+#auth.loading .load-box { display: block; }
+#auth.loading .auth-tabs, #auth.loading .auth-form, #auth.loading .auth-foot { display: none !important; }
+#auth .bar { height: 18px; border-radius: 999px; background: #2a1608; border: 2px solid #d8a032; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); }
+#auth #load-bar { height: 100%; width: 0; border-radius: 999px; transition: width 0.3s ease;
+  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.18) 0 8px, transparent 8px 16px), linear-gradient(180deg, #ffe45c, #f5a31a); }
+#auth #load-text { color: #fff3d6; font-weight: 600; margin: 0.6rem 0 0.3rem; }
+#auth .tip { color: #e8cf98; font-size: 0.88rem; margin: 0.4rem 0 0.2rem; }
+
+/* tabs and fields */
+#auth .auth-tabs { background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(216, 160, 50, 0.55); border-radius: 999px; padding: 4px; margin: 0.4rem 0 1rem; }
+#auth .auth-tabs button { font-family: inherit; font-size: 1rem; font-weight: 600; color: #f0dcae; border-radius: 999px; }
+#auth .auth-tabs button.sel { background: linear-gradient(180deg, #ffe45c, #f5a31a); color: #4a2608; box-shadow: 0 3px 0 #a8650e; }
+#auth .auth-form label { color: #f0dcae; font-size: 0.88rem; font-weight: 500; }
+#auth .auth-form label.check { color: #fff3d6; }
+#auth .auth-form input[type=tel], #auth .auth-form input[type=password], #auth .auth-form input[type=text], #auth .auth-form input:not([type]) {
+  background: #fff8e6; color: #3a2210; border: 2px solid #c99a4a; border-radius: 14px; font-family: inherit; font-weight: 500; }
+#auth .auth-form input::placeholder { color: #b39770; }
+#auth .auth-form input:focus { border-color: #ffc61a; box-shadow: 0 0 0 3px rgba(255, 198, 26, 0.35); }
+#auth .auth-form input[type=checkbox] { accent-color: #f5a31a; }
+#auth .at { color: #8a5a2a; }
+#auth .pw-toggle { background: #e9d7b0; color: #4a2608; font-family: inherit; }
+#auth .small-print, #auth h3 { color: #f0dcae; }
+
+/* chunky yellow buttons, as on the title art */
+#auth .btn.primary { font-family: inherit; font-size: 1.2rem; font-weight: 700; color: #4a2608; padding: 0.8rem 1rem; border-radius: 999px;
+  background: linear-gradient(180deg, #ffe65e 0%, #ffc61a 55%, #f59d16 100%); border: 3px solid #fff1b0;
+  box-shadow: 0 5px 0 #a8650e, 0 9px 16px rgba(0, 0, 0, 0.35); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4); transition: transform 0.12s, box-shadow 0.12s, filter 0.12s; }
+#auth .btn.primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+#auth .btn.primary:active { transform: translateY(4px); box-shadow: 0 1px 0 #a8650e, 0 3px 8px rgba(0, 0, 0, 0.35); }
+#auth .btn.guest { font-family: inherit; font-size: 1.05rem; font-weight: 600; color: #fff3d6; padding: 0.6rem 1.6rem; border-radius: 999px;
+  background: linear-gradient(180deg, #5d5a2a, #3a3816); border: 3px solid #d8a032; box-shadow: 0 4px 0 #22200c; }
+#auth .btn.guest:hover { filter: brightness(1.12); }
+#auth .btn.guest:active { transform: translateY(3px); box-shadow: 0 1px 0 #22200c; }
+#auth .auth-error { font-family: inherit; }
+#auth .server-status { color: #e8cf98; }
+#auth .linkish.small { color: #d8c08e; }
+#auth .auth-form { gap: 0.55rem; }
+#auth .auth-form input[type=tel], #auth .auth-form input[type=password], #auth .auth-form input[type=text], #auth .auth-form input:not([type]) { padding: 0.55rem 0.8rem; }

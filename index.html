@@ -6,40 +6,49 @@
   <meta name="description" content="Kerala Explorer - a 3D browser adventure through God's Own Country: backwaters, houseboats, Kathakali, temple elephants, Munnar tea hills, Periyar wildlife and Kovalam beach.">
   <meta name="theme-color" content="#1f5f3f">
   <title>Kerala Saavari - God's Own Country</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-state="loading">
   <canvas id="game"></canvas>
 
-  <!-- Loading -->
-  <div id="loading" class="screen">
-    <div class="load-card">
-      <img src="assets/icons/logo.svg" alt="" class="logo">
-      <h1>Kerala Saavari</h1>
-      <p class="tag">God's Own Country</p>
-      <div class="bar"><div id="load-bar"></div></div>
-      <p id="load-text">Loading...</p>
-      <p class="tip">Tip: Kerala's backwaters stretch over 900 km of interconnected canals, rivers and lakes.</p>
-    </div>
-  </div>
-
-  <!-- Title screen: the painted art, with real buttons over its painted ones -->
-  <div id="title" class="screen hidden">
-    <div class="title-bg"></div>
-    <div class="title-art">
-      <img src="assets/ui/title.webp" alt="Kerala Saavari: a houseboat on the backwaters, a Kathakali dancer and an elephant">
-      <button id="btn-title-play" class="hotspot play" aria-label="Play Game"></button>
-      <button id="btn-title-settings" class="hotspot settings" aria-label="Settings"></button>
-    </div>
-  </div>
-
   <!-- Sign in / register -->
-  <div id="auth" class="screen hidden">
+  <!-- Loading, then sign in / register: one screen. The card shows the
+       loading bar while the world builds, then the form in its place. -->
+  <div id="auth" class="screen loading">
     <div class="auth-card">
-      <img src="assets/icons/logo.svg" alt="" class="logo small">
-      <h1>Kerala Saavari</h1>
+      <div class="brand">
+        <svg class="brand-palm" viewBox="0 0 120 70" aria-hidden="true">
+          <path d="M60 68 C58 50 59 36 62 24" stroke="#7a4a22" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <g fill="#3fae3a" stroke="#22701f" stroke-width="2">
+            <path d="M62 24 C48 8 26 10 12 22 C30 16 46 20 62 26Z"/><path d="M62 24 C76 8 98 10 110 22 C92 16 78 20 62 26Z"/>
+            <path d="M62 24 C56 6 40 0 30 2 C44 8 54 14 61 26Z"/><path d="M62 24 C68 6 84 0 94 2 C80 8 70 14 63 26Z"/>
+            <path d="M62 24 C40 22 28 34 26 46 C36 34 48 30 62 28Z"/><path d="M62 24 C84 22 96 34 98 46 C88 34 76 30 62 28Z"/>
+          </g>
+          <circle cx="57" cy="29" r="3.4" fill="#8a5a2a"/><circle cx="64" cy="30" r="3.4" fill="#7a4a22"/>
+        </svg>
+        <div class="brand-plaque">
+          <span class="brand-1">Kerala</span>
+          <span class="brand-2">Saavari</span>
+        </div>
+        <svg class="brand-wave" viewBox="0 0 240 44" aria-hidden="true">
+          <path d="M6 30 C50 44 100 14 150 26 C185 34 210 30 234 18 C226 34 196 42 160 38 C110 32 70 46 6 30Z" fill="#2fa4d8" stroke="#0e5f8a" stroke-width="2.5"/>
+          <path d="M30 32 C70 38 110 24 150 30" stroke="#bfeaff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <g transform="translate(92 6)">
+            <path d="M0 16 L56 16 L50 24 L6 24Z" fill="#3a2414"/>
+            <path d="M6 16 L8 6 Q28 -2 48 6 L50 16Z" fill="#e8b94a" stroke="#8a5a1a" stroke-width="1.5"/>
+            <rect x="14" y="9" width="5" height="5" fill="#8a5a1a"/><rect x="25" y="8" width="5" height="6" fill="#8a5a1a"/><rect x="36" y="9" width="5" height="5" fill="#8a5a1a"/>
+          </g>
+        </svg>
+      </div>
       <p class="tag">Explore God's Own Country together</p>
+      <div class="load-box">
+        <div class="bar"><div id="load-bar"></div></div>
+        <p id="load-text">Loading...</p>
+        <p class="tip">Tip: Kerala's backwaters stretch over 900 km of interconnected canals, rivers and lakes.</p>
+      </div>
       <div class="auth-tabs">
         <button data-auth-tab="login">Log in</button>
         <button data-auth-tab="register">Register</button>
@@ -69,7 +78,7 @@
         <button class="btn primary" type="submit">Save username</button>
       </form>
       <div class="auth-foot">
-        <button id="btn-guest" class="linkish">Play offline as a guest</button>
+        <button id="btn-guest" class="btn guest">&#x25B6; Play as a guest</button>
         <span id="server-status" class="server-status"></span>
         <button id="btn-server" class="linkish small">Server settings</button>
       </div>
@@ -222,7 +231,6 @@
     <div class="modal">
       <h2>Paused</h2>
       <div class="modal-buttons">
-        <button id="btn-pause-back" class="btn primary title-only">&#x2190; Back</button>
         <button id="btn-resume" class="btn primary">Resume</button>
         <button id="btn-map" class="btn">Map</button>
         <button id="btn-album" class="btn">Photo Album</button>

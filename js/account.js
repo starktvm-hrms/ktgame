@@ -129,6 +129,7 @@
   };
   function show() {
     showTab(KT.Net.lastPhone() ? 'login' : 'register');
+    $('auth').classList.remove('loading');
     KT.UI.show('auth');
     checkServer();
   }

@@ -81,37 +81,14 @@
     KT.Preview.init($('preview'));
     KT.Preview.setConfig(Game.cfg);
     bindUI();
-    KT.UI.hide('loading');
+    KT.UI.progress(1, 'Signing in...');
     Game.setState('auth');
     Game.clock = new T.Clock();
     renderer.setAnimationLoop(loop);
-    // the title screen, then sign in (or resume a remembered session)
-    await showTitle();
+    // sign in (or resume a remembered session): the loading card turns into the form
     Game.user = await KT.Account.init();
     prepareMenu();
   };
-
-  // ------------------------------------------------------------ title
-  // The painted title card: Play Game goes on to sign-in, Settings opens
-  // the settings panel on its own (with a Back button).
-  function showTitle() {
-    return new Promise((resolve) => {
-      KT.UI.show('title');
-      const pause = $('pause');
-      const play = () => {
-        if (!pause.classList.contains('hidden')) return;
-        document.removeEventListener('keydown', key);
-        KT.UI.hide('title');
-        resolve();
-      };
-      const key = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); } };
-      document.addEventListener('keydown', key);
-      $('btn-title-play').onclick = play;
-      $('btn-title-settings').onclick = () => { pause.classList.add('from-title'); KT.UI.show('pause'); };
-      $('btn-pause-back').onclick = () => { pause.classList.remove('from-title'); KT.UI.hide('pause'); };
-      $('btn-title-play').focus();
-    });
-  }
 
   // ------------------------------------------------------------ accounts
   // Saved progress: on the server for signed-in players, else this device.

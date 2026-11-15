@@ -10,15 +10,15 @@ together with other travellers online.
 
 ![Kerala Explorer](assets/icons/logo.svg)
 
-## Title screen
+## Loading and sign-in
 
-The game opens on a painted title card, **Kerala Saavari**: a Kathakali
-dancer on a tiled verandah, an elephant, coconut palms, a waterfall and a
-houseboat on the backwaters (`assets/ui/title.webp`). **Play Game** goes
-on to sign-in (or straight to the character creator for a remembered
-player); **Settings** opens the settings on their own, with a Back button.
-Enter or Space also starts. The loading and sign-in screens use the same
-art, blurred and dimmed.
+The game opens on one screen, **Kerala Saavari**: a wooden name plaque
+with a coconut palm and a houseboat riding a wave, on a gold-trimmed wood
+card. While the world builds, the card shows a golden loading bar over a
+painted sky and backwater; then the sign-in form (log in / register, or
+play as a guest) takes its place, and the live 3D backwaters drift past
+behind it. A remembered player goes straight on to the character
+creator.
 
 ## How to play
 
