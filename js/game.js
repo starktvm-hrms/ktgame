@@ -33,6 +33,8 @@
     if (s) Object.assign(Game.settings, s);
     // the cel-shaded look is built into every shader, so it is set up first
     if (Game.settings.style !== 'classic') { KT.Toon.patchShaders(); document.body.classList.add('toon'); }
+    // the sign-in form works while the world loads (the card shows both)
+    const signIn = KT.Account.init();
     const canvas = $('game');
     let renderer;
     try {
@@ -81,12 +83,16 @@
     KT.Preview.init($('preview'));
     KT.Preview.setConfig(Game.cfg);
     bindUI();
-    KT.UI.progress(1, 'Signing in...');
+    KT.UI.progress(1, 'Kerala is ready!');
     Game.setState('auth');
     Game.clock = new T.Clock();
     renderer.setAnimationLoop(loop);
-    // sign in (or resume a remembered session): the loading card turns into the form
-    Game.user = await KT.Account.init();
+    // the painted scene fades into the live backwaters; once signed in (or
+    // playing as a guest) the card goes and the character creator opens
+    $('auth').classList.remove('booting');
+    Game.user = await signIn;
+    $('auth').classList.remove('signed');
+    KT.UI.hide('auth');
     prepareMenu();
   };
 

@@ -129,13 +129,18 @@
   };
   function show() {
     showTab(KT.Net.lastPhone() ? 'login' : 'register');
-    $('auth').classList.remove('loading');
+    $('auth').classList.remove('signed');
     KT.UI.show('auth');
     checkServer();
   }
   async function done(user) {
     if (user && !user.username) user = await askUsername(user);
-    KT.UI.hide('auth');
+    const au = $('auth');
+    if (au.classList.contains('booting')) {
+      // signed in before the world finished loading: keep the bar going
+      au.classList.add('signed');
+      $('signed-text').textContent = (user ? 'Welcome, ' + (user.name || user.username) + '!' : 'Playing as a guest.') + ' Getting Kerala ready...';
+    } else KT.UI.hide('auth');
     if (A.resolve) { const r = A.resolve; A.resolve = null; r(user); }
   }
   // Players who registered before usernames existed choose one once.

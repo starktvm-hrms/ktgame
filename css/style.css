@@ -454,17 +454,31 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
    over a painted sky and backwater; then the form takes its place and the
    live 3D backwaters show through behind it. */
 #auth { z-index: 50; padding: 4.2rem 0 1.5rem; align-items: flex-start; font-family: 'Fredoka', 'Nunito', 'Segoe UI', system-ui, sans-serif;
-  background: radial-gradient(ellipse at 50% 120%, rgba(8, 24, 18, 0.15), rgba(8, 24, 18, 0.55) 75%); transition: background 0.8s ease; }
-#auth.loading { background:
-  radial-gradient(circle at 78% 18%, rgba(255, 246, 200, 0.9) 0 4%, rgba(255, 230, 150, 0) 14%),
-  linear-gradient(180deg, #7cc4ef 0%, #bfe6f5 34%, #6fb36a 35%, #3f8a4a 44%, #2a8fb4 45%, #1d6f93 72%, #155873 100%); }
-#auth.loading::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
-  background:
-    radial-gradient(ellipse 22% 9% at 12% 35%, #2f6e35 60%, transparent 62%),
-    radial-gradient(ellipse 26% 11% at 40% 35%, #3a7d3c 60%, transparent 62%),
-    radial-gradient(ellipse 24% 10% at 72% 35%, #2f6e35 60%, transparent 62%),
-    radial-gradient(ellipse 18% 8% at 95% 35%, #3a7d3c 60%, transparent 62%),
-    repeating-linear-gradient(180deg, transparent 0 18px, rgba(255, 255, 255, 0.07) 18px 20px) 0 46% / 100% 54% no-repeat; }
+  background: radial-gradient(ellipse at 50% 120%, rgba(8, 24, 18, 0.15), rgba(8, 24, 18, 0.55) 75%); }
+/* the painted, animated backwater shown while the world loads; it fades
+   away to the live 3D backwaters once they are ready */
+.boot-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; transition: opacity 1.2s ease;
+  background: radial-gradient(circle at 78% 18%, rgba(255, 246, 200, 0.95) 0 4%, rgba(255, 230, 150, 0) 15%), linear-gradient(180deg, #6fbcea 0%, #bfe6f5 40%, #d8eef5 42%); }
+#auth:not(.booting) .boot-scene { opacity: 0; }
+.boot-scene .hills { position: absolute; left: -5%; right: -5%; top: 30%; height: 16%;
+  background: radial-gradient(ellipse 22% 55% at 12% 70%, #2f6e35 60%, transparent 62%), radial-gradient(ellipse 26% 60% at 40% 70%, #3a7d3c 60%, transparent 62%),
+    radial-gradient(ellipse 24% 58% at 72% 70%, #2f6e35 60%, transparent 62%), radial-gradient(ellipse 18% 50% at 96% 70%, #3a7d3c 60%, transparent 62%),
+    linear-gradient(180deg, transparent 62%, #4f9a4c 62%); }
+.boot-scene .water { position: absolute; left: 0; right: 0; top: 45%; bottom: 0;
+  background: repeating-linear-gradient(180deg, transparent 0 16px, rgba(255, 255, 255, 0.09) 16px 18px), linear-gradient(180deg, #2a96bd, #1d6f93 55%, #145470);
+  background-size: 120px 34px, 100% 100%; animation: bootWater 3s linear infinite; }
+@keyframes bootWater { from { background-position: 0 0, 0 0; } to { background-position: 0 34px, 0 0; } }
+.boot-scene .cloud { position: absolute; width: 180px; height: 52px; border-radius: 60px; background: #fff; opacity: 0.92;
+  box-shadow: 40px -22px 0 6px #fff, 90px -8px 0 -2px #fff; animation: bootCloud 60s linear infinite; }
+.boot-scene .c1 { top: 9%; left: -15%; }
+.boot-scene .c2 { top: 18%; left: -15%; transform: scale(0.7); animation-duration: 85s; animation-delay: -40s; }
+.boot-scene .c3 { top: 5%; left: -15%; transform: scale(0.55); animation-duration: 110s; animation-delay: -75s; opacity: 0.8; }
+@keyframes bootCloud { to { left: 115%; } }
+.boot-boat { position: absolute; width: 150px; top: 52%; left: -15%; animation: bootBoat 38s linear infinite, bootBob 2.6s ease-in-out infinite; }
+.boot-boat.b2 { width: 100px; top: 64%; animation-duration: 52s, 3.1s; animation-delay: -30s, -1s; animation-direction: reverse, normal; }
+@keyframes bootBoat { to { left: 110%; } }
+@keyframes bootBob { 0%, 100% { margin-top: 0; } 50% { margin-top: 5px; } }
+@media (prefers-reduced-motion: reduce) { .boot-scene *, .boot-scene { animation: none !important; } }
 .auth-card { width: min(430px, 92vw); text-align: center; padding: 0.4rem 1.4rem 1.3rem; margin: auto;
   background: linear-gradient(180deg, rgba(74, 44, 22, 0.94), rgba(46, 26, 12, 0.95));
   border: 3px solid #d8a032; border-radius: 26px;
@@ -485,9 +499,13 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
 .brand-wave { display: block; width: 86%; margin: -14px auto 0; position: relative; z-index: 2; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.3)); }
 
 /* the loading bar: a wooden track filling with gold */
-.load-box { display: none; }
-#auth.loading .load-box { display: block; }
-#auth.loading .auth-tabs, #auth.loading .auth-form, #auth.loading .auth-foot { display: none !important; }
+.load-box { display: none; margin-bottom: 0.9rem; }
+#auth.booting .load-box { display: block; }
+#auth .load-box .tip { display: none; }
+#auth.signed .load-box .tip { display: block; }
+.signed-text { display: none; color: #fff3d6; font-weight: 600; font-size: 1.1rem; margin: 0.2rem 0 0.4rem; }
+#auth.signed .signed-text { display: block; }
+#auth.signed .auth-tabs, #auth.signed .auth-form, #auth.signed .auth-foot { display: none !important; }
 #auth .bar { height: 18px; border-radius: 999px; background: #2a1608; border: 2px solid #d8a032; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); }
 #auth #load-bar { height: 100%; width: 0; border-radius: 999px; transition: width 0.3s ease;
   background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.18) 0 8px, transparent 8px 16px), linear-gradient(180deg, #ffe45c, #f5a31a); }

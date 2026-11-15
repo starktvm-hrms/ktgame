@@ -12,13 +12,15 @@ together with other travellers online.
 
 ## Loading and sign-in
 
-The game opens on one screen, **Kerala Saavari**: a wooden name plaque
-with a coconut palm and a houseboat riding a wave, on a gold-trimmed wood
-card. While the world builds, the card shows a golden loading bar over a
-painted sky and backwater; then the sign-in form (log in / register, or
-play as a guest) takes its place, and the live 3D backwaters drift past
-behind it. A remembered player goes straight on to the character
-creator.
+The game opens on one card, **Kerala Saavari**: a wooden name plaque with
+a coconut palm and a houseboat riding a wave, on gold-trimmed dark wood.
+The golden loading bar and the log in / register form are on the card
+together, so players can sign in (or choose to play as a guest) while the
+world builds. Behind it a painted backwater is animated: clouds drift,
+houseboats glide by and the water shimmers; when the world is ready it
+fades into the live 3D backwaters. Anyone who signs in early sees a
+welcome and the bar, and goes on to the character creator as soon as the
+world is ready. A remembered player goes straight on.
 
 ## How to play
 
