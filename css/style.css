@@ -542,3 +542,45 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
 #auth .linkish.small { color: #d8c08e; }
 #auth .auth-form { gap: 0.55rem; }
 #auth .auth-form input[type=tel], #auth .auth-form input[type=password], #auth .auth-form input[type=text], #auth .auth-form input:not([type]) { padding: 0.55rem 0.8rem; }
+
+/* ------------------------------------------- character creator, same style */
+#menu { font-family: 'Fredoka', 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(90deg, rgba(20, 10, 4, 0.55) 0%, rgba(20, 10, 4, 0.2) 50%, rgba(8, 24, 18, 0.05) 100%); }
+#menu .menu-left { position: relative; padding: 2.6rem 1.4rem 1.2rem; margin-top: 2.4rem; overflow: visible;
+  background: linear-gradient(180deg, rgba(74, 44, 22, 0.94), rgba(46, 26, 12, 0.95));
+  border: 3px solid #d8a032; border-radius: 26px;
+  box-shadow: 0 0 0 5px rgba(58, 32, 14, 0.85), 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 2px 0 rgba(255, 220, 140, 0.25); }
+#menu .menu-left-scroll { overflow-y: auto; }
+#menu .brand.brand-sm { width: min(250px, 70vw); margin: -5.2rem auto 0.2rem; }
+#menu .brand-sm .brand-palm { width: 70px; margin-bottom: -12px; }
+#menu .brand-sm .brand-1 { font-size: 2.1rem; -webkit-text-stroke-width: 6px; }
+#menu .brand-sm .brand-2 { font-size: 2.6rem; -webkit-text-stroke-width: 6px; }
+#menu .brand-sm .brand-plaque { padding: 0.4rem 0.8rem 0.55rem; border-radius: 18px; }
+#menu .tag { text-align: center; font-family: inherit; font-style: normal; font-weight: 500; color: #ffe7a8; margin: 0.1rem 0 0.8rem; }
+#menu .field { color: #f0dcae; font-weight: 500; max-width: none; }
+#menu .field input { background: #fff8e6; color: #3a2210; border: 2px solid #c99a4a; border-radius: 14px; font-family: inherit; font-weight: 500; }
+#menu .field input:focus { border-color: #ffc61a; box-shadow: 0 0 0 3px rgba(255, 198, 26, 0.35); }
+#menu .small-print, #menu .muted { color: #d8c08e; }
+#menu .small-print a, #menu .linkish { color: #ffd45c; }
+#menu .group h3 { color: #ffd45c; font-family: inherit; font-weight: 600; letter-spacing: 0.14em; margin: 0.9rem 0 0.4rem; }
+#menu .chip { font-family: inherit; font-weight: 500; color: #fff3d6; background: rgba(0, 0, 0, 0.28); border: 2px solid rgba(216, 160, 50, 0.55); padding: 0.4rem 0.95rem; }
+#menu .chip:hover { background: rgba(255, 214, 92, 0.16); border-color: #d8a032; }
+#menu .chip.sel { background: linear-gradient(180deg, #ffe45c, #f5a31a); color: #4a2608; border-color: #fff1b0; box-shadow: 0 3px 0 #a8650e; font-weight: 600; }
+#menu .menu-buttons { justify-content: center; }
+#menu .btn.primary { font-family: inherit; font-size: 1.2rem; font-weight: 700; color: #4a2608; padding: 0.75rem 2rem; border-radius: 999px;
+  background: linear-gradient(180deg, #ffe65e 0%, #ffc61a 55%, #f59d16 100%); border: 3px solid #fff1b0;
+  box-shadow: 0 5px 0 #a8650e, 0 9px 16px rgba(0, 0, 0, 0.35); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4); transition: transform 0.12s, box-shadow 0.12s, filter 0.12s; }
+#menu .btn.primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+#menu .btn.primary:active { transform: translateY(4px); box-shadow: 0 1px 0 #a8650e, 0 3px 8px rgba(0, 0, 0, 0.35); }
+#menu .btn:not(.primary) { font-family: inherit; font-size: 1.05rem; font-weight: 600; color: #fff3d6; padding: 0.7rem 1.6rem; border-radius: 999px;
+  background: linear-gradient(180deg, #5d5a2a, #3a3816); border: 3px solid #d8a032; box-shadow: 0 4px 0 #22200c; }
+#menu .btn:not(.primary):hover { filter: brightness(1.12); }
+#menu .drag-hint { display: inline-block; font-family: inherit; font-weight: 600; color: #fff3d6; background: rgba(46, 26, 12, 0.8); border: 2px solid #d8a032; border-radius: 999px; padding: 0.3rem 1rem; }
+@media (max-width: 760px) {
+  #menu .menu-left { margin-top: 3.2rem; padding: 2.4rem 1rem 1rem; }
+}
+#menu { align-items: flex-start; overflow-y: auto; padding: 2.4rem 0 1.2rem; }
+#menu .menu-card { max-height: none; margin: auto; }
+#menu .menu-left { max-height: none; }
+#menu .menu-right { position: sticky; top: 1rem; align-self: flex-start; margin-top: 2.4rem; }
+@media (max-width: 760px) { #menu .menu-right { position: static; margin-top: 0; } }
