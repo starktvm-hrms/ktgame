@@ -76,6 +76,7 @@
     const s = step();
     if (!s) return null;
     if ((s.type === 'talk' || s.type === 'timed') && S.chars[s.who]) return S.chars[s.who].position;
+    if (s.type === 'timed' && S.goal) return S.goal.position;
     if (s.type === 'chase' && S.runner) return S.runner.position;
     if (s.type === 'drive' && S.drive) return S.drive.mode === 'escape' ? S.drive.goal.position : S.drive.obj.position;
     if (['find', 'press', 'photo', 'symbol'].indexOf(s.type) >= 0) {
@@ -1023,7 +1024,8 @@
       }
       case 'reach': {
         const sg = sightOf(placeOf(s));
-        if (sg && Math.hypot(sg.x - P.pos.x, sg.z - P.pos.z) < Math.max(10, sg.r * 0.55)) next();
+        // (at its edge is enough: some sights are on the water)
+        if (sg && Math.hypot(sg.x - P.pos.x, sg.z - P.pos.z) < Math.max(12, sg.r + 4)) next();
         break;
       }
       default: break;
