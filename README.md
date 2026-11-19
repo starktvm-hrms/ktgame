@@ -83,6 +83,26 @@ God's Own Country*, 1,000 bonus points and the Legendary Explorer outfit.
 The chapters are data (`js/story-data.js`) played by the engine in
 `js/story.js`, so the story can be rewritten without touching the code.
 
+## Screen layout
+
+Every screen shares the painted wood-and-gold look of the title card:
+dark wood panels with gold borders, chunky yellow buttons and rounded
+lettering, in the HUD, the dialogue box and every menu (pause, map, fast
+travel, profile, vehicles, groups, photo album).
+
+The HUD keeps status along the top and controls along the bottom: your
+portrait, name and level top-left with the current mission under them,
+the compass top-centre, the time, coins, stars, eco leaves, players
+online and the menu buttons top-right; the minimap bottom-right with the
+action buttons beside it, and, when you drive, the route bar and
+speedometer along the bottom middle. Phones and tablets get the touch
+layout from the first frame (joystick bottom-left, run and jump buttons
+bottom-right, the route bar tucked under the compass), and on a phone held
+upright the mission folds to its title (tap to open), the minimap sits
+beside it under the compass, and the route bar, speedometer, prompts and
+radio stack above the controls. During a conversation on a small screen
+the HUD steps aside so the dialogue box has the room.
+
 ## How to play
 
 **Online at https://starktvm-hrms.github.io/ktgame/** — the game is

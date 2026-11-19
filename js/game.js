@@ -1407,8 +1407,11 @@
     $('btn-cert-close').onclick = () => Game.setState('playing');
     $('dialog-next').onclick = () => { if (KT.UI.dialogNext) KT.UI.dialogNext(); };
     $('mission-panel').onclick = () => {
+      // small screens fold the panel to its title; a tap opens it
+      const panel = $('mission-panel');
+      panel.classList.toggle('open');
       const m = KT.Missions.current();
-      if (m) KT.UI.toast(m.desc, 'info');
+      if (m && !panel.classList.contains('open')) KT.UI.toast(m.desc, 'info');
     };
     // settings
     const s = Game.settings;

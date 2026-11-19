@@ -31,6 +31,12 @@
   };
 
   I.init = function (canvas) {
+    // a phone or tablet gets the touch layout (joystick and buttons) from
+    // the first frame, not only after the first touch
+    try {
+      const coarse = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (coarse && navigator.maxTouchPoints > 0) { I.touch = true; document.body.classList.add('touch'); }
+    } catch (e) { /* no matchMedia */ }
     window.addEventListener('keydown', (e) => {
       const a = CODES[e.code];
       if (!a) return;

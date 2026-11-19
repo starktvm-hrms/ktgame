@@ -723,3 +723,158 @@ body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: r
 #story-scene.cinema #ss-text { font-size: 1.18rem; color: #fff; text-shadow: 0 1px 2px #000; }
 #story-scene.cinema #ss-name { font-size: 1.05rem; }
 @keyframes barIn { from { transform: scaleY(0); } to { transform: none; } }
+
+/* ======================================================================
+   Layout v2 and the wood-and-gold theme for the HUD, dialog and modals
+   (the title, sign-in, creator and campaign screens set the style).
+   Status lives along the top: profile top-left, compass top-centre, stat
+   chips and buttons top-right, the mission under the profile. Controls
+   live along the bottom: joystick bottom-left (touch), action buttons
+   beside the minimap bottom-right, the route bar, prompt and radio in
+   the middle. Phone portrait and landscape get their own arrangements.
+   ====================================================================== */
+:root { --panel: rgba(46, 26, 12, 0.86); --panel-border: rgba(216, 160, 50, 0.6); --wood: linear-gradient(180deg, rgba(74, 44, 22, 0.96), rgba(46, 26, 12, 0.97)); --gold2: #ffc61a; --cream: #fff3d6; --tan: #e0c890; }
+#hud, .modal, #dialog, .banner, #mouse-hint, #fade-text, .screen { font-family: 'Fredoka', 'Nunito', 'Segoe UI', system-ui, sans-serif; }
+
+/* panels, chips and buttons */
+#hud .panel, .chip-stat, body.toon .chip-stat, .icon-btn, #prompt, .toast, #radio-panel, .photo-bar, #mouse-hint { background: var(--panel); border: 1.5px solid var(--panel-border); box-shadow: 0 3px 0 rgba(30, 16, 6, 0.45), 0 6px 16px rgba(0, 0, 0, 0.25); color: var(--cream); }
+.icon-btn { color: var(--cream); }
+.round { background: rgba(46, 26, 12, 0.72); border: 2px solid rgba(216, 160, 50, 0.75); color: var(--cream); box-shadow: 0 3px 0 rgba(30, 16, 6, 0.5); }
+.round.active, #btn-action.glow { background: linear-gradient(180deg, #ffe65e, #f59d16); border-color: #fff1b0; color: #4a2608; }
+.m-head { color: var(--gold2); border-bottom-color: rgba(216, 160, 50, 0.35); }
+.m-head .chev, .m-title-row .chev { color: var(--tan); }
+.m-diamond { background: var(--gold2); }
+#m-fill, #xp-fill, .pf-level .xp div { background: linear-gradient(90deg, #f5a31a, #ffe45c); }
+.m-bar, .xp, .pf-level .xp { background: rgba(0, 0, 0, 0.35); }
+#portrait { border-color: var(--gold2); }
+.lvl-row, #m-desc, .toast.info { color: var(--tan); }
+#location-row, .expand, .mm-zoom button { background: rgba(46, 26, 12, 0.88); color: var(--cream); }
+.mm-zoom button:hover { background: rgba(216, 160, 50, 0.6); }
+.toast.eco { border-color: #8ef0a8; } .toast.star { border-color: var(--gold2); } .toast.level { border-color: #9ad8ff; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(255, 198, 26, 0.25); } }
+html body .btn, html body.toon .btn { font-family: inherit; font-weight: 600; color: var(--cream); background: linear-gradient(180deg, #5d5a2a, #3a3816); border: 2px solid #d8a032; border-radius: 999px; box-shadow: 0 3px 0 #22200c; transition: transform 0.1s, filter 0.15s; }
+html body .btn:hover, html body.toon .btn:hover { filter: brightness(1.12); }
+html body .btn:active, html body.toon .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #22200c; }
+html body .btn.primary, html body.toon .btn.primary { color: #4a2608; background: linear-gradient(180deg, #ffe65e 0%, #ffc61a 55%, #f59d16 100%); border-color: #fff1b0; box-shadow: 0 4px 0 #a8650e; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4); }
+html body .btn.primary:active, html body.toon .btn.primary:active { box-shadow: 0 1px 0 #a8650e; transform: translateY(3px); }
+html body .btn.danger, html body.toon .btn.danger { color: #fff; background: linear-gradient(180deg, #c8453a, #8a2a22); border-color: #ffb0a0; box-shadow: 0 3px 0 #4a1410; text-shadow: none; }
+html body .btn.small, html body.toon .btn.small { padding: 0.35rem 0.85rem; font-size: 0.85rem; }
+
+/* modals */
+html body .modal { background: var(--wood); border: 3px solid #d8a032; border-radius: 24px; color: var(--cream); box-shadow: 0 0 0 5px rgba(58, 32, 14, 0.85), 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 2px 0 rgba(255, 220, 140, 0.25); }
+.modal h2 { font-family: inherit; font-weight: 700; color: var(--gold2); paint-order: stroke fill; -webkit-text-stroke: 4px #3a1f0c; text-shadow: 0 3px 0 #2a1608; }
+.modal h2 small { -webkit-text-stroke: 0; text-shadow: none; color: var(--tan); font-weight: 500; }
+.modal h3 { color: #ffd45c; }
+.modal-head { flex-wrap: wrap; gap: 0.5rem; }
+#pause, #bigmap, #album, #certificate, #profile-page, #players, #district, #fasttravel, #garage, #groups { background: rgba(14, 8, 3, 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.settings label { color: var(--cream); }
+.settings select { background: #fff8e6; color: #3a2210; border: 2px solid #c99a4a; border-radius: 12px; font-family: inherit; font-weight: 500; max-width: 100%; }
+.settings input[type=range], .settings input[type=checkbox] { accent-color: #f5a31a; }
+table.controls td { border-bottom-color: rgba(216, 160, 50, 0.2); }
+table.controls td:first-child { color: var(--tan); }
+.travel-btn, body.toon .travel-btn, .garage-card, body.toon .garage-card, .pf-stat, .pf-districts li, .group-row, #album-grid figure { background: rgba(0, 0, 0, 0.28); border: 2px solid rgba(216, 160, 50, 0.35); border-radius: 14px; }
+.travel-btn:hover, .travel-btn:focus-visible, body.toon .travel-btn:hover, body.toon .travel-btn:focus-visible { background: rgba(255, 214, 92, 0.16); border-color: #d8a032; }
+.travel-btn.here, body.toon .travel-btn.here { border-color: var(--gold2); }
+.pf-districts li.on { background: rgba(255, 198, 26, 0.2); color: var(--cream); }
+.pf-districts li.on .dot { background: var(--gold2); border-color: var(--gold2); color: #4a2608; }
+.player-row { border-bottom-color: rgba(216, 160, 50, 0.2); }
+.pf-portrait { border-color: var(--gold2); }
+.cert { border-color: var(--gold2); }
+.cert-name { font-family: inherit; color: var(--gold2); }
+#bigmap-canvas { border: 2px solid rgba(216, 160, 50, 0.5); }
+
+/* dialogue (free roam) */
+html body #dialog { background: var(--wood); border: 3px solid #d8a032; border-radius: 22px; color: var(--cream); box-shadow: 0 0 0 4px rgba(58, 32, 14, 0.85), 0 12px 30px rgba(0, 0, 0, 0.45); }
+.dialog-name { background: linear-gradient(180deg, #ffe65e, #f59d16); color: #4a2608; border: 2px solid #fff1b0; box-shadow: 0 3px 0 #a8650e; }
+#dialog-text { font-weight: 500; }
+
+/* banners, the travel fade, the mouse hint */
+#banner-title { font-family: inherit; color: var(--gold2); paint-order: stroke fill; -webkit-text-stroke: 6px #3a1f0c; text-shadow: 0 4px 0 #2a1608, 0 6px 20px rgba(0, 0, 0, 0.5); }
+.banner.mission #banner-title { color: #a8e07a; }
+.banner.star #banner-title { color: var(--gold2); }
+#banner-sub { color: var(--cream); font-weight: 500; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8); }
+.banner.title #banner-sub { font-family: inherit; font-style: normal; color: #ffe7a8; }
+#fade { background: #1a0e06; }
+#fade-text { color: var(--gold2); font-weight: 600; }
+#mouse-hint { font-weight: 600; }
+
+/* ------------------------------------------------- HUD layout v2 */
+#hud #profile { top: 10px; left: 14px; bottom: auto; }
+#hud #mission-panel { top: 66px; left: 14px; bottom: auto; width: 250px; }
+#hud #mission-panel .m-head { cursor: pointer; }
+#hud #compass-wrap { top: 10px; width: min(440px, 34vw); }
+#hud #topright { top: 10px; right: 14px; bottom: auto; left: auto; transform: none; flex-wrap: wrap; justify-content: flex-end; max-width: 30vw; gap: 0.35rem; }
+#hud #toasts { top: 64px; }
+#hud #minimap-wrap { right: 14px; bottom: 12px; top: auto; width: 190px; }
+#hud #buttons { right: 216px; bottom: 12px; }
+#hud #route { top: auto; bottom: 12px; left: 50%; right: auto; transform: translateX(-50%); width: min(430px, 36vw); }
+#hud #speedo { right: 270px; bottom: 8px; width: 120px; height: 120px; }
+#hud #prompt { bottom: 150px; }
+#hud #radio-panel { bottom: 84px; }
+/* touch: the joystick bottom-left, the buttons beside the minimap, the route bar under the compass */
+body.touch #hud #joystick { left: 4vw; bottom: 5vh; }
+body.touch #hud #buttons { right: 216px; bottom: 12px; gap: 10px; }
+body.touch #hud #route { bottom: auto; top: 54px; width: min(360px, 32vw); }
+body.touch #hud #prompt { bottom: 186px; } /* (the touch buttons stand three rows tall) */
+body.touch #hud #speedo { right: 420px; bottom: 8px; width: 110px; height: 110px; }
+body.touch #hud #toasts { top: 100px; }
+body.touch #hud #radio-panel { bottom: 200px; }
+@media (max-width: 900px) {
+  #hud #mission-panel { width: 200px; }
+  #hud #minimap-wrap { width: 132px; }
+  #hud #buttons, body.touch #hud #buttons { right: 156px; }
+  #hud #speedo { width: 86px; height: 86px; right: 156px; bottom: 124px; }
+  body.touch #hud #speedo { right: 356px; bottom: 8px; }
+  #hud #route { width: 40vw; }
+  body.touch #hud #route { width: 32vw; }
+  #hud #topright { max-width: 28vw; }
+  #hud #radio-panel { max-width: 46vw; }
+}
+@media (max-height: 520px) {
+  #hud #profile { transform: scale(0.9); transform-origin: top left; }
+  #hud #mission-panel { top: 56px; width: 190px; font-size: 0.75rem; }
+  #hud #mission-panel:not(.open) #m-desc, #hud #mission-panel:not(.open) .m-prog { display: none; }
+  #hud #toasts, body.touch #hud #toasts { top: 124px; width: min(460px, 60vw); }
+  #hud #radio-panel { bottom: 190px; }
+  body.touch #hud #route { top: 48px; }
+  /* no room in the middle of a short screen: the radio sits under the chips */
+  body.touch #hud #radio-panel { top: 112px; right: 14px; bottom: auto; left: auto; transform: none; max-width: 30vw; }
+}
+/* phone portrait: profile and chips on top, compass under them, the mission beside a small minimap,
+   controls in the bottom corners with the route bar, speedo, prompt and radio stacked above them */
+@media (max-width: 600px) {
+  #hud #profile { top: 8px; left: 10px; padding: 3px 10px 3px 3px; transform: none; }
+  #hud #profile .xp { display: none; }
+  #hud #topright { top: 8px; right: 10px; max-width: 62vw; gap: 0.25rem; }
+  #hud .chip-stat { padding: 0.18rem 0.4rem; font-size: 0.7rem; }
+  #hud .icon-btn { width: 30px; height: 26px; font-size: 0.8rem; }
+  #hud #compass-wrap { top: 108px; width: 66vw; }
+  #hud #mission-panel { top: 152px; left: 10px; width: 58vw; font-size: 0.75rem; }
+  #hud #mission-panel:not(.open) .m-body { display: none; }
+  #hud #minimap-wrap { top: 152px; bottom: auto; right: 10px; width: 112px; }
+  #hud #minimap { width: 102px; height: 102px; }
+  #hud #toasts, body.touch #hud #toasts { top: 272px; width: 92vw; }
+  #hud #buttons, body.touch #hud #buttons { right: 10px; bottom: 12px; }
+  body.touch #hud #joystick { left: 4vw; bottom: 3vh; width: 130px; height: 130px; }
+  #hud #route, body.touch #hud #route { top: auto; bottom: calc(3vh + 150px); left: 10px; right: 10px; width: auto; transform: none; }
+  #hud #speedo, body.touch #hud #speedo { right: 10px; bottom: calc(3vh + 150px + 72px); width: 70px; height: 70px; }
+  #hud #prompt, body.touch #hud #prompt { bottom: calc(3vh + 150px + 150px); max-width: 92vw; white-space: normal; text-align: center; }
+  #hud #radio-panel, body.touch #hud #radio-panel { top: auto; right: auto; left: 50%; transform: translateX(-50%); bottom: calc(3vh + 150px + 180px); max-width: 94vw; }
+  #hud #radio-vol { display: none; }
+  html body #dialog { bottom: 2vh; padding: 0.9rem 1rem 0.8rem; }
+  #dialog-text { font-size: 1rem; }
+  .modal-head h2 { font-size: 1.4rem; }
+  .settings label:not(.check) { flex-direction: column; align-items: stretch; gap: 0.3rem; }
+  .settings input[type=range] { width: 100%; }
+  .camp-symbols { grid-template-columns: repeat(4, 1fr); }
+  .camp-ch { grid-template-columns: 2rem 1fr auto; }
+  .camp-ch .sym { display: none; }
+  .camp-ch .txt b { font-size: 0.95rem; }
+}
+/* in a conversation on a small screen the HUD steps aside */
+@media (max-width: 900px), (max-height: 520px) {
+  body[data-state="dialog"] #mission-panel, body[data-state="dialog"] #profile, body[data-state="dialog"] #minimap-wrap, body[data-state="dialog"] #buttons,
+  body[data-state="dialog"] #joystick, body[data-state="dialog"] #route, body[data-state="dialog"] #prompt, body[data-state="dialog"] #radio-panel,
+  body[data-state="dialog"] #speedo, body[data-state="dialog"] #topright { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s, visibility 0.25s; }
+  html body #dialog { bottom: 2vh; }
+}
