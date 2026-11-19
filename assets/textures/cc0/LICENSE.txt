@@ -1,0 +1,11 @@
+Photo textures from Poly Haven (https://polyhaven.com), CC0 1.0 (public
+domain): https://polyhaven.com/license
+
+  palm_bark.jpg   <- palm_tree_bark          laterite.jpg <- red_laterite_soil_stones
+  mud.jpg         <- forest_ground_04        sand.jpg     <- coast_sand_01
+  roof_tiles.jpg  <- clay_roof_tiles_02      plaster.jpg  <- plastered_wall
+  wood.jpg        <- weathered_brown_planks  asphalt.jpg  <- asphalt_01
+  bark.jpg        <- bark_brown_02           grass.jpg    <- aerial_grass_rock
+
+Each is the 1k diffuse map, resized to 512 px. tools/generate_textures.py
+uses a file here in place of its own painted texture of the same name.

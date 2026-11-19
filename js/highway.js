@@ -947,11 +947,15 @@
     // Asphalt: speckled aggregate, darker tyre tracks in each lane, patched
     // repairs, hairline cracks and oil stains, with matching bump detail.
     const asphalt = (function () {
-      const W = 512, H = 1024, rng = KT.makeRng(1234);
+      const W = 512, H = 1024;
       const c = document.createElement('canvas'), b = document.createElement('canvas');
       c.width = b.width = W; c.height = b.height = H;
       const g = c.getContext('2d'), gb = b.getContext('2d');
+      // drawn once now, and again over the real asphalt photo once it has loaded
+      const draw = (photo) => {
+      const rng = KT.makeRng(1234);
       g.fillStyle = '#4a4c4f'; g.fillRect(0, 0, W, H);
+      if (photo) { g.globalAlpha = 0.75; g.drawImage(photo, 0, 0, W, H / 2); g.drawImage(photo, 0, H / 2, W, H / 2); g.globalAlpha = 1; }
       gb.fillStyle = '#808080'; gb.fillRect(0, 0, W, H);
       // tyre tracks: two per lane, smooth and a little darker
       [0.17, 0.34, 0.66, 0.83].forEach((u) => {
@@ -998,10 +1002,19 @@
       gb.fillRect(16, 0, 14, H); gb.fillRect(W - 30, 0, 14, H); gb.fillRect(W / 2 - 8, 0, 16, H * 0.58);
       g.fillStyle = 'rgba(74,76,79,0.35)';
       for (let i = 0; i < 40; i++) g.fillRect([16, W - 30, W / 2 - 8][i % 3] + rng() * 12, rng() * H, 2 + rng() * 5, 2 + rng() * 8);
+      };
+      draw(null);
       const t = new T.CanvasTexture(KT.Toon.enabled ? KT.Toon.paint(c) : c), tb = new T.CanvasTexture(b);
       [t, tb].forEach((x) => { x.wrapS = x.wrapT = T.RepeatWrapping; x.anisotropy = KT.maxAnisotropy; });
       t.encoding = T.sRGBEncoding;
       t.userData = { bump: tb };
+      // the photo: real aggregate under the tracks, patches and paint
+      const src = KT.TEXTURE_DATA && KT.TEXTURE_DATA.asphalt;
+      if (src) {
+        const img = new Image();
+        img.onload = () => { draw(img); t.image = KT.Toon.enabled ? KT.Toon.paint(c) : c; t.needsUpdate = true; tb.needsUpdate = true; };
+        img.src = src;
+      }
       return t;
     })();
     const waterN = KT.tex('water_normal', 6, 6, true);
@@ -1111,7 +1124,37 @@
     pools.jack = new Pool(scene, Models.jackfruitTree(), 260, true);
     pools.forest = new Pool(scene, Models.forestTree(7), 1600, true);
     Models.SHOP_TYPES.forEach((t) => { pools['shop_' + t] = new Pool(scene, Models.shop(t), 40, true); });
+    // Kenney's CC0 props (js/props.js) come in a little later: each gets a
+    // pool of its own, and the ground cover is worked out again to use them
+    if (KT.Props) KT.Props.whenReady(() => {
+      Object.keys(KPROPS).forEach((k) => {
+        const names = KPROPS[k].names.filter((n) => KT.Props.get(n));
+        if (!names.length) return;
+        KPROPS[k].pools = names.map((n, i) => { const key = k + i; pools[key] = new Pool(scene, KT.Props.get(n), KPROPS[k].cap, KPROPS[k].shadow); return key; });
+      });
+      Hw.propsReady = true;
+      gcCache.clear(); groveCache.clear();
+      Hw.lastPos = null;
+    });
   }
+  // prop families: which Kenney files make up each, how many may show at once
+  const KPROPS = {
+    kRock: { names: ['rock_largeA', 'rock_largeB', 'rock_largeC'], cap: 120, shadow: true },
+    kStone: { names: ['rock_smallA', 'rock_smallB', 'stone_smallA', 'rock_smallFlatA'], cap: 160, shadow: false },
+    kBush: { names: ['plant_bush', 'plant_bushLarge', 'plant_bushDetailed'], cap: 160, shadow: false },
+    kFlower: { names: ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB'], cap: 160, shadow: false },
+    kLog: { names: ['log', 'log_large', 'stump_round', 'stump_old', 'log_stack'], cap: 60, shadow: true },
+    kMushroom: { names: ['mushroom_red', 'mushroom_redGroup', 'mushroom_tanGroup'], cap: 80, shadow: false },
+    kPine: { names: ['tree_pineRoundA', 'tree_pineRoundB', 'tree_pineRoundC', 'tree_pineTallA', 'tree_pineTallB'], cap: 260, shadow: true },
+    kTree: { names: ['tree_detailed', 'tree_oak', 'tree_fat', 'tree_plateau'], cap: 200, shadow: true },
+    kLily: { names: ['lily_large', 'lily_small'], cap: 120, shadow: false },
+    kCone: { names: ['construction-cone'], cap: 40, shadow: false },
+    kBarrier: { names: ['construction-barrier'], cap: 16, shadow: true },
+    kWarn: { names: ['road-sign-warning'], cap: 8, shadow: true },
+    kWorkLight: { names: ['construction-light'], cap: 8, shadow: false }
+  };
+  // one pool key of a family, picked by a 0..1 hash (null until loaded)
+  const kprop = (k, r) => { const ps = KPROPS[k].pools; return ps ? ps[Math.min(ps.length - 1, Math.floor(r * ps.length))] : null; };
 
   // ------------------------------------------------- roadside shop clusters
   // A few small shops face the road every now and then between towns.
@@ -2851,8 +2894,52 @@
     Hw.segs.forEach((sg) => sg.items.forEach((it) => lists[it.key].push(it.m)));
     grove(pos, lists);
     groundCover(pos, lists);
+    roadWorks(pos, lists);
     Object.keys(pools).forEach((k) => pools[k].set(lists[k]));
   }
+
+  // ------------------------------------------------------- road works
+  // Every so often the highway shoulder is dug up: a warning sign, a row of
+  // cones closing the edge of the lane, a barrier and a blinking lamp. The
+  // same spots always, never on a bridge or in a town.
+  const WORKS_EVERY = 1900;
+  const worksCache = new Map();
+  function roadWorks(pos, lists) {
+    if (!Hw.propsReady || !KPROPS.kCone.pools) return;
+    const s0 = Hw.lastS;
+    for (let n = Math.floor((s0 - 500) / WORKS_EVERY); n <= Math.floor((s0 + 500) / WORKS_EVERY); n++) {
+      let w = worksCache.get(n);
+      if (w === undefined) {
+        w = null;
+        const r = ghash(n, 3, 1);
+        const s = n * WORKS_EVERY + 300 + r * (WORKS_EVERY - 600);
+        if (s > 100 && s < MAIN.len - 100 && !onBridge(s) && !Hw.hubs.some((hb) => Math.abs(hb.s - s) < 320) && !MAIN.junctions.some((j) => Math.abs(j.s - s) < 60)) {
+          const side = ghash(n, 3, 2) < 0.5 ? 1 : -1, items = [];
+          const put = (key, ss, lat, rot, sc) => {
+            const q = MAIN.at(ss, lat), y = Hw.groundY(q.x, q.z).y;
+            _gq.setFromAxisAngle(_up, rot);
+            items.push({ key, m: new T.Matrix4().compose(_gp.set(q.x, y, q.z), _gq, _gs.set(sc, sc, sc)) });
+          };
+          const f = MAIN.frame(s), head = Math.atan2(f.fx, f.fz);
+          put(kprop('kWarn', 0.5), s - 70 * side, side * (ROAD_HALF + 1.2), head + (side > 0 ? 0 : Math.PI), 1);
+          for (let k = 0; k < 6; k++) put(kprop('kCone', 0.5), s - 24 * side + k * 8 * side, side * (ROAD_HALF - 1.4 - Math.min(k, 2) * 0.7), 0, 1);
+          put(kprop('kBarrier', 0.5), s + 26 * side, side * (ROAD_HALF - 2.2), head + Math.PI / 2, 1);
+          put(kprop('kWorkLight', 0.5), s + 28 * side, side * (ROAD_HALF - 3.4), head, 1);
+          const q = MAIN.at(s, 0);
+          w = { x: q.x, z: q.z, items };
+        }
+        worksCache.set(n, w);
+      }
+      if (w && Math.hypot(w.x - pos.x, w.z - pos.z) < 600) w.items.forEach((it) => { if (it.key && lists[it.key]) lists[it.key].push(it.m); });
+    }
+  }
+  // (debug helpers) how full each pool is; the nearest road-works site
+  Hw.poolCounts = () => { const r = {}; Object.keys(pools).forEach((k) => { const n = pools[k].meshes[0] ? pools[k].meshes[0].count : 0; if (n) r[k] = n; }); return r; };
+  Hw.worksNear = () => {
+    let best = null;
+    worksCache.forEach((w, n) => { if (!w) return; const s = Hw.project(w.x, w.z).s, f = MAIN.frame(s); const d = Hw.lastPos ? Math.hypot(w.x - Hw.lastPos.x, w.z - Hw.lastPos.z) : 0; if (!best || d < best.d) best = { x: w.x, y: Hw.groundY(w.x, w.z).y, z: w.z, fx: f.fx, fz: f.fz, rx: f.rx, rz: f.rz, d, n }; });
+    return best;
+  };
 
   // ------------------------------------------------------------- groves
   // Coconut groves as thick as the Alappuzha backwaters: one tree to each
@@ -2883,10 +2970,17 @@
         const sight = PADS.some((P) => Math.abs(x - P.x) < P.r + 20 && Math.hypot(x - P.x, z - P.z) < P.r + 20);
         if (!paddy && !wet && !sight && !(nr.d < 20 && nearShop(nr.road, nr.s, nr.lat))) {
           const r = ghash(gx, gz, 4), gh = Hw.ghats(x, z);
-          const key = gh > 0.5 && r < 0.7 * gh ? 'forest' : r < 0.78 ? 'palm' : r < 0.9 ? 'areca' : 'banana';
-          const sc = 0.85 + ghash(gx, gz, 5) * 0.45;
+          let key = gh > 0.5 && r < 0.7 * gh ? 'forest' : r < 0.78 ? 'palm' : r < 0.9 ? 'areca' : 'banana';
+          let sc = 0.85 + ghash(gx, gz, 5) * 0.45;
+          if (Hw.propsReady && key === 'forest') {
+            // the hill forests: pines on the high ground, broad oaks and
+            // boulders lower down, a fallen log here and there
+            const r7 = ghash(gx, gz, 7), high = gh > 0.75 || h > 60;
+            const alt = high && r7 < 0.5 ? kprop('kPine', ghash(gx, gz, 8)) : r7 < 0.3 ? kprop('kTree', ghash(gx, gz, 8)) : r7 < 0.36 ? kprop('kRock', ghash(gx, gz, 8)) : r7 < 0.39 ? kprop('kLog', ghash(gx, gz, 8)) : null;
+            if (alt) { key = alt; sc = key.startsWith('kRock') ? 0.7 + ghash(gx, gz, 5) * 0.9 : key.startsWith('kLog') ? 1 : 0.9 + ghash(gx, gz, 5) * 0.5; }
+          }
           const m = new T.Matrix4().compose(new T.Vector3(x, h - 0.05, z), new T.Quaternion().setFromAxisAngle(_up, ghash(gx, gz, 6) * 6.28), new T.Vector3(sc, sc, sc));
-          g = { key, x, z, m, r: key === 'forest' ? 0.6 : 0.4 };
+          g = { key, x, z, m, r: key === 'forest' || key.startsWith('kPine') || key.startsWith('kTree') ? 0.6 : key.startsWith('kRock') ? 1.2 : 0.4 };
         }
       }
     }
@@ -2906,7 +3000,7 @@
         let key = g.key;
         if (key === 'palm' && d > NEAR_PALM) key = 'palmFar';
         else if (key === 'banana' && d > 260) continue;
-        if (lists[key].length < pools[key].cap) lists[key].push(g.m);
+        if (lists[key] && lists[key].length < pools[key].cap) lists[key].push(g.m);
       }
     }
   }
@@ -2955,7 +3049,7 @@
         const ck = gx * 100003 + gz;
         const hit = gcCache.get(ck);
         if (hit) {
-          if (hit.key && (hit.x - pos.x) * (hit.x - pos.x) + (hit.z - pos.z) * (hit.z - pos.z) <= R * R && lists[hit.key].length < pools[hit.key].cap) lists[hit.key].push(hit.m);
+          if (hit.key && lists[hit.key] && (hit.x - pos.x) * (hit.x - pos.x) + (hit.z - pos.z) * (hit.z - pos.z) <= R * R && lists[hit.key].length < pools[hit.key].cap) lists[hit.key].push(hit.m);
           continue;
         }
         const r0 = hash(gx, gz, 1);
@@ -2973,15 +3067,28 @@
         if (hub && Math.hypot(p.s - hub.s, p.lat) < 215 && (Math.abs(p.lat) < 55 || Math.abs(p.s - hub.s) < 160)) continue; // the town itself
         if (PADS.some((P) => P.paved && Math.hypot(x - P.x, z - P.z) < P.r)) continue; // paved grounds
         if (sandySights().some((sg) => Math.abs(x - sg.x) < 115 && Math.hypot(x - sg.x, z - sg.z) < (sg.kind === 'mermaidBeach' ? 75 : 115))) continue; // (Shankhumugham's sand)
-        const h = Hw.height(x, z);
-        if (Hw.waterLevelAt(x, z) > h - 0.4) continue;
+        const h = Hw.height(x, z), wl = Hw.waterLevelAt(x, z);
         const r = hash(gx, gz, 4);
-        const key = r < 0.84 ? 'tuft' : r < 0.92 ? 'flower' : 'fern';
-        const sc = 0.65 + hash(gx, gz, 5) * 0.8;
+        let key = null, y = h - 0.05;
+        if (wl > h - 0.4) {
+          // shallow water: lily pads along the edges of the backwaters
+          if (Hw.propsReady && wl < h + 0.9 && r < 0.3) { key = kprop('kLily', hash(gx, gz, 7)); y = wl + 0.02; }
+          if (!key) continue;
+        } else {
+          key = r < 0.84 ? 'tuft' : r < 0.92 ? 'flower' : 'fern';
+          if (Hw.propsReady && r > 0.92) {
+            // among the ferns: low-poly flowers, stones, bushes, and
+            // mushrooms where the Ghats forests give shade
+            const r7 = hash(gx, gz, 7), gh = Hw.ghats(x, z);
+            key = r7 < 0.3 ? kprop('kFlower', hash(gx, gz, 8)) : r7 < 0.5 ? kprop('kStone', hash(gx, gz, 8)) : r7 < 0.62 ? kprop('kBush', hash(gx, gz, 8)) : r7 < 0.62 + 0.14 * gh ? kprop('kMushroom', hash(gx, gz, 8)) : 'fern';
+            key = key || 'fern';
+          }
+        }
+        const sc = key[0] === 'k' ? 0.8 + hash(gx, gz, 5) * 0.5 : 0.65 + hash(gx, gz, 5) * 0.8;
         _gq.setFromAxisAngle(_up, hash(gx, gz, 6) * 6.28);
-        const m = new T.Matrix4().compose(_gp.set(x, h - 0.05, z), _gq, _gs.set(sc, sc, sc));
+        const m = new T.Matrix4().compose(_gp.set(x, y, z), _gq, _gs.set(sc, sc, sc));
         gcCache.set(ck, { key, x, z, m });
-        if (lists[key].length < pools[key].cap) lists[key].push(m);
+        if (lists[key] && lists[key].length < pools[key].cap) lists[key].push(m);
       }
     }
   }

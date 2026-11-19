@@ -1,0 +1,10 @@
+Low-poly props from Kenney's Nature Kit (nature/) and City Kit: Roads
+(roads/), https://kenney.nl, Creative Commons Zero (CC0 1.0, public
+domain): https://creativecommons.org/publicdomain/zero/1.0/
+
+"This content is free to use in personal, educational and commercial
+projects. Support us by crediting Kenney or www.kenney.nl (this is not
+mandatory)." Thank you, Kenney.
+
+The .glb files are unchanged. The game merges each into one vertex-coloured
+mesh and draws many copies at once (js/props.js).

@@ -33,12 +33,43 @@
     plateY: KT.mat('plateYellow', { color: 0xf5d21e, roughness: 0.5 })
   });
 
+  // Wheels are added after the body is baked, as animated parts: a pivot
+  // (the front ones steer) holding the spinning tyre and rim. The pivots
+  // are named, so a cloned vehicle's wheels can be found again (KT.wheelRig).
   function wheels(g, m, xs, zs, r, w) {
-    xs.forEach((x) => zs.forEach((z) => {
-      part(g, G.cyl(r, r, w, 18), m.tyre, x, r, z, 0, 0, Math.PI / 2);
-      part(g, G.cyl(r * 0.55, r * 0.55, w + 0.02, 12), m.rim, x, r, z, 0, 0, Math.PI / 2);
-    }));
+    g.userData.wheelSpecs = g.userData.wheelSpecs || [];
+    xs.forEach((x) => zs.forEach((z) => g.userData.wheelSpecs.push({ x, z, r, w })));
   }
+  function finish(g, m) {
+    const specs = g.userData.wheelSpecs || [], size = g.userData.size;
+    const baked = KT.bake(g);
+    if (size) baked.userData.size = size;
+    const rig = [];
+    specs.forEach((sp) => {
+      const pivot = new T.Group();
+      pivot.position.set(sp.x, sp.r, sp.z);
+      pivot.name = sp.z > 0.05 ? 'wheelF' : 'wheelR';
+      pivot.userData.r = sp.r;
+      const spin = new T.Group();
+      spin.name = 'wheelSpin';
+      part(spin, G.cyl(sp.r, sp.r, sp.w, 18), m.tyre, 0, 0, 0, 0, 0, Math.PI / 2);
+      part(spin, G.cyl(sp.r * 0.55, sp.r * 0.55, sp.w + 0.02, 12), m.rim, 0, 0, 0, 0, 0, Math.PI / 2);
+      // a hub cap and bolts, so the turning shows
+      part(spin, G.cyl(sp.r * 0.2, sp.r * 0.2, sp.w + 0.05, 8), m.chrome || m.rim, 0, 0, 0, 0, 0, Math.PI / 2);
+      for (let k = 0; k < 4; k++) part(spin, G.box(sp.r * 0.12, sp.r * 0.12, 0.02), m.tyre, Math.cos(k * 1.57) * sp.r * 0.36, Math.sin(k * 1.57) * sp.r * 0.36, (sp.w + 0.06) / 2 * (sp.x >= 0 ? 1 : -1));
+      pivot.add(spin);
+      baked.add(pivot);
+      rig.push({ pivot, spin, front: pivot.name === 'wheelF', r: sp.r });
+    });
+    baked.userData.wheels = rig;
+    return baked;
+  }
+  // find a (cloned) vehicle's wheel rig again by the pivots' names
+  KT.wheelRig = function (obj) {
+    const rig = [];
+    obj.traverse((o) => { if (o.name === 'wheelF' || o.name === 'wheelR') { const spin = o.children.find((c) => c.name === 'wheelSpin'); if (spin) rig.push({ pivot: o, spin, front: o.name === 'wheelF', r: o.userData.r || 0.3 }); } });
+    return rig;
+  };
 
   // ------------------------------------------------------------- cars
   // style: 'hatch' | 'sedan' | 'suv'
@@ -77,7 +108,7 @@
     const wr = suv ? 0.36 : 0.3;
     wheels(g, m, [-(W / 2 - 0.08), W / 2 - 0.08], [L / 2 - 0.75, -L / 2 + 0.7], wr, 0.2);
     g.userData.size = { length: L, width: W };
-    return KT.bake(g);
+    return finish(g, m);
   };
 
   // -------------------------------------------------------- autorickshaw
@@ -115,7 +146,8 @@
     wheels(g, m, [0], [1.0], 0.22, 0.12);
     wheels(g, m, [-(W / 2 - 0.05), W / 2 - 0.05], [-0.65], 0.22, 0.14);
     g.userData.size = { length: L, width: W };
-    return KT.bake(g);
+    g.userData.size = { length: L, width: W };
+    return finish(g, m);
   };
 
   // --------------------------------------------------------------- lorry
@@ -152,7 +184,7 @@
     wheels(g, m, [-(W / 2 - 0.25), W / 2 - 0.25], [cz - 0.1], 0.5, 0.3);
     wheels(g, m, [-(W / 2 - 0.25), W / 2 - 0.25], [-L / 2 + 1.6, -L / 2 + 2.6], 0.5, 0.36);
     g.userData.size = { length: L, width: W };
-    return KT.bake(g);
+    return finish(g, m);
   };
 
   // ------------------------------------------------------ scooter & rider
@@ -174,7 +206,7 @@
     wheels(g, m, [0], [0.62, -0.55], 0.22, 0.1);
     if (!shirt) { // the player's own scooter: no rider
       g.userData.size = { length: 1.8, width: 0.7 };
-      return KT.bake(g);
+      return finish(g, m);
     }
     // rider
     part(g, rb(0.32, 0.16, 0.42, 0.07), pants, 0, 1.02, -0.18);
@@ -187,7 +219,7 @@
     part(g, G.sph(0.15, 14, 10), hel, 0, 1.76, -0.13, 0, 0, 0, 1, 0.95, 1.12);
     part(g, G.box(0.22, 0.07, 0.03), m.glass, 0, 1.73, 0.03);
     g.userData.size = { length: 1.8, width: 0.7 };
-    return KT.bake(g);
+    return finish(g, m);
   };
 
   // ------------------------------------------------------------ bicycle

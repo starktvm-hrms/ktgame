@@ -369,6 +369,13 @@ def main():
         "foliage.png": foliage(),
         "cloud.png": cloud(),
     }
+    # a CC0 photo texture of the same name (assets/textures/cc0, from Poly
+    # Haven) replaces the painted one; new names there are added as well
+    cc0 = os.path.join(OUT, "cc0")
+    if os.path.isdir(cc0):
+        for fn in sorted(os.listdir(cc0)):
+            if fn.endswith(".jpg"):
+                items[fn] = Image.open(os.path.join(cc0, fn)).convert("RGB")
     bundle = []
     for name, img in items.items():
         path = save(img, name)

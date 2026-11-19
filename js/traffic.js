@@ -247,6 +247,16 @@
       v.latVel = v.v > 0.5 ? (dl / dt) * v.dir : 0;
       this.opts.wrap(v);
       this.place(v, dt);
+      // wheels turn with the road speed, front ones steer with lane changes
+      if (v.rig === undefined) v.rig = KT.wheelRig ? KT.wheelRig(v.obj) : null;
+      if (v.rig && v.rig.length) {
+        const steer = KT.clamp(v.latVel * 0.35, -0.4, 0.4);
+        for (let k = 0; k < v.rig.length; k++) {
+          const w = v.rig[k];
+          w.spin.rotation.x += (v.v * dt) / w.r;
+          if (w.front) w.pivot.rotation.y = steer;
+        }
+      }
       // cheap level of detail
       const far = camPos ? v.obj.position.distanceTo(camPos) : 0;
       v.obj.visible = far < 600;

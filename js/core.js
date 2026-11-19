@@ -83,7 +83,7 @@ window.KT = window.KT || {};
   const loader = new T.TextureLoader();
   KT.maxAnisotropy = 4;
   // opaque photo textures that get painted in the cel-shaded style
-  const PAINTED = ['grass', 'laterite', 'mud', 'palm_bark', 'plaster', 'roof_tiles', 'sand', 'stone_path', 'tea_rows', 'thatch', 'wood'];
+  const PAINTED = ['asphalt', 'bark', 'grass', 'laterite', 'mud', 'palm_bark', 'plaster', 'roof_tiles', 'sand', 'stone_path', 'tea_rows', 'thatch', 'wood'];
   KT.tex = function (name, repeatU, repeatV, linear) {
     const key = name + ':' + (repeatU || 1) + ':' + (repeatV || 1) + (linear ? ':lin' : '');
     if (texCache[key]) return texCache[key];
@@ -213,7 +213,7 @@ window.KT = window.KT || {};
     M.palmBark = KT.mat('palmBark', { map: tex('palm_bark'), color: 0xffffff }, 1.0);
     M.rock = KT.mat('rock', { color: 0x8b8781, roughness: 0.95 });
     M.rockMoss = KT.mat('rockMoss', { color: 0x6f7f4e, roughness: 0.95 });
-    M.bark = KT.mat('bark', { color: 0x6b4a33, roughness: 0.95 });
+    M.bark = KT.mat('bark', { map: tex('bark', 1, 2), color: 0xc9a98a, roughness: 0.95 });
     M.barkLight = KT.mat('barkLight', { color: 0x8e7a62, roughness: 0.95 });
     M.leaf = KT.mat('leaf', { color: 0x3f7f2c, roughness: 0.8 });
     M.leafLight = KT.mat('leafLight', { color: 0x5d9b35, roughness: 0.8 });
