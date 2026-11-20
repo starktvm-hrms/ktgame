@@ -566,13 +566,14 @@
   let villageK = 0, countryId = 100;
   // the road stays in the countryside: clear of the sea, the towns and the
   // other roads (apart from where it meets them, near its ends)
-  function countryClear(PX, PZ, ends) {
+  function countryClear(PX, PZ, ends, ownTown, lax) {
+    const coast = lax ? 40 : 160, far = lax ? 36 : 60;
     for (let i = 0; i < PX.length; i += 15) {
       const x = PX[i], z = PZ[i];
-      if (!Hw.inMap(x, z) || x - Hw.coastX(z) < 160) return false;
-      if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 340)) return false;
+      if (!Hw.inMap(x, z) || x - Hw.coastX(z) < coast) return false;
+      if (HUB_XZ.some((c, h) => h !== ownTown && Math.hypot(x - c.x, z - c.z) < 340)) return false;
       // near its ends it leaves the highway gradually
-      const e = Math.min(i * STEP, (PX.length - i) * STEP), clear = e < ends ? e * 0.25 : 60;
+      const e = Math.min(i * STEP, (PX.length - i) * STEP), clear = e < ends ? e * 0.25 : far;
       for (let r = 0; r < Hw.roads.length; r++) {
         const R = Hw.roads[r];
         if (R.skipClear) continue;
@@ -629,10 +630,102 @@
       }
     });
   }
+  // ------------------------------------------------- town street roads
+  // The three side streets of every district town carry on out of town as
+  // village roads: to the nearest country road where one lies ahead, else
+  // round to the highway again beyond the town, else to a hamlet.
+  const STREET_AT = [[-40, -1], [100, -1], [-120, 1]]; // (along, side), as the towns lay them out
+  HUB_S.forEach((hs, hi) => {
+    const rng = KT.makeRng(5100 + hi * 97);
+    STREET_AT.forEach(([SA, side]) => {
+      const sJ = hs + SA, f = MAIN.frame(sJ);
+      // the street itself (the town lays 84 m of it from the footpath)
+      const P0 = { x: f.x + f.rx * side * 92, z: f.z + f.rz * side * 92 }, t0 = { x: f.rx * side, z: f.rz * side };
+      const y0 = MAIN.y(hs); // (the town's flat ground is 0.2 under its road)
+      const ahead = (q) => (q.x - P0.x) * t0.x + (q.z - P0.z) * t0.z;
+      const tryRoad = (C, finish, name, towns) => {
+        const cv = curveThrough(C, { avoidTowns: true, passes: 1, angles: 16, home: hi });
+        if (finish && !finish.road.main) finish.road.skipClear = true; // (it may run beside the road it joins)
+        const clear = countryClear(cv.PX, cv.PZ, 200, hi, true);
+        if (finish && !finish.road.main) finish.road.skipClear = false;
+        if (!clear) return null;
+        const PY = heightProfile(cv.PX, cv.PZ, 9000 + countryId * 977);
+        const R = makeRoad(cv.PX, cv.PZ, PY, { id: countryId++, nh: 'Village road', name, country: true, half: COUNTRY_HALF, street: true, hamlet: !finish });
+        levelAt(PY, 0, y0, 230, 340); // level all through the town's flat ground
+        if (finish) levelAt(PY, R.len, finish.road.y(finish.s), 20, 160);
+        R.towns = towns(R);
+        R.start = { road: MAIN, s: sJ, side };
+        R.finish = finish ? { road: finish.road, s: finish.s, side: finish.side } : null;
+        R.junctions.push({ s: 0, side: 0, other: MAIN });
+        MAIN.junctions.push({ s: sJ, side, other: R });
+        if (finish) {
+          R.junctions.push({ s: R.len, side: 0, other: finish.road });
+          finish.road.junctions.push({ s: finish.s, side: finish.side, other: R });
+        }
+        Hw.roads.push(R);
+        Hw.country.push(R);
+        return R;
+      };
+      // (a) a country road ahead of the street
+      const cands = [];
+      Hw.roads.forEach((V) => {
+        if (V.main || V.lane || (V.hamlet && !V.street)) return;
+        const p = V.project(P0.x, P0.z);
+        if (p.d < 120 || p.d > 2400 || p.s < 160 || p.s > V.len - 160) return;
+        if (ahead({ x: p.x, z: p.z }) < p.d * 0.5) return;
+        if (V.junctions.some((j) => Math.abs(j.s - p.s) < 140)) return;
+        if (!V.country && p.d < 300) return; // (a highway: only from well back in the town)
+        cands.push({ V, p, d: p.d });
+      });
+      cands.sort((a, b) => a.d - b.d);
+      // straight out of town first, then round to the road
+      const out = (d) => { const k = Math.min(220, d * 0.4); return { x: P0.x + t0.x * k, z: P0.z + t0.z * k }; };
+      for (const best of cands.slice(0, 4)) {
+        const J = { road: best.V, s: best.p.s }, L = leave(J, P0);
+        const near = best.V.towns.slice().sort((a, b) => Math.abs(a.s - J.s) - Math.abs(b.s - J.s))[0];
+        const fin = { road: best.V, s: J.s, side: L.side }, nm = near ? near.name : 'Village road', towns = (R) => [{ name: nm, road: 'Village road', s: R.len }];
+        const end = { x: L.x, z: L.z, t: { x: -L.t.x, z: -L.t.z } };
+        if (tryRoad([{ x: P0.x, z: P0.z, t: t0 }, out(best.d), end], fin, nm, towns)) return;
+        if (tryRoad([{ x: P0.x, z: P0.z, t: t0 }, end], fin, nm, towns)) return;
+      }
+      // (b) back to the highway beyond the town
+      const dir0 = SA < 0 ? -1 : 1;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const dir = attempt < 6 ? dir0 : -dir0, swing = [240, 380, 140][attempt % 3];
+        const sB = hs + dir * (620 + (attempt % 6) * 80 + rng() * 60);
+        if (sB < 100 || sB > MAIN.len - 100 || MAIN.junctions.some((j) => Math.abs(j.s - sB) < 130)) continue;
+        const g = MAIN.frame(sB), mid = { x: (P0.x + g.x) / 2 + g.rx * side * swing, z: (P0.z + g.z) / 2 + g.rz * side * swing };
+        if (!Hw.inMap(mid.x, mid.z) || mid.x - Hw.coastX(mid.z) < 200) continue;
+        const J1 = { road: MAIN, s: sB }, L1 = leave(J1, mid);
+        const name = VILLAGES[villageK % VILLAGES.length];
+        const C = [{ x: P0.x, z: P0.z, t: t0 }, out(600), { x: mid.x, z: mid.z, town: 0 }, { x: L1.x, z: L1.z, t: { x: -L1.t.x, z: -L1.t.z } }];
+        const R = tryRoad(C, { road: MAIN, s: sB, side: L1.side }, name, (R) => [{ name, road: 'Village road', s: R.len * 0.5 }]);
+        if (R) { villageK++; return; }
+      }
+      // (c) a hamlet at the end of the lane
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const len = (attempt < 5 ? 380 : 150) + rng() * 280, a = (rng() - 0.5) * 1.2;
+        const H = { x: P0.x + (t0.x * Math.cos(a) - t0.z * Math.sin(a)) * len, z: P0.z + (t0.x * Math.sin(a) + t0.z * Math.cos(a)) * len };
+        if (!Hw.inMap(H.x, H.z) || H.x - Hw.coastX(H.z) < 40 || Hw.roads.some((R) => R.near(H.x, H.z, 60) && R.project(H.x, H.z).d < 60)) continue;
+        const name = VILLAGES[villageK % VILLAGES.length];
+        const R = tryRoad([{ x: P0.x, z: P0.z, t: t0 }, { x: H.x, z: H.z, town: 0 }], null, name, (R) => [{ name, road: 'Village road', s: R.len }]);
+        if (R) { villageK++; return; }
+      }
+      // (d) at the least, a short lane straight on to a few houses
+      for (const len of [260, 180, 120]) {
+        const H = { x: P0.x + t0.x * len, z: P0.z + t0.z * len };
+        if (!Hw.inMap(H.x, H.z) || H.x - Hw.coastX(H.z) < 40) continue;
+        const name = VILLAGES[villageK % VILLAGES.length];
+        const R = tryRoad([{ x: P0.x, z: P0.z, t: t0 }, { x: H.x, z: H.z, town: 0 }], null, name, (R) => [{ name, road: 'Village road', s: R.len }]);
+        if (R) { villageK++; return; }
+      }
+    });
+  });
+
   // turning places where a road ends at a sight or a hamlet: { x, z, r, y }
   const PLAZAS = [];
   const addPlaza = (R) => { const f = R.frame(R.len - 6); PLAZAS.push({ x: f.x, z: f.z, r: R.hamlet ? 7 : 13, y: R.y(R.len) }); };
-  Hw.roads.forEach((R) => { if (R.dest) addPlaza(R); });
+  Hw.roads.forEach((R) => { if (R.dest || (R.street && R.hamlet)) addPlaza(R); });
   // from each village a dead-end road runs on to a hamlet
   Hw.country.slice().forEach((V, vi) => {
     const rng = KT.makeRng(7300 + vi * 53);
@@ -786,8 +879,16 @@
     // road embankments
     const w = 1 - KT.smoothstep(8, 30 + 30 * gh, Math.abs(lat));
     h = KT.lerp(h, roadY(s) - 0.2, w);
+    // flat ground around each district centre
+    const hi = Hw.hubIndexAt(s);
+    const hs = Hw.hubS(hi);
+    if (Math.abs(s - hs) < 330) {
+      const d = Math.hypot(s - hs, lat);
+      h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
+    }
     // the other roads' banks, blended where several meet (a country road's
-    // banks are narrower, and fade out past its ends)
+    // banks are narrower, and fade out past its ends); over the town's flat
+    // ground too, so a street road leaving town sits on it
     const near = Hw.branchesNear(x, z, 90);
     if (near.length) {
       let keep = 1, sw = 0, sy = 0;
@@ -798,13 +899,6 @@
         keep *= 1 - w; sw += w; sy += w * (b.road.y(KT.clamp(b.s, 0, b.road.len)) - 0.2);
       });
       if (sw > 0) h = KT.lerp(h, sy / sw, 1 - keep);
-    }
-    // flat ground around each district centre
-    const hi = Hw.hubIndexAt(s);
-    const hs = Hw.hubS(hi);
-    if (Math.abs(s - hs) < 330) {
-      const d = Math.hypot(s - hs, lat);
-      h = KT.lerp(h, roadY(hs) - 0.2, 1 - KT.smoothstep(235, 310, d));
     }
     // level ground for the sights (after the town's, which may reach them)
     for (let i = 0; i < PADS.length; i++) {
@@ -2475,6 +2569,15 @@
       street.rotation.y = heading + Math.PI / 2;
       street.receiveShadow = true;
       hub.group.add(street);
+      if (!Hw.country.some((R) => R.street && Math.abs(R.start.s - (hub.s + SA)) < 1)) {
+        // nowhere for the street to go on to (the beach): a turning circle
+        const q = Hw.at(hub.s + SA, side * (9 + len + 3));
+        const circle = new T.Mesh(new T.CircleGeometry(7, 32), mats.road);
+        circle.rotation.x = -Math.PI / 2;
+        circle.position.set(q.x, Hw.groundY(q.x, q.z).y + 0.05, q.z);
+        circle.receiveShadow = true;
+        hub.group.add(circle);
+      }
       for (let k = 31; k <= 86; k += 8.4) {
         place(SA - 9.2, side * k, 0);          // faces north, onto the street
         place(SA + 9.2, side * k, Math.PI);    // faces south

@@ -476,6 +476,13 @@ the trees:
   sign, a row of cones, a barrier and a work lamp (never on a bridge or in
   a town).
 
+No street ends in the grass. The three side streets of every district town
+carry on out of town as village roads: to the nearest country road where one
+lies ahead (a T-junction with a signboard), else round to the highway again
+beyond the town, else to a hamlet with a turning circle. Only the streets
+that run straight to the beach in the seaside towns stop, at a turning
+circle on the sand.
+
 Wheels turn. Every car, auto-rickshaw, lorry and scooter (yours and the
 traffic's) has a proper wheel rig (tyre, rim, hub cap and bolts) that spins
 with the road speed; the front wheels steer with lane changes.
