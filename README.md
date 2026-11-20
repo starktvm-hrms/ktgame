@@ -492,6 +492,15 @@ over on a concrete bridge with railings and piers, and walled ramps up from
 the banks. Roadside shops are never put by a bridge or in the water, and a
 dead-end lane that would run into a channel is not built.
 
+Where two roads cross with no junction (the Kayamkulam highway and the main
+highway south of Alappuzha, the Vadakara highway near Kozhikode, and the
+Kovalam road over MG Road and the Neyyattinkara road in Thiruvananthapuram),
+the lower one runs under the other through a grassy cutting, and the upper
+one crosses on a concrete overpass with parapets. There are at least 6.8 m
+between them: the lower road dips, or the upper one rises where the lower
+has a junction close by. You and the traffic can drive both levels, and
+things up on the overpass never block the road underneath.
+
 Wheels turn. Every car, auto-rickshaw, lorry and scooter (yours and the
 traffic's) has a proper wheel rig (tyre, rim, hub cap and bolts) that spins
 with the road speed; the front wheels steer with lane changes.

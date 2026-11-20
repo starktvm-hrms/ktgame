@@ -291,6 +291,7 @@
     this.vehicles.forEach((v) => {
       const p = v.obj.position;
       if (Math.abs(p.x - pos.x) > range || Math.abs(p.z - pos.z) > range) return;
+      if (pos.y !== undefined && Math.abs(p.y - pos.y) > 3) return; // (on an overpass above, or the road below)
       const rot = v.heading;
       out.push({ type: 'box', x: p.x, z: p.z, hw: v.w / 2, hd: v.len / 2, rot, cos: Math.cos(rot), sin: Math.sin(rot) });
     });

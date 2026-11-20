@@ -930,8 +930,30 @@
       const carve = (1 - KT.smoothstep(16, 50, Math.abs(q.dv))) * KT.smoothstep(r.u0 - 20, r.u0, q.u) * (1 - KT.smoothstep(r.u1, r.u1 + 20, q.u));
       if (carve > 0) h = KT.lerp(h, r.y - 2.5, carve);
     }
+    // underpasses: a grassy cutting down to the lower road
+    if (!Hw._noCut) for (let i = 0; i < CUTS.length; i++) {
+      const c = CUTS[i];
+      if (Math.abs(x - c.x) > c.reach || Math.abs(z - c.z) > c.reach) continue;
+      const q = c.L.project(x, z), ds = Math.abs(q.s - c.sl);
+      if (ds > c.len || q.d > c.w1 + 4) continue;
+      const yl = c.L.y(KT.clamp(q.s, 0, c.L.len)) - 0.2;
+      if (h <= yl) continue;
+      const w0 = (c.L.half || ROAD_HALF) + 3.5, w1 = w0 + Math.max(3, (h - yl) * 1.6);
+      h = KT.lerp(h, yl, (1 - KT.smoothstep(w0, w1, q.d)) * (1 - KT.smoothstep(c.len * 0.7, c.len, ds)));
+    }
     return h;
   };
+  // under an overpass deck, low down: the upper road does not count
+  function underDeck(x, z, curY) {
+    if (curY === undefined) return null;
+    for (let i = 0; i < CUTS.length; i++) {
+      const c = CUTS[i];
+      if (Math.abs(x - c.x) > c.span + 20 || Math.abs(z - c.z) > c.span + 20) continue;
+      const q = c.U.project(x, z);
+      if (q.d < (c.U.half || ROAD_HALF) + 1.6 && Math.abs(q.s - c.su) < c.span && curY < c.U.y(q.s) - 2.5) return c.U;
+    }
+    return null;
+  }
   Hw.waterLevelAt = function (x, z) {
     for (let i = 0; i < LAKES.length; i++) {
       const L = LAKES[i], d = Math.hypot(x - L.x, z - L.z);
@@ -951,14 +973,16 @@
   Hw.groundY = function (x, z, curY) {
     const p = Hw.project(x, z);
     let y = Hw.height(x, z);
+    const under = CUTS.length ? underDeck(x, z, curY) : null;
     // (road edges ease down to the verge over a metre or so)
-    const ea = Math.abs(p.lat) - ROAD_HALF - 0.6;
+    const ea = under === MAIN ? 1e9 : Math.abs(p.lat) - ROAD_HALF - 0.6;
     if (ea < 1.2) y = Math.max(y, roadY(p.s) + 0.06 - 0.3 * Math.max(0, ea) / 1.2);
-    if (ea >= 0 && Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
+    if (ea >= 0 && ea < 1e8 && Math.abs(p.lat) > FOOT0 && Math.abs(p.lat) < FOOT1) {
       const hi = Hw.hubIndexAt(p.s), hub = Hw.hubs[hi];
       if (hub && hub.footpaths && hub.footpaths.some((g) => g[0] <= p.s - hub.s && p.s - hub.s <= g[1] && Math.sign(p.lat) === g[2])) y = Math.max(y, roadY(p.s) + 0.14);
     }
     Hw.branchesNear(x, z, ROAD_HALF + 1.8).forEach((b) => {
+      if (b.road === under) return;
       const edge = (b.road.half || ROAD_HALF) + 0.6;
       if (b.dd < edge + 1.2) y = Math.max(y, b.road.y(KT.clamp(b.s, 0, b.road.len)) + 0.06 - 0.3 * Math.max(0, b.dd - edge) / 1.2);
     });
@@ -1278,6 +1302,7 @@
       }
       if (road.junctions.some((j) => j.s > start - 60 && j.s < end + 60)) continue;
       if (onRoadBridge(road, start, 60) || onRoadBridge(road, end, 60)) continue;
+      if (CUTS.some((c) => (c.U === road && start < c.su + c.span + 50 && end > c.su - c.span - 50) || (c.L === road && start < c.sl + c.len && end > c.sl - c.len))) continue;
       // not in water (a backwater channel or a lake beside the road)
       let wet = false;
       for (let i = 0; i <= n && !wet; i++) {
@@ -1455,7 +1480,7 @@
       group.add(road);
     }
     const items = [];
-    const bridged = (s) => (R.main ? onBridge(s) : onRoadBridge(R, s, 6));
+    const bridged = (s) => (R.main ? onBridge(s) : onRoadBridge(R, s, 6)) || onCrossing(R, s);
     const junc = (s, r) => R.junctions.some((j) => Math.abs(j.s - s) < r);
     const matAt = (s, lat, rot) => {
       const q = R.at(s, lat);
@@ -1586,6 +1611,8 @@
     });
     // bridges over rivers
     if (R.main) RIVERS.forEach((r) => { if (r.s >= s0 && r.s < s1) group.add(bridge(r)); });
+    // overpasses carried by this road
+    CUTS.forEach((c) => { if (c.U === R && c.su >= s0 && c.su < s1) group.add(overpass(c)); });
     // and where the other roads cross water
     (R.bridges || []).forEach((b) => { if (b.r1 >= a0 && b.r0 < a1) group.add(roadBridge(R, b, Math.max(a0, b.r0), Math.min(a1, b.r1))); });
     scene.add(group);
@@ -1598,6 +1625,99 @@
   // backwater channel, a lake, a river) it goes over on a bridge: the deck
   // is lifted clear of the water on piers, with concrete railings and
   // ramps up from the banks. No shops, poles or milestones on it.
+  // ------------------------------------------------------------ underpasses
+  // Where two roads cross with no junction, the lower one runs under the
+  // other through a grassy cutting, and the upper one crosses it on a
+  // concrete overpass. They get at least 6.8 m between them (the lower
+  // road dips, or the upper one rises where the lower has a junction close by).
+  const CUTS = Hw.cuts = [];
+  function onCrossing(R, s) { return CUTS.some((c) => (c.U === R && Math.abs(s - c.su) < c.span + 8) || (c.L === R && Math.abs(s - c.sl) < c.span + 8)); }
+  function findCrossings() {
+    const out = [], rs = Hw.roads;
+    rs.forEach((A, ia) => {
+      for (let s = 0; s <= A.len; s += 3) {
+        const f = A.frame(s);
+        for (let ib = ia + 1; ib < rs.length; ib++) {
+          const B = rs[ib];
+          if (!B.near(f.x, f.z, 20)) continue;
+          const q = B.project(f.x, f.z);
+          if (q.s < 0 || q.s > B.len) continue;
+          if (q.d > (A.half || ROAD_HALF) + (B.half || ROAD_HALF)) continue;
+          if (A.junctions.some((j) => j.other === B && Math.abs(j.s - s) < 40) || B.junctions.some((j) => j.other === A && Math.abs(j.s - q.s) < 40)) continue;
+          const prev = out.find((o) => o.A === A && o.B === B && Math.abs(o.sa - s) < 60);
+          if (prev) { if (q.d < prev.d) Object.assign(prev, { sa: s, sb: q.s, d: q.d }); continue; }
+          out.push({ A, B, sa: s, sb: q.s, d: q.d });
+        }
+      }
+    });
+    return out;
+  }
+  function lift(R, s, dy, ramp) {
+    for (let i = 0; i <= R.LAST; i++) {
+      const d = Math.abs(i * STEP - s);
+      if (d < ramp) R.PY[i] += dy * (1 - KT.smoothstep(ramp * 0.2, ramp, d));
+    }
+  }
+  function buildUnderpasses() {
+    const CLEAR = 6.8;
+    findCrossings().forEach((x) => {
+      let U = x.A, su = x.sa, L = x.B, sl = x.sb;
+      if (U.y(su) < L.y(sl)) { U = x.B; su = x.sb; L = x.A; sl = x.sa; }
+      const need = CLEAR - (U.y(su) - L.y(sl));
+      if (need > 0) {
+        const ramp = Math.max(80, need / 0.045);
+        const busy = (R, s) => R.junctions.some((j) => Math.abs(j.s - s) < ramp + 25) || s < ramp || s > R.len - ramp;
+        if (!busy(L, sl)) lift(L, sl, -need, ramp);
+        else if (!busy(U, su)) lift(U, su, need, ramp);
+        else { lift(L, sl, -need / 2, ramp); lift(U, su, need / 2, ramp); }
+      }
+      const fu = U.frame(su), fl = L.frame(sl);
+      const sin = Math.max(0.12, Math.abs(fu.fx * fl.fz - fu.fz * fl.fx));
+      const depth = U.y(su) - L.y(sl), w1 = (L.half || ROAD_HALF) + 3.5 + Math.max(3, depth * 1.6);
+      const span = Math.min(140, w1 / sin + 4);
+      const len = Math.max(110, depth / 0.045 + 30);
+      CUTS.push({ U, su, L, sl, x: fl.x, z: fl.z, span, len, w1, reach: len + w1 + 10, depth });
+    });
+    // the railings along the cutting's edges and the overpass parapets
+    CUTS.forEach((c) => {
+      const HL = c.L.half || ROAD_HALF, HU = c.U.half || ROAD_HALF;
+      for (let s = c.su - c.span; s <= c.su + c.span; s += 6) {
+        const f = c.U.frame(s);
+        [-1, 1].forEach((sd) => {
+          const q = c.U.at(s, sd * (HU + 0.35));
+          // (only where they stand over the cutting, never across the road below)
+          const pl = c.L.project(q.x, q.z);
+          if (pl.d > HL + 1.5) Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 0.2, hd: 3.2, rot: f.heading, minY: c.U.y(s) - 2 });
+        });
+      }
+    });
+  }
+  function overpass(c) {
+    const g = new T.Group(), U = c.U, HU = U.half || ROAD_HALF, HL = c.L.half || ROAD_HALF;
+    for (let s = c.su - c.span; s < c.su + c.span; s += 3) {
+      const sm = s + 1.5, f = U.frame(sm), y = U.y(sm) + 0.06;
+      part(g, G.box(HU * 2 + 0.8, 1.1, 3.05), mats.concrete, f.x, y - 1.15, f.z, 0, f.heading, 0);
+      [-1, 1].forEach((sd) => {
+        const q = U.at(sm, sd * (HU + 0.3));
+        part(g, G.box(0.24, 0.9, 3.05), mats.concrete, q.x, y + 0.45, q.z, 0, f.heading, 0);
+        part(g, G.box(0.3, 0.1, 3.05), mats.kerb, q.x, y + 0.95, q.z, 0, f.heading, 0);
+      });
+    }
+    // abutments on both sides of the road below, and piers beside it
+    const fl = c.L.frame(c.sl), yl = c.L.y(c.sl);
+    [-1, 1].forEach((sd) => {
+      // a pier wall beside the road below, right under the deck
+      const pu = U.project(fl.x, fl.z), sin = Math.max(0.12, Math.abs(U.frame(pu.s).fx * fl.fz - U.frame(pu.s).fz * fl.fx));
+      const q = c.L.at(c.sl, sd * (HL + 1.0)), qu = U.project(q.x, q.z);
+      if (qu.d > HU * 0.6) return;
+      // (never on another road running below)
+      if (Hw.roads.some((R) => R !== c.L && R !== U && R.near(q.x, q.z, 12) && R.project(q.x, q.z).d < (R.half || ROAD_HALF) + 1.5)) return;
+      const top = U.y(qu.s) - 1.7, h = top - c.L.y(c.sl) + 0.2;
+      if (h > 0.5) part(g, G.box(0.9, h, Math.min(30, (HU * 2) / sin)), mats.concrete, q.x, yl - 0.2 + h / 2, q.z, 0, fl.heading, 0);
+    });
+    return KT.bake(g);
+  }
+
   function onRoadBridge(R, s, pad) { return !!(R.bridges && R.bridges.some((b) => s > b.s0 - pad && s < b.s1 + pad)); }
   Hw.onRoadBridge = onRoadBridge;
   function bridgeRoads() {
@@ -2925,6 +3045,7 @@
     prepareLandforms();
     relevelLanes();
     bridgeRoads();
+    buildUnderpasses();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     Hw.built = true;
   };
