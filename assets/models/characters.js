@@ -19,6 +19,9 @@
       mundu: { label: 'Traditional (Mundu)', topType: 'shirt', top: 0xf8f6ef, bottom: 0xf8f6ef, bottomType: 'mundu', border: 0xd4a434, shoeType: 'sandal', shoes: 0x7a5233, sleeve: 'short' },
       hiking: { label: 'Outdoor / Hiking', topType: 'open', top: 0x2f62a8, inner: 0x2f62a8, zip: true, bottom: 0x5d6266, bottomType: 'shorts', shoeType: 'sneaker', shoes: 0x55606a, sleeve: 'long' },
       formal: { label: 'Formal Casual', topType: 'shirt', top: 0x8fb6e0, bottom: 0xd6c39c, bottomType: 'pants', shoeType: 'loafer', shoes: 0x6a3f22, sleeve: 'rolled' },
+      // Kerala traffic police: white half-sleeve shirt, khaki trousers,
+      // black belt and shoes, white peaked cap with a black band
+      police: { label: 'Traffic Police', hidden: true, topType: 'shirt', top: 0xf6f6f2, bottom: 0xb59a63, bottomType: 'pants', shoeType: 'loafer', shoes: 0x1a1a1a, sleeve: 'short', police: true },
       rain: { label: 'Rain Wear', topType: 'raincoat', top: 0xf2c230, bottom: 0x2a2f3a, bottomType: 'pants', shoeType: 'boot', shoes: 0x1f1f1f, sleeve: 'long', hood: true },
       sweater: { label: 'Sweater & Jeans', topType: 'sweater', top: 0xf0b21a, bottom: 0x7fbde8, bottomType: 'jeans', shoeType: 'sneaker', shoes: 0x1e1e1e, sleeve: 'long' },
       tee: { label: 'Tee & Shorts', topType: 'tee', top: 0x1f9a9a, bottom: 0xe2e2df, bottomType: 'shorts', shoeType: 'sneaker', shoes: 0x4a7088, sleeve: 'short' },
@@ -480,6 +483,19 @@
     return h;
   }
 
+  // The traffic police's white peaked cap: black band and peak, a brass
+  // badge at the front and a cord above the peak (sits on a head group).
+  Models.policeCap = function () {
+    const g = new T.Group();
+    const crown = C(0xf6f6f2), blk = C(0x151515), brass = C(0xd8b24a);
+    part(g, lathe([[0.001, 0.0], [0.112, 0.0], [0.118, 0.055], [0.126, 0.085], [0.09, 0.105], [0.001, 0.11]], 26), crown, 0, 0.1, -0.006, -0.06);
+    part(g, G.cyl(0.114, 0.114, 0.028, 26), blk, 0, 0.113, -0.006, -0.06);
+    part(g, lathe([[0.001, 0.0], [0.17, 0.0], [0.175, 0.008], [0.11, 0.01], [0.001, 0.01]], 24, -0.6, Math.PI + 1.2), blk, 0, 0.097, 0.0, -0.1);
+    part(g, G.cyl(0.013, 0.013, 0.006, 10), brass, 0, 0.135, 0.108, Math.PI / 2 - 0.1);
+    part(g, G.torus(0.11, 0.003, 5, 16, Math.PI * 0.8), brass, 0, 0.1, -0.006, -Math.PI / 2 + 0.05, 0, Math.PI * 0.1);
+    return g;
+  };
+
   // cfg: {gender, outfit, hair, acc:{backpack,camera,hat,sunglasses}, skin,
   //       hairColor, colors:{top,bottom,inner,shoes,border,dupatta}, beard,
   //       glasses, lite, scale}
@@ -509,7 +525,8 @@
     const pelvisM = bt === 'overalls' || bt === 'leggings' || skirt ? botM : botM;
     part(hips, lathe([[0.001, -0.15], [0.06, -0.15], [0.115, -0.11], [0.13, -0.05], [0.134, 0.02], [0.134, 0.09], [0.001, 0.09]]), pelvisM, 0, 0, 0, 0, 0, 0, 1, 1, 0.76);
     if ((bt === 'pants' || bt === 'jeans' || bt === 'shorts') && !longTop) {
-      band(hips, shade(of.bottom, 0.8), 0.07, 0.134, 0.012, Math.PI / 2, 0.78);
+      band(hips, of.police ? C(0x151515) : shade(of.bottom, 0.8), 0.07, 0.134, 0.012, Math.PI / 2, 0.78);
+      if (of.police) part(hips, roundBox(0.03, 0.022, 0.008, 0.003), C(0xd8b24a), 0, 0.07, 0.107); // brass buckle
       if (tt !== 'open') [-1, 1].forEach((s) => part(hips, roundBox(0.07, 0.08, 0.014, 0.006), botDark, s * 0.065, -0.02, -0.106));
       if (bt === 'jeans') [-1, 1].forEach((s) => part(hips, G.torus(0.04, 0.003, 4, 12, Math.PI / 2), C(0xe0a040), s * 0.07, 0.02, 0.1, 0, 0, s > 0 ? Math.PI : -Math.PI / 2));
     }
@@ -614,6 +631,22 @@
           // chest pocket with a pen
           part(spine, roundBox(0.06, 0.065, 0.008, 0.003), topDark, 0.06, 0.3, 0.124, -0.12, 0.25, 0);
           part(spine, G.cyl(0.004, 0.004, 0.06, 6), C(0x1f4fa0), 0.045, 0.335, 0.128, -0.12, 0, 0);
+          if (of.police) {
+            const blk = C(0x151515), brass = C(0xd8b24a), cord = C(0xf2f2ee);
+            // a second pocket, the black name plate over it, a badge on the left
+            part(spine, roundBox(0.06, 0.065, 0.008, 0.003), topDark, -0.06, 0.3, 0.124, -0.12, -0.25, 0);
+            part(spine, roundBox(0.05, 0.012, 0.006, 0.002), blk, 0.062, 0.345, 0.126, -0.12, 0.25, 0);
+            part(spine, G.cyl(0.012, 0.012, 0.004, 10), brass, -0.062, 0.35, 0.127, Math.PI / 2 - 0.12, 0.25, 0);
+            // shoulder straps with a brass button
+            [-1, 1].forEach((s) => {
+              part(spine, roundBox(0.1, 0.028, 0.008, 0.003), topDark, s * 0.12, 0.44, 0.0, 0, 0, s * 0.18);
+              part(spine, G.sph(0.006, 8, 6), brass, s * 0.075, 0.448, 0.0);
+            });
+            // the white lanyard from the left shoulder to the pocket, and a whistle
+            part(spine, G.torus(0.09, 0.0045, 6, 18, Math.PI * 0.9), cord, -0.03, 0.37, 0.09, -0.3, -0.2, 0.9);
+            part(spine, G.cyl(0.0045, 0.0045, 0.12, 6), cord, -0.11, 0.34, 0.06, 0.25, 0, 0.25);
+            part(spine, roundBox(0.018, 0.012, 0.012, 0.004), C(0xc8c8c8), 0.055, 0.265, 0.13);
+          }
         }
       } else if (tt === 'kurta') {
         band(spine, C(0xd4a434), hemY + 0.02, prof[1][0] * 0.98, 0.012, Math.PI / 2, 0.74);
@@ -679,7 +712,9 @@
         part(face, G.sph(0.009, 6, 5), i % 4 === 0 ? jg : jw, x, -0.005 + Math.sin(i) * 0.004, z);
       }
     }
-    if (acc.hat && !of.hood) {
+    if (of.police) {
+      face.add(Models.policeCap());
+    } else if (acc.hat && !of.hood) {
       const hc = C(0xd8b98e), hb = C(0x5a3a22);
       part(face, lathe([[0.001, 0.0], [0.2, 0.0], [0.205, 0.012], [0.12, 0.009], [0.115, 0.02], [0.001, 0.02]], sg(30)), hc, 0, 0.095, -0.005, -0.08);
       part(face, lathe([[0.108, 0.0], [0.108, 0.06], [0.095, 0.095], [0.04, 0.11], [0.001, 0.1]], sg(26)), hc, 0, 0.105, -0.008, -0.08);

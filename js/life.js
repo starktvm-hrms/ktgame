@@ -172,7 +172,7 @@
     };
     const pick = (a) => a[Math.floor(rng() * a.length)];
     switch (kind) {
-      case 'police': return Object.assign(base, { gender: 'male', outfit: 'formal', colors: { top: KHAKI, bottom: KHAKI_DARK }, mustache: true, beard: false, hair: 'short', acc: { hat: false } });
+      case 'police': return Object.assign(base, { gender: 'male', outfit: 'police', mustache: true, beard: false, hair: 'short', acc: { hat: false } });
       case 'driver': return Object.assign(base, { gender: 'male', outfit: 'tee', colors: { top: KHAKI, bottom: 0xf3efe6 }, mustache: true });
       case 'ksrtc': return Object.assign(base, { gender: 'male', outfit: 'formal', colors: { top: KHAKI, bottom: KHAKI_DARK } });
       case 'guard': return Object.assign(base, { gender: 'male', outfit: 'formal', colors: { top: 0x2f3e5c, bottom: 0x1f2a3e }, hair: 'short' });

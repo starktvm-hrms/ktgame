@@ -151,6 +151,27 @@
     e.src = src;
     // a child's HD body is already child-sized: undo the rig's shrinking
     if (isKid(cfg)) model.scale.setScalar(1 / (cfg.scale || 1));
+    // the traffic police keep their peaked cap: it follows the game rig's
+    // head (where the lite model wears it) over the HD body
+    if (of.police && KT.Models.policeCap) {
+      const cap = KT.Models.policeCap();
+      cap.position.set(0, 0.04, 0.012); // (the HD head is a little lower than the rig's)
+      const holder = new T.Group();
+      holder.add(cap);
+      holder.visible = false;
+      e.root.add(holder);
+      e.cap = holder;
+      // and the black belt with its brass buckle, round the rig's hips
+      const belt = new T.Group();
+      const bm = new T.Mesh(new T.TorusGeometry(0.15, 0.013, 8, 24), KT.mat('c151515', { color: 0x151515 }));
+      bm.rotation.x = Math.PI / 2; bm.scale.z = 0.72; bm.position.y = 0.075;
+      const buckle = new T.Mesh(new T.BoxGeometry(0.03, 0.022, 0.008), KT.mat('cd8b24a', { color: 0xd8b24a }));
+      buckle.position.set(0, 0.075, 0.112);
+      belt.add(bm, buckle);
+      belt.visible = false;
+      e.root.add(belt);
+      e.belt = belt;
+    }
     model.visible = false;
     e.root.add(model);
   }
@@ -192,6 +213,17 @@
         mq[i].copy(pq).multiply(b.quaternion);
       }
     }
+    if (e.cap && rig.head) {
+      // the cap sits where the rig's head is, inside the root
+      rig.head.updateWorldMatrix(true, false);
+      e.cap.matrix.copy(e.root.matrixWorld).invert().multiply(rig.head.matrixWorld);
+      e.cap.matrix.decompose(e.cap.position, e.cap.quaternion, e.cap.scale);
+      if (e.belt && rig.hips) {
+        rig.hips.updateWorldMatrix(true, false);
+        e.belt.matrix.copy(e.root.matrixWorld).invert().multiply(rig.hips.matrixWorld);
+        e.belt.matrix.decompose(e.belt.position, e.belt.quaternion, e.belt.scale);
+      }
+    }
     const hb = e.bones.Hips;
     hb.position.copy(e.restPos);
     hb.position.y += (rig.hips.position.y - 0.93) * e.src.legRatio;
@@ -208,6 +240,8 @@
     if (!e.model) return false;
     e.on = on;
     e.model.visible = on;
+    if (e.cap) e.cap.visible = on;
+    if (e.belt) e.belt.visible = on;
     const sm = e.root.userData.skinned;
     if (sm) sm.visible = !on;
     return on;

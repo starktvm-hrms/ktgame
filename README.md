@@ -382,8 +382,11 @@ hours by the local clock:
 - **Fruit vendors** at the market stalls call out to people passing.
 - **Auto drivers** wait by their parked autos, chatting or resting in the
   seat. If you take an auto, its driver shouts after you.
-- A **traffic policeman** in khaki stands at the zebra crossing (eight to
-  eight), holding up a palm to stop the vehicles or waving them on.
+- A **traffic policeman** in the Kerala traffic police uniform (white
+  half-sleeve shirt with shoulder straps, name plate and lanyard, khaki
+  trousers, black belt and shoes, white peaked cap with a black band) stands
+  at the zebra crossing (eight to eight), holding up a palm to stop the
+  vehicles or waving them on. The HD body keeps the cap and belt.
 - A **street sweeper** sweeps the footpath with a coconut-leaf broom every
   morning until eleven.
 - At the bus stand the **KSRTC station master** is on duty, and people sit on

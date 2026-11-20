@@ -1335,7 +1335,7 @@
     const ol = $('outfit-list');
     ol.innerHTML = '';
     Object.keys(outfits).forEach((k) => {
-      if (outfits[k].locked && !KT.Story.legendary()) return;
+      if (outfits[k].hidden || (outfits[k].locked && !KT.Story.legendary())) return;
       const b = document.createElement('button');
       b.className = 'chip' + (cfg.outfit === k ? ' sel' : '');
       b.textContent = outfits[k].label;
