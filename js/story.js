@@ -574,7 +574,7 @@
   }
   function placeChar(who, at) {
     let o = S.chars[who];
-    if (!o) { o = KT.Models.character(Object.assign({ lite: true }, castOf(who).cfg)); S.chars[who] = o; if (KT.HD) KT.HD.always(o); }
+    if (!o) { o = KT.Models.character(Object.assign({ lite: true }, castOf(who).cfg)); S.chars[who] = o; }
     o.position.copy(at);
     if (o.parent !== KT.Game.scene) KT.Game.scene.add(o);
     const P = KT.Player.pos;

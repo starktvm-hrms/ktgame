@@ -805,7 +805,6 @@
     root.userData.anim = { phase: 0, t: 0, blink: 2 + Math.random() * 3 };
     SEG = 1;
     KT.skinify(root);
-    if (KT.HD) KT.HD.register(root, cfg);
     return root;
   };
 
@@ -1104,6 +1103,10 @@
       if (a.blink < 0) { sy = Math.max(0.08, Math.abs(a.blink + 0.07) / 0.07); if (a.blink < -0.14) a.blink = 2 + Math.random() * 4; }
       rig.eyeL.scale.y = rig.eyeR.scale.y = sy;
     }
+    // talking (userData.mouth, 0..1, set by the story conversations): the
+    // head nods and tilts a little with the words
+    const m = ch.userData.mouth || 0;
+    if (m > 0.01 && rig.head) { rig.head.rotation.x += m * 0.09; rig.head.rotation.z += Math.sin(a.t * 17) * m * 0.035; }
     const baseY = 0.93;
     rig.hips.position.y += (baseY + (pose.bob || 0) - rig.hips.position.y) * k;
     if (rig.tail) {

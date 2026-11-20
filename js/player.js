@@ -34,7 +34,6 @@
     P.cfg = cfg;
     if (P.obj) P.scene.remove(P.obj);
     P.obj = KT.Models.character(cfg);
-    KT.HD.always(P.obj);
     P.obj.position.copy(P.pos);
     P.obj.rotation.y = P.heading;
     P.scene.add(P.obj);
