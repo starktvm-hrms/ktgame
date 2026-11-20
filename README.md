@@ -486,6 +486,12 @@ beyond the town, else to a hamlet with a turning circle. Only the streets
 that run straight to the beach in the seaside towns stop, at a turning
 circle on the sand.
 
+Where a village road, a lane or a branch highway crosses water (the
+backwater channel by the lake park in Thiruvananthapuram, for one) it goes
+over on a concrete bridge with railings and piers, and walled ramps up from
+the banks. Roadside shops are never put by a bridge or in the water, and a
+dead-end lane that would run into a channel is not built.
+
 Wheels turn. Every car, auto-rickshaw, lorry and scooter (yours and the
 traffic's) has a proper wheel rig (tyre, rim, hub cap and bolts) that spins
 with the road speed; the front wheels steer with lane changes.

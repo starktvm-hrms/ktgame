@@ -1277,6 +1277,14 @@
         if (RIVERS.some((r) => r.s > start - 90 && r.s < end + 90)) continue;
       }
       if (road.junctions.some((j) => j.s > start - 60 && j.s < end + 60)) continue;
+      if (onRoadBridge(road, start, 60) || onRoadBridge(road, end, 60)) continue;
+      // not in water (a backwater channel or a lake beside the road)
+      let wet = false;
+      for (let i = 0; i <= n && !wet; i++) {
+        const q = road.at(start + i * 4.8, side * ((road.half || ROAD_HALF) + 6.3));
+        if (Hw.waterLevelAt(q.x, q.z) > Hw.height(q.x, q.z) - 1.2) wet = true;
+      }
+      if (wet) continue;
       // not on top of another road running close by
       const shopLat = (road.half || ROAD_HALF) + 6.3;
       const mid = road.at((start + end) / 2, side * shopLat), nr = Hw.nearestRoad(mid.x, mid.z, 30);
@@ -1447,7 +1455,7 @@
       group.add(road);
     }
     const items = [];
-    const bridged = (s) => R.main && onBridge(s);
+    const bridged = (s) => (R.main ? onBridge(s) : onRoadBridge(R, s, 6));
     const junc = (s, r) => R.junctions.some((j) => Math.abs(j.s - s) < r);
     const matAt = (s, lat, rot) => {
       const q = R.at(s, lat);
@@ -1578,10 +1586,95 @@
     });
     // bridges over rivers
     if (R.main) RIVERS.forEach((r) => { if (r.s >= s0 && r.s < s1) group.add(bridge(r)); });
+    // and where the other roads cross water
+    (R.bridges || []).forEach((b) => { if (b.r1 >= a0 && b.r0 < a1) group.add(roadBridge(R, b, Math.max(a0, b.r0), Math.min(a1, b.r1))); });
     scene.add(group);
     return { group, items };
   }
   function onBridge(s) { return RIVERS.some((r) => Math.abs(r.s - s) < 55); }
+
+  // ------------------------------------------ bridges on the other roads
+  // Where a branch highway, a village road or a lane crosses water (a
+  // backwater channel, a lake, a river) it goes over on a bridge: the deck
+  // is lifted clear of the water on piers, with concrete railings and
+  // ramps up from the banks. No shops, poles or milestones on it.
+  function onRoadBridge(R, s, pad) { return !!(R.bridges && R.bridges.some((b) => s > b.s0 - pad && s < b.s1 + pad)); }
+  Hw.onRoadBridge = onRoadBridge;
+  function bridgeRoads() {
+    Hw.roads.slice().forEach((R) => {
+      if (R.main) return;
+      const HALF = R.half || ROAD_HALF;
+      const wetAt = (s) => {
+        const f = R.frame(s);
+        let top = -1e9;
+        [0, -HALF - 1, HALF + 1].forEach((l) => {
+          const x = f.x + f.rx * l, z = f.z + f.rz * l, w = Hw.waterLevelAt(x, z);
+          if (w > -1e8 && w > Hw.height(x, z) - 0.25 && x - Hw.coastX(z) > 25) top = Math.max(top, w);
+        });
+        return top;
+      };
+      const spans = [];
+      let cur = null;
+      for (let s = 2; s <= R.len - 2; s += 3) {
+        const w = wetAt(s);
+        if (w > -1e8) { if (!cur) cur = { s0: s, s1: s, w }; cur.s1 = s; cur.w = Math.max(cur.w, w); }
+        else if (cur && s - cur.s1 > 12) { spans.push(cur); cur = null; }
+      }
+      if (cur) spans.push(cur);
+      if (!spans.length) return;
+      // a dead-end village road that would end in the water is not built
+      // (its town street ends at a turning circle instead)
+      if (R.hamlet && !R.lane && !R.dest && spans.some((sp) => sp.s1 > R.len - 60)) { dropRoad(R); return; }
+      R.bridges = spans.map((sp) => ({ s0: Math.max(0, sp.s0 - 10), s1: Math.min(R.len, sp.s1 + 10), r0: Math.max(0, sp.s0 - 55), r1: Math.min(R.len, sp.s1 + 55), deck: sp.w + 1.7, water: sp.w }));
+      R.bridges.forEach((b) => {
+        // lift the deck, with 45 m ramps either side
+        for (let i = 0; i <= R.LAST; i++) {
+          const s = i * STEP, d = s < b.s0 ? b.s0 - s : s > b.s1 ? s - b.s1 : 0;
+          if (d > 45) continue;
+          R.PY[i] = Math.max(R.PY[i], KT.lerp(R.PY[i], b.deck, 1 - KT.smoothstep(0, 45, d)));
+        }
+        // the railings keep people and vehicles on the deck
+        for (let s = b.s0; s <= b.s1; s += 6) {
+          const f = R.frame(s);
+          [-1, 1].forEach((sd) => { const q = R.at(s, sd * (HALF + 0.35)); Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 0.2, hd: 3.2, rot: f.heading }); });
+        }
+      });
+    });
+  }
+  function dropRoad(R) {
+    const rm = (list) => { const i = list.indexOf(R); if (i >= 0) list.splice(i, 1); };
+    rm(Hw.roads); rm(Hw.country);
+    if (R.start) R.start.road.junctions = R.start.road.junctions.filter((j) => j.other !== R);
+    const e = R.frame(R.len - 6);
+    for (let i = PLAZAS.length - 1; i >= 0; i--) if (Math.hypot(PLAZAS[i].x - e.x, PLAZAS[i].z - e.z) < 1) PLAZAS.splice(i, 1);
+  }
+  function roadBridge(R, b, a0, a1) {
+    const g = new T.Group(), HALF = R.half || ROAD_HALF;
+    for (let s = a0; s < a1; s += 4) {
+      const len = Math.min(4, a1 - s), sm = s + len / 2, f = R.frame(sm), y = R.y(sm) + 0.06;
+      if (sm < b.s0 || sm > b.s1) {
+        // the ramps: a walled embankment wherever the road stands above the ground
+        let gh = 1e9;
+        [-HALF, 0, HALF].forEach((l) => { const q = R.at(sm, l); gh = Math.min(gh, Hw.height(q.x, q.z)); });
+        const h = y - 0.06 - gh + 0.3;
+        if (h > 0.35) part(g, G.box(HALF * 2 + 0.4, h, len + 0.05), mats.concrete, f.x, y - 0.3 - h / 2, f.z, 0, f.heading, 0);
+        continue;
+      }
+      // the deck under the road, and its railings
+      part(g, G.box(HALF * 2 + 0.6, 0.7, len + 0.05), mats.concrete, f.x, y - 0.62, f.z, 0, f.heading, 0);
+      [-1, 1].forEach((sd) => {
+        const q = R.at(sm, sd * (HALF + 0.3));
+        part(g, G.box(0.22, 0.8, len + 0.05), mats.concrete, q.x, y + 0.4, q.z, 0, f.heading, 0);
+        part(g, G.box(0.28, 0.1, len + 0.05), mats.kerb, q.x, y + 0.85, q.z, 0, f.heading, 0);
+      });
+      // a pair of piers every 16 m, down into the water
+      if (Math.floor(s / 16) !== Math.floor((s + len) / 16) && s > b.s0 + 6 && s < b.s1 - 6) {
+        const bed = Math.min(Hw.height(f.x, f.z), b.water - 1), h = y - 0.97 - bed + 0.5;
+        if (h > 0.4) [-1, 1].forEach((sd) => { const q = R.at(sm, sd * HALF * 0.55); part(g, G.cyl(0.45, 0.55, h, 12), mats.concrete, q.x, y - 0.97 - h / 2, q.z); });
+      }
+    }
+    return KT.bake(g);
+  }
 
   function greenSign(lines) {
     const tex = KT.textTexture(lines.filter((l) => l.text), { width: 768, height: 256, bg: '#1b6b3a', color: '#ffffff', borderColor: '#ffffff' });
@@ -2831,6 +2924,7 @@
     if (KT.Dest) KT.Dest.prepare();
     prepareLandforms();
     relevelLanes();
+    bridgeRoads();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     Hw.built = true;
   };
