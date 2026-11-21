@@ -390,6 +390,7 @@
     KT.M.lampGlow.emissiveIntensity = 1.4 + 2.2 * S.night;
     // street lights come on at dusk and light the road under them
     const lit = S.lit = KT.smoothstep(0.15, 0.6, S.night);
+    KT.Real.night = S.night;
     KT.M.streetLamp.emissiveIntensity = 7 * lit;
     KT.M.lightPool.color.setRGB(lit, lit * 0.95, lit * 0.85);
     KT.M.lightPool.opacity = lit;

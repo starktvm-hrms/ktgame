@@ -1151,6 +1151,13 @@
       catEye: KT.mat('catEye', { color: 0xffd36a, emissive: 0xffb020, emissiveIntensity: 0.4, roughness: 0.3 }),
       paver: paverMaterial()
     };
+    // the realistic look: the grain, cracks and patches of real asphalt in
+    // relief, and fine trowel marks in the concrete
+    if (KT.Real.enabled) {
+      KT.Real.surface(mats.road, 'asphalt_02', 0.8, false);
+      mats.road.bumpMap = null;
+      KT.Real.surface(mats.concrete, 'painted_plaster_wall', 0.7);
+    }
     mats.water.userData.normal = waterN;
   }
 
@@ -1334,6 +1341,7 @@
 
   // ------------------------------------------------------------- tiles
   const _c = new T.Color();
+  const _c2 = new T.Color();
   function tileColor(x, z, h, lat, yRoad, half) {
     const n = KT.noise(x * 0.02, z * 0.02);
     const n2 = KT.noise(x * 0.004 + 9, z * 0.004);
@@ -1370,6 +1378,14 @@
       U.setXY(i, x / 7, z / 7);
       const pr = Hw.nearestRoad(x, z, 900);
       const c = tileColor(x, z, h, pr.d, pr.road.y(pr.s), pr.road.half);
+      // town centres: trodden, dusty ground between the buildings
+      if (pr.road === MAIN) {
+        const hs = HUB_S[Hw.hubIndexAt(pr.s)], tw = (1 - KT.smoothstep(150, 180, Math.abs(pr.s - hs))) * (1 - KT.smoothstep(52, 70, pr.d));
+        if (tw > 0) {
+          const n = KT.noise(x * 0.09, z * 0.09);
+          c.lerp(_c2.setRGB(0.9 + n * 0.08, 0.7 + n * 0.06, 0.52 + n * 0.05), tw * KT.clamp(0.75 + n * 0.6, 0, 0.95));
+        }
+      }
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new T.BufferAttribute(col, 3));
@@ -2808,6 +2824,40 @@
       hub.autoStand = hub.autoStand || [];
       [[SA - 2, 14], [SA + 2, 20]].forEach(([al, la], i) => { const q = Hw.at(hub.s + al, side * la); if (!Hw.nearbyColliders(q.x, q.z, 3).length) hub.autoStand.push([al, side * la, heading + Math.PI / 2 + i * Math.PI]); });
     });
+    // KSEB concrete poles along the main road, between the footpath and the
+    // shops, strung together with sagging lines
+    const wirePts = [];
+    [-1, 1].forEach((sd) => {
+      let prev = null;
+      for (let al = -146; al <= 146; al += 29) {
+        const lat = sd * 14.6, q = Hw.at(hub.s + al, lat);
+        if (KT.World.resolveList(new T.Vector3(q.x, Hw.groundY(q.x, q.z).y + 1, q.z), 0.6, Hw.nearbyColliders(q.x, q.z, 8)) || Hw.waterLevelAt(q.x, q.z) > -1e8 || Math.abs(al - Hw.CROSSING) < 4) { prev = null; continue; }
+        const b = Hw.nearBranch(q.x, q.z, 6);
+        if (b && b.road !== MAIN && b.s > -2 && b.s < b.road.len + 2 && b.d < (b.road.half || ROAD_HALF) + 1) { prev = null; continue; }
+        put(Models.electricPole(), al, lat, faceRoad(sd) - Math.PI / 2);
+        const y = Hw.groundY(q.x, q.z).y;
+        // (the cross-arm runs across the road)
+        const tips = [-0.7, 0, 0.7].map((x) => { const t = Hw.at(hub.s + al, lat - sd * x); return new T.Vector3(t.x, y + 7.62, t.z); });
+        if (prev) {
+          tips.forEach((t, k) => {
+            const a = prev[k], N = 10;
+            for (let i = 0; i < N; i++) {
+              const u0 = i / N, u1 = (i + 1) / N, sag = (u) => -0.7 * 4 * u * (1 - u);
+              wirePts.push(a.x + (t.x - a.x) * u0, a.y + (t.y - a.y) * u0 + sag(u0), a.z + (t.z - a.z) * u0);
+              wirePts.push(a.x + (t.x - a.x) * u1, a.y + (t.y - a.y) * u1 + sag(u1), a.z + (t.z - a.z) * u1);
+            }
+          });
+        }
+        prev = tips;
+      }
+    });
+    if (wirePts.length) {
+      const wg = new T.BufferGeometry();
+      wg.setAttribute('position', new T.Float32BufferAttribute(wirePts, 3));
+      const wires = new T.LineSegments(wg, new T.LineBasicMaterial({ color: 0x1c1c1c }));
+      wires.userData.keep = true;
+      hub.group.add(wires);
+    }
     hub.group.add(KT.bake(town));
     hub.townSize = n;
     buildFootpaths(hub);
@@ -2855,8 +2905,79 @@
     const m = new T.Mesh(geo, mats.paver);
     m.receiveShadow = true;
     hub.group.add(m);
+    buildForecourts(hub, gaps);
     // people already standing there step up onto the footpath
     Hw.npcs.forEach((w) => { if (w.obj.parent === hub.group) w.obj.position.y = Hw.groundY(w.obj.position.x, w.obj.position.z).y; });
+  }
+
+  // Cement forecourts: the shops' concrete aprons from the footpath up to
+  // their fronts (no bare earth along a town's main road), with expansion
+  // joints, oil and tea stains and worn patches. They follow the ground
+  // just above it and do not change where anything stands.
+  let forecourtMat = null;
+  function forecourtMaterial() {
+    if (forecourtMat) return forecourtMat;
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d'), rng = KT.makeRng(91);
+    g.fillStyle = '#8c877e'; g.fillRect(0, 0, 256, 256);
+    const img = g.getImageData(0, 0, 256, 256);
+    for (let i = 0; i < img.data.length; i += 4) { const n = (rng() - 0.5) * 22; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
+    g.putImageData(img, 0, 0);
+    for (let i = 0; i < 18; i++) {
+      const x = rng() * 256, y = rng() * 256, r = 8 + rng() * 34;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      const dark = rng() < 0.7;
+      gr.addColorStop(0, dark ? 'rgba(40,36,30,' + (0.12 + rng() * 0.2) + ')' : 'rgba(220,214,200,0.25)');
+      gr.addColorStop(1, 'rgba(40,36,30,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.fillStyle = 'rgba(50,46,40,0.55)';
+    g.fillRect(0, 0, 256, 2); g.fillRect(0, 0, 2, 256); g.fillRect(0, 127, 256, 1.5);
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping; t.encoding = T.sRGBEncoding; t.anisotropy = KT.maxAnisotropy;
+    forecourtMat = new T.MeshStandardMaterial({ map: t, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+    if (KT.Real.enabled) KT.Real.surface(forecourtMat, 'painted_plaster_wall', 0.6);
+    return forecourtMat;
+  }
+  function buildForecourts(hub, gaps) {
+    const L0 = FOOT1 + 0.6, L1 = 21.2, NL = 4;
+    const pos = [], uv = [], idx = [];
+    const strip = (a0, a1, sd) => {
+      const base = pos.length / 3;
+      let n = 0;
+      for (let a = a0; a <= a1 + 0.01; a += 2) {
+        const al = Math.min(a, a1);
+        for (let j = 0; j <= NL; j++) {
+          const lat = L0 + (L1 - L0) * j / NL, q = Hw.at(hub.s + al, sd * lat);
+          pos.push(q.x, Hw.height(q.x, q.z) + 0.07, q.z);
+          uv.push(al / 4, lat / 4);
+        }
+        if (n > 0) {
+          const p = base + (n - 1) * (NL + 1), q = base + n * (NL + 1);
+          for (let j = 0; j < NL; j++) {
+            if (sd < 0) idx.push(p + j, q + j, p + j + 1, p + j + 1, q + j, q + j + 1);
+            else idx.push(p + j, p + j + 1, q + j, p + j + 1, q + j + 1, q + j);
+          }
+        }
+        n++;
+      }
+    };
+    // the side streets cut through; the bus bay and crossing keep their own ground
+    [-1, 1].forEach((sd) => {
+      const gs = gaps[sd].filter((g) => g[1] - g[0] > 6).sort((a, b) => a[0] - b[0]);
+      let a = -150;
+      gs.forEach(([g0, g1]) => { if (g0 > a + 2) strip(a, g0, sd); a = Math.max(a, g1); });
+      if (a < 148) strip(a, 150, sd);
+    });
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const m = new T.Mesh(geo, forecourtMaterial());
+    m.receiveShadow = true;
+    hub.group.add(m);
   }
 
   // Merge every static object of a district centre into one model (far
@@ -2867,7 +2988,7 @@
       let keep = false;
       c.traverse((o) => {
         const u = o.userData;
-        if (u.rig || u.animate || u.beam || u.arm || u.lamps || u.flow || o.isSprite || o.isPoints || o.isLight || Array.isArray(o.material)) keep = true;
+        if (u.rig || u.animate || u.beam || u.arm || u.lamps || u.flow || o.isSprite || o.isPoints || o.isLine || o.isLight || Array.isArray(o.material)) keep = true;
       });
       if (!keep) still.add(c);
     });
@@ -3025,7 +3146,7 @@
     const sun = Hw.sun = new T.DirectionalLight(0xfff0d6, 2.1);
     if (quality !== 'low') {
       sun.castShadow = true;
-      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.mapSize.set(quality === 'high' ? 4096 : 2048, quality === 'high' ? 4096 : 2048);
       const c = sun.shadow.camera;
       c.left = -70; c.right = 70; c.top = 70; c.bottom = -70; c.near = 10; c.far = 400;
       sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;

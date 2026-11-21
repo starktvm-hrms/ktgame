@@ -1,0 +1,8 @@
+Normal maps (*_nor.jpg, OpenGL convention) and AO/roughness/metal maps
+(*_arm.jpg) from Poly Haven (https://polyhaven.com), CC0 1.0 (public domain):
+https://polyhaven.com/license
+
+  asphalt_02, clay_roof_tiles_02, painted_plaster_wall,
+  red_laterite_soil_stones
+
+Each is the 1k map, resized to 512 px. Used by js/realism.js.

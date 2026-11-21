@@ -43,11 +43,58 @@
   ];
   Models.TOWN_TYPES = TOWN.length;
   const townProtos = {};
-  function facadeTex(v, w, floors) {
+  // Weathering, as Kerala's monsoon leaves it on painted concrete: dark rain
+  // streaks running down from the parapet and the sills, a damp, splashed
+  // band along the foot of the wall, mould in the corners and blotches
+  // where the paint has faded. Drawn in greys over white, so it tints any
+  // paint colour. (u: across the wall, v: up it.)
+  function weather(g, W, H, seed, amt) {
+    const rng = KT.makeRng(seed);
+    amt = amt === undefined ? 1 : amt;
+    // faded blotches
+    for (let i = 0; i < 14; i++) {
+      const x = rng() * W, y = rng() * H, r = (0.08 + rng() * 0.2) * W;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      const a = (0.04 + rng() * 0.06) * amt;
+      gr.addColorStop(0, rng() < 0.5 ? 'rgba(70,64,52,' + a + ')' : 'rgba(255,255,250,' + a + ')');
+      gr.addColorStop(1, 'rgba(70,64,52,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    // rain streaks from the top edge
+    for (let i = 0; i < W / 3; i++) {
+      const x = rng() * W, len = H * (0.08 + rng() * rng() * 0.5), w = 1 + rng() * 5;
+      const gr = g.createLinearGradient(0, 0, 0, len);
+      const a = (0.06 + rng() * 0.14) * amt;
+      gr.addColorStop(0, 'rgba(40,40,34,' + a + ')'); gr.addColorStop(1, 'rgba(40,40,34,0)');
+      g.fillStyle = gr; g.fillRect(x, 0, w, len);
+    }
+    // damp, splashed foot of the wall
+    const fh = H * 0.07 + 18;
+    let gr = g.createLinearGradient(0, H, 0, H - fh * 2.2);
+    gr.addColorStop(0, 'rgba(48,42,30,' + 0.45 * amt + ')'); gr.addColorStop(0.45, 'rgba(60,54,40,' + 0.18 * amt + ')'); gr.addColorStop(1, 'rgba(60,54,40,0)');
+    g.fillStyle = gr; g.fillRect(0, H - fh * 2.2, W, fh * 2.2);
+    for (let i = 0; i < W / 6; i++) { g.fillStyle = 'rgba(50,44,32,' + (0.05 + rng() * 0.12) * amt + ')'; g.fillRect(rng() * W, H - rng() * fh * 1.6, 2 + rng() * 6, 2 + rng() * 10); }
+    // mould down the corners
+    [0, W].forEach((x0) => {
+      gr = g.createLinearGradient(x0, 0, x0 === 0 ? W * 0.12 : W * 0.88, 0);
+      gr.addColorStop(0, 'rgba(46,52,36,' + 0.22 * amt + ')'); gr.addColorStop(1, 'rgba(46,52,36,0)');
+      g.fillStyle = gr; g.fillRect(x0 === 0 ? 0 : W * 0.88, 0, W * 0.12, H);
+    });
+  }
+  // the side and back walls: white with weathering, tinted by the paint
+  let wallGrime = null;
+  function grimeTex() {
+    if (wallGrime) return wallGrime;
+    wallGrime = canvasTex(256, 512, (g, W, H) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); weather(g, W, H, 77, 1.2); });
+    return wallGrime;
+  }
+  function facadeTex(v, w, floors, seed) {
     const ppm = 48, W = Math.round(w * ppm), H = Math.round(floors * 3.2 * ppm);
     return canvasTex(W, H, (g) => {
+      const rng = KT.makeRng(seed * 31 + 7);
       g.fillStyle = v.paint; g.fillRect(0, 0, W, H);
       const fh = 3.2 * ppm;
+      const ac = [];
       // upper floors: windows with sunshades
       for (let f = 1; f < floors; f++) {
         const y0 = H - (f + 1) * fh;
@@ -55,11 +102,28 @@
         for (let i = 0; i < n; i++) {
           const cx = (i + 0.5) * (W / n);
           g.fillStyle = '#2f3a44'; g.fillRect(cx - 0.55 * ppm, y0 + 0.75 * ppm, 1.1 * ppm, 1.4 * ppm);
-          g.fillStyle = '#9fc4d8'; g.fillRect(cx - 0.48 * ppm, y0 + 0.82 * ppm, 0.43 * ppm, 1.26 * ppm); g.fillRect(cx + 0.05 * ppm, y0 + 0.82 * ppm, 0.43 * ppm, 1.26 * ppm);
-          g.fillStyle = v.trim; g.fillRect(cx - 0.75 * ppm, y0 + 0.55 * ppm, 1.5 * ppm, 0.16 * ppm);
+          // glass: some panes open or curtained
+          const open = rng();
+          g.fillStyle = open < 0.25 ? '#1c2228' : open < 0.45 ? '#c98c5a' : '#8fb2c4';
+          g.fillRect(cx - 0.48 * ppm, y0 + 0.82 * ppm, 0.43 * ppm, 1.26 * ppm);
+          g.fillStyle = open < 0.6 ? '#9fc4d8' : '#7f9fb0';
+          g.fillRect(cx + 0.05 * ppm, y0 + 0.82 * ppm, 0.43 * ppm, 1.26 * ppm);
+          // a grille, and the dirt washed down under the sill
+          g.strokeStyle = 'rgba(30,30,30,0.55)'; g.lineWidth = 1.5;
+          for (let k = 1; k < 4; k++) { const yy = y0 + 0.82 * ppm + k * 0.315 * ppm; g.beginPath(); g.moveTo(cx - 0.48 * ppm, yy); g.lineTo(cx + 0.48 * ppm, yy); g.stroke(); }
+          const sg = g.createLinearGradient(0, y0 + 2.15 * ppm, 0, y0 + 2.15 * ppm + 0.9 * ppm);
+          sg.addColorStop(0, 'rgba(40,38,32,0.32)'); sg.addColorStop(1, 'rgba(40,38,32,0)');
+          g.fillStyle = sg; g.fillRect(cx - 0.5 * ppm, y0 + 2.15 * ppm, 1.0 * ppm, 0.9 * ppm);
+          if (rng() < 0.3) ac.push([cx + (rng() < 0.5 ? -1 : 1) * 0.95 * ppm, y0 + 1.75 * ppm]);
         }
-        g.fillStyle = v.trim; g.fillRect(0, y0 + fh - 0.12 * ppm, W, 0.12 * ppm);
       }
+      weather(g, W, H, seed * 13 + 1, 0.9);
+      // window air-conditioner boxes
+      ac.forEach(([x, y]) => {
+        g.fillStyle = '#e4e2dc'; g.fillRect(x - 0.32 * ppm, y, 0.64 * ppm, 0.42 * ppm);
+        g.fillStyle = '#8d8b85'; for (let k = 0; k < 4; k++) g.fillRect(x - 0.27 * ppm, y + 0.06 * ppm + k * 0.08 * ppm, 0.54 * ppm, 0.03 * ppm);
+        g.fillStyle = 'rgba(40,38,30,0.25)'; g.fillRect(x - 0.05 * ppm, y + 0.42 * ppm, 0.1 * ppm, 0.6 * ppm);
+      });
       // ground floor: rolling shutters and a glass door
       const gy = H - fh;
       g.fillStyle = '#d9d6cf'; g.fillRect(0, gy, W, fh);
@@ -67,31 +131,57 @@
       for (let i = 0; i < doors; i++) {
         const x0 = (i + 0.08) * (W / doors), dw = (W / doors) * 0.84;
         g.fillStyle = i === 0 ? '#4b5a63' : '#8c9297'; g.fillRect(x0, gy + 1.0 * ppm, dw, 2.2 * ppm);
-        if (i > 0) { g.strokeStyle = '#6d7378'; g.lineWidth = 2; for (let y = gy + 1.0 * ppm; y < H; y += 6) { g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + dw, y); g.stroke(); } }
-        else { g.fillStyle = '#a9cfe0'; g.fillRect(x0 + 6, gy + 1.0 * ppm + 6, dw - 12, 2.2 * ppm - 12); }
+        if (i > 0) {
+          g.strokeStyle = '#6d7378'; g.lineWidth = 2; for (let y = gy + 1.0 * ppm; y < H; y += 6) { g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + dw, y); g.stroke(); }
+          // rust and grime on the shutter
+          const rg = g.createLinearGradient(0, H - 0.8 * ppm, 0, H);
+          rg.addColorStop(0, 'rgba(120,70,40,0)'); rg.addColorStop(1, 'rgba(110,64,36,0.45)');
+          g.fillStyle = rg; g.fillRect(x0, H - 0.8 * ppm, dw, 0.8 * ppm);
+        } else {
+          // the open shop: a lit interior with shelves of goods
+          g.fillStyle = '#f2e6c8'; g.fillRect(x0 + 6, gy + 1.0 * ppm + 6, dw - 12, 2.2 * ppm - 12);
+          for (let r = 0; r < 4; r++) {
+            const yy = gy + 1.3 * ppm + r * 0.45 * ppm;
+            g.fillStyle = '#7a5a3a'; g.fillRect(x0 + 8, yy + 0.3 * ppm, dw - 16, 4);
+            for (let k = 0; k < 9; k++) { g.fillStyle = ['#c4212b', '#f2c230', '#2c5fa8', '#2a9d8f', '#e07a1f', '#ffffff'][Math.floor(rng() * 6)]; g.fillRect(x0 + 10 + k * (dw - 20) / 9, yy + 0.08 * ppm, (dw - 20) / 9 - 3, 0.22 * ppm); }
+          }
+        }
       }
-      // signboard band
+      // the ground floor's own dirt and the signboard band
+      g.save(); g.translate(0, gy); weather(g, W, fh, seed * 5 + 2, 0.6); g.restore();
       g.fillStyle = v.sbg; g.fillRect(0, gy + 0.08 * ppm, W, 0.85 * ppm);
       g.fillStyle = v.sfg; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.font = 'bold ' + Math.round(0.42 * ppm) + 'px Arial, sans-serif';
       g.fillText(v.sign[0], W / 2, gy + 0.36 * ppm);
       g.font = 'bold ' + Math.round(0.24 * ppm) + 'px "Nirmala UI", "Noto Sans Malayalam", Arial, sans-serif';
       g.fillText(v.sign[1], W / 2, gy + 0.72 * ppm);
+      // a faded flex banner's edge
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(0, gy + 0.93 * ppm, W, 3);
     });
   }
   function buildTown(i) {
     const v = TOWN[i % TOWN.length];
     const w = 7.5, d = 8, floors = v.floors, H = floors * 3.2;
     const g = new T.Group();
-    const paint = KT.mat('townPaint' + i, { color: new T.Color(v.paint), roughness: 0.9 });
-    const front = new T.MeshStandardMaterial({ map: facadeTex(v, w, floors), roughness: 0.85 });
+    const paint = KT.mat('townPaint' + i, { color: new T.Color(v.paint), map: grimeTex(), roughness: 0.9 });
+    const front = new T.MeshStandardMaterial({ map: facadeTex(v, w, floors, i + 1), roughness: 0.85 });
     front.name = 'townFront' + i;
+    if (KT.Real && KT.Real.enabled) { KT.Real.surface(paint, 'painted_plaster_wall', 0.8); KT.Real.surface(front, 'painted_plaster_wall', 0.6); }
     part(g, G.box(w, H, d), paint, 0, H / 2, 0);
     // painted front with windows, shutters and the shop sign
     part(g, G.plane(w, H), front, 0, H / 2, d / 2 + 0.02).castShadow = false;
     const trim = KT.mat('townTrim' + i, { color: new T.Color(v.trim), roughness: 0.8 });
     part(g, G.box(w + 0.3, 0.5, d + 0.3), trim, 0, H + 0.25, 0);                 // roof parapet
     part(g, G.box(w + 0.4, 0.12, 1.2), trim, 0, 3.2 - 0.2, d / 2 + 0.6);         // shop canopy
+    // concrete sunshades (chajja) over each row of windows: they throw a
+    // band of shade across the front
+    const shade = KT.mat('townShade', { color: 0xd8d4ca, map: grimeTex(), roughness: 0.92 });
+    for (let f = 1; f < floors; f++) part(g, G.box(w - 0.2, 0.08, 0.55), shade, 0, f * 3.2 + 2.45, d / 2 + 0.29);
+    // a balcony on the first floor of the taller blocks
+    if (floors > 2 && i % 2 === 0) {
+      part(g, G.box(w * 0.5, 0.14, 1.0), shade, -w * 0.2, 3.2 + 0.07, d / 2 + 0.5);
+      railing(g, -w * 0.45, d / 2 + 1.0, w * 0.05, d / 2 + 1.0, 3.27, 0.9, KT.mat('townRail', { color: 0x2a2c2e, roughness: 0.5, metalness: 0.4 }));
+    }
     part(g, G.cyl(0.55, 0.55, 1.1, 12), KT.mat('waterTank', { color: 0x1d1d1d, roughness: 0.6 }), w / 2 - 1.2, H + 1.05, -d / 2 + 1.4);
     if (floors > 2) part(g, G.box(1.6, 0.9, 0.5), M().white, -w / 2 + 1.4, H + 0.95, -d / 2 + 1); // stair head
     const baked = KT.bake(g);

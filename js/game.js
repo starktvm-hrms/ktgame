@@ -9,7 +9,7 @@
   const Game = KT.Game = {
     state: 'loading',
     data: null,
-    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true, sky: 'live', style: 'cel' },
+    settings: { quality: 'medium', music: 0.5, sfx: 0.8, sensitivity: 1, invertY: false, mouseLook: true, sky: 'live', style: 'real', styleV: 2 },
     cfg: { gender: 'male', outfit: 'casual', hair: 'default', acc: { backpack: true, camera: false, hat: false, sunglasses: false } }
   };
 
@@ -31,8 +31,11 @@
   Game.boot = async function () {
     const s = load(SETTINGS_KEY);
     if (s) Object.assign(Game.settings, s);
-    // the cel-shaded look is built into every shader, so it is set up first
-    if (Game.settings.style !== 'classic') { KT.Toon.patchShaders(); document.body.classList.add('toon'); }
+    // the realistic look became the default: move older saved settings over once
+    if (Game.settings.styleV !== 2) { Game.settings.style = 'real'; Game.settings.styleV = 2; }
+    // the look is built into every shader, so it is set up first
+    if (Game.settings.style === 'cel') { KT.Toon.patchShaders(); document.body.classList.add('toon'); }
+    else if (Game.settings.style === 'real') KT.Real.patchShaders();
     // the sign-in form works while the world loads (the card shows both)
     const signIn = KT.Account.init();
     const canvas = $('game');
@@ -51,6 +54,7 @@
     renderer.shadowMap.type = T.PCFSoftShadowMap;
     KT.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     KT.Toon.init(renderer, { outlines: Game.settings.quality !== 'low', samples: 4 });
+    if (Game.settings.quality !== 'low') KT.Real.init(renderer, { quality: Game.settings.quality, samples: 4 });
     applyPixelRatio();
     const scene = Game.scene = new T.Scene();
     const camera = Game.camera = new T.PerspectiveCamera(60, 1, 0.1, 6000);
@@ -59,6 +63,7 @@
     KT.Input.init(canvas);
     KT.FX.init(scene);
     KT.initMaterials();
+    KT.Real.enhanceMaterials();
     KT.Props.preload();
     await KT.World.build(scene, { quality: Game.settings.quality }, KT.UI.progress);
     decorateMap();
@@ -1433,7 +1438,7 @@
     $('set-sens').oninput = (e) => { s.sensitivity = +e.target.value; KT.Input.sensitivity = s.sensitivity; saveSettings(); };
     $('set-invert').onchange = (e) => { s.invertY = e.target.checked; KT.Input.invertY = s.invertY; saveSettings(); };
     $('set-lock').onchange = (e) => { s.mouseLook = e.target.checked; KT.Input.mouseLook = s.mouseLook; saveSettings(); };
-    $('set-style').value = s.style || 'cel';
+    $('set-style').value = s.style || 'real';
     $('set-style').onchange = (e) => { s.style = e.target.value; saveSettings(); $('quality-note').classList.remove('hidden'); };
     $('set-quality').onchange = (e) => {
       s.quality = e.target.value; saveSettings();

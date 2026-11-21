@@ -446,14 +446,34 @@ and voice is not available.
 
 ## Graphics style
 
-The game is cel-shaded in a soft, hand-painted style: light falls in two
-gentle bands, shadows are crisp, and the shade is light and cool. On Medium
-and High quality, light ink lines trace the outlines and the
-colours are graded warmer. Ground, roof, wood and road textures are
-repainted into soft patches of colour as they load, characters have big
-glossy eyes and a touch of blush, the sky is a deeper, warmer blue, and the
-menus take a storybook look (warm brown panels and cream text). Choose **Classic** under Settings → Graphics style
-for the earlier look (it applies the next time the game loads).
+Settings → Graphics style offers three looks (each applies the next time the
+game loads):
+
+- **Realistic** (the default): physically based light with deep, soft shade.
+  On Medium and High the frame goes through a camera-like finish:
+  - ambient occlusion darkens corners, the ground along walls, under eaves,
+    vehicles and flyovers;
+  - on High, bloom lets lamps, headlights and the sun's glints bleed light;
+  - a colour grade warms the light, cools the shade and adds a vignette.
+
+  Plaster, concrete, roof tiles, laterite and asphalt carry the bumps and
+  roughness of real photo scans (Poly Haven, CC0), matched to the colour
+  photos they already use. Town buildings are weathered by the monsoon:
+  - rain streaks below parapets and sills, and damp, splashed wall feet;
+  - concrete sunshades over each row of windows, and balconies on some;
+  - window grilles, air-conditioner boxes, and open shops with stocked shelves.
+
+  The main road through each district town has cement forecourts up to the
+  shopfronts, dusty trodden ground between buildings, and KSEB concrete poles
+  strung with sagging overhead lines. High quality also doubles the
+  sun's shadow resolution.
+- **Cel-shaded**: a soft, hand-painted style. Light falls in two gentle
+  bands, shadows are crisp and the shade is light and cool. On Medium and
+  High, light ink lines trace the outlines and the colours are graded warmer.
+  Photo textures are repainted into soft patches of colour, characters have
+  big glossy eyes, the sky is a deeper blue, and the menus take a storybook
+  look.
+- **Classic**: the earliest look.
 
 ### World detail
 
@@ -684,6 +704,7 @@ js/                   game code (terrain, world, highway, vehicle, entities, pla
                       lighthouse = Alappuzha lighthouse interior, sky = time of day & weather,
                       destinations = sights on their own roads (Thiruvananthapuram),
                       toon = cel-shaded lighting, ink outlines and colour grade,
+                      realism = realistic finish: ambient occlusion, bloom, grade, photo normal maps,
                       radio = Malayalam internet radio,
                       townfolk = people, tourists and street traffic in the district towns,
                       life = working people with daily routines, and the drivers in traffic,

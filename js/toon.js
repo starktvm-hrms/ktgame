@@ -167,12 +167,14 @@
     qScene.add(quad);
   };
   Toon.resize = function (renderer) {
+    if (KT.Real && KT.Real.active) KT.Real.resize(renderer);
     if (!rt) return;
     const v = renderer.getDrawingBufferSize(new T.Vector2());
     rt.setSize(v.x, v.y);
     quad.material.uniforms.texel.value.set(1 / v.x, 1 / v.y);
   };
   Toon.render = function (renderer, scene, camera) {
+    if (KT.Real && KT.Real.active) { KT.Real.render(renderer, scene, camera); return; }
     if (!rt) { renderer.render(scene, camera); return; }
     renderer.setRenderTarget(rt);
     renderer.render(scene, camera);
