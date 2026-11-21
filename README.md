@@ -629,6 +629,19 @@ Two coastal sights south of the capital, each at the end of its own road:
   and the three beaches, the great lens), and the spiral stairs climb to the
   gallery at the top, 44 m above the sea; Chapter 11's last clue waits there.
 
+
+### Thangassery Lighthouse (Kollam)
+
+Thangassery now stands where it really is: on the shore a few hundred metres
+west of Kollam town, at the end of its own Thangassery Road. The 41 m tower
+is painted in a red and white spiral, with the white steel lattice mast
+beside it, the keepers' red-roofed cottages and lawns inside a white walled
+compound, and a park with a sports court and a round garden towards the
+road. A rock seawall runs along the shore, a breakwater walkway runs out
+into the sea to a little beacon (you can walk to its end), and the fishing
+harbour beside it is full of boats rocking on the water. Like Kovalam's,
+the lighthouse can be entered: read the exhibits, then climb the white
+spiral stairs with their black iron railing to the gallery at the top.
 ## Alappuzha lighthouse
 
 The Alappuzha lighthouse, built in 1862, stands by the beach and its old

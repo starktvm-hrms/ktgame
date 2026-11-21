@@ -27,7 +27,8 @@
       const sg = it.sg, k = sg.kind;
       if (sg.within) return;            // (built as part of its host: Kuthiramalika by the temple tank)
       if (k === 'mermaidBeach') return; // the beach itself
-      if (k === 'varkalaCliff' || k === 'kovalamBeach') { coastLandform(it); return; }
+      if (k === 'thangassery') it.cf = coastFrame(it);
+      if (k === 'varkalaCliff' || k === 'kovalamBeach' || k === 'thangassery') { coastLandform(it); return; }
       if (k === 'lakeVillage') {
         // the backwater: a long river along the far side of the park, straight
         // by the promenade and winding beyond it (clear of the roads and the
@@ -2218,6 +2219,117 @@
       if (lh.userData.beam) it.anim.push((t) => { lh.userData.beam.rotation.y = t * 0.9; });
       kovalamLighthouse(lh);
     },
+    thangassery(it0) {
+      // (the coast frame was made before the group existed)
+      const it = Object.assign(it0.cf, { group: it0.group, anim: it0.anim, flows: it0.flows, y: it0.y });
+      // Thangassery (Kollam): the 41 m lighthouse painted in a red and white
+      // spiral, the white steel lattice mast beside it, the keepers'
+      // cottages in a walled compound with lawns and palms, a park with a
+      // sports court towards the road, the rock seawall along the shore,
+      // the breakwater walkway running out to sea, and the fishing harbour
+      // full of boats on the other side
+      const Hw = KT.Highway, f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz;
+      const W = (dx, dz) => ({ x: it.sg.x + ax * dx + it.out.x * dz, z: it.sg.z + az * dx + it.out.z * dz });
+      const white = mat('thWhite', 0xf2f0e8, 0.8), paveM = mat('thPave', 0xb8b0a0, 0.9), lawn = mat('thLawn', 0x6aa84a, 0.95);
+      const flat = (w, d, m, dx, dz, lift) => { const p = new T.Mesh(new THREE.BoxGeometry(w, 0.2, d), m); place(it, p, dx, dz, 0, { colliders: false, y: it.y + (lift || 0.02) }); return p; };
+      // the compound: lawn, paths, a white wall with a gate towards the road
+      flat(46, 40, lawn, 4, 2, 0.01);
+      flat(4, 22, paveM, 0, -10, 0.04);
+      flat(30, 3.5, paveM, 4, 4, 0.04);
+      [[-19, 2, 0.4, 40], [27, 2, 0.4, 40], [4, 22, 46, 0.4], [-11.5, -18, 15, 0.4], [19.5, -18, 15, 0.4]].forEach(([dx, dz, w, d]) => {
+        const wl = new T.Mesh(new THREE.BoxGeometry(w, 1.3, d), white);
+        place(it, wl, dx, dz, 0, { colliders: false, y: it.y + 0.65 });
+        const q = W(dx, dz); Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: w / 2, hd: d / 2, rot: it.rot });
+      });
+      [-4, 4].forEach((dx) => place(it, Object.assign(new T.Mesh(new THREE.BoxGeometry(0.8, 2.4, 0.8), white), {}), dx, -18, 0, { y: it.y + 1.2 }));
+      const gateBoard = Models.signboard(['Thangassery Lighthouse', 'തങ്കശ്ശേരി വിളക്കുമാടം • 1902']);
+      place(it, gateBoard, 7, -20, 0);
+      // the lighthouse
+      const lh = Models.lighthouse({ spiral: true, H: 38 });
+      place(it, lh, 0, 6, 0, { colliders: false });
+      if (lh.userData.beam) it.anim.push((t) => { lh.userData.beam.rotation.y = t * 0.9; });
+      climbableLighthouse(lh, 'thangassery');
+      // the white lattice mast beside it (the old signal tower)
+      const mast = new T.Group(), steel = white, H = 26;
+      const leg = (sx, sz) => { const m = part(mast, G.box(0.28, H, 0.28), steel, sx * 1.6, H / 2, sz * 1.6, sz * 0.045, 0, -sx * 0.045); m.castShadow = true; };
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => leg(a, b));
+      for (let y = 2; y < H; y += 3.2) {
+        const w = 3.2 - (y / H) * 1.6;
+        [0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach((r) => {
+          const c = Math.cos(r), sn = Math.sin(r);
+          part(mast, G.box(w, 0.12, 0.12), steel, sn * w / 2, y, c * w / 2, 0, r, 0);
+          part(mast, G.box(Math.hypot(w, 3.2), 0.08, 0.08), steel, sn * w / 2, y + 1.6, c * w / 2, 0, r, Math.atan2(3.2, w) * (r % Math.PI ? 1 : -1));
+        });
+      }
+      part(mast, G.box(3.4, 0.25, 3.4), steel, 0, H, 0);
+      part(mast, G.box(2.2, 1.6, 2.2), mat('thCabin', 0xe8e4d8, 0.8), 0, H + 0.9, 0);
+      part(mast, G.cyl(0.05, 0.05, 4, 6), KT.M.darkGrey, 0, H + 3.6, 0);
+      place(it, KT.bake(mast), 14, 10, 0.2, { colliders: false });
+      { const q = W(14, 10); Hw.addCollider({ type: 'circle', x: q.x, z: q.z, r: 2.3 }); }
+      // keepers' cottages with red tile roofs
+      const roof = mat('thRoof', 0xc8502e, 0.8);
+      [[-12, 14, 0], [18, -6, Math.PI / 2], [-12, -8, 0]].forEach(([dx, dz, r], k) => {
+        const h = new T.Group();
+        part(h, G.box(7, 3, 5.4), white, 0, 1.5, 0);
+        const rf = part(h, G.cone(5.6, 2.2, 4), roof, 0, 4.1, 0, 0, Math.PI / 4, 0); rf.scale.set(1.25, 1, 0.95);
+        part(h, G.box(1.1, 2.1, 0.1), mat('thDoor', 0x2c6a8a, 0.7), 0, 1.05, 2.72);
+        [-2.2, 2.2].forEach((x) => part(h, G.box(1.0, 0.9, 0.1), KT.M.windowDark, x, 1.8, 2.72));
+        const b = KT.bake(h); b.userData.colliders = [{ type: 'box', x: 0, z: 0, hw: 3.6, hd: 2.8 }];
+        place(it, b, dx, dz, r + k * 0.02);
+      });
+      for (let k = 0; k < 9; k++) place(it, Models.coconutPalm(300 + k), [-17, -16, -6, 24, 25, 12, 22, -17, 6][k], [-14, 19, 19, 18, -14, -14, 4, 4, 19][k], k);
+      // the park towards the road: a blue sports court, a round garden, benches
+      flat(26, 22, paveM, -36, -30, 0.03);
+      const court = flat(14, 9, mat('thCourt', 0x2f6fb8, 0.7), -40, -30, 0.06);
+      void court;
+      const garden = new T.Mesh(new THREE.CylinderGeometry(6, 6, 0.4, 32), lawn); place(it, garden, -24, -30, 0, { colliders: false, y: it.y + 0.2 });
+      const ring = new T.Mesh(new THREE.TorusGeometry(6, 0.25, 6, 32), mat('thRing', 0xc8a060, 0.8)); ring.rotation.x = Math.PI / 2; place(it, ring, -24, -30, 0, { colliders: false, y: it.y + 0.35 }).rotation.x = Math.PI / 2;
+      [[-30, -20], [-20, -20], [-46, -20]].forEach(([dx, dz]) => place(it, Models.bench(), dx, dz, Math.PI));
+      [[-50, -40], [-14, -42], [-34, -44]].forEach(([dx, dz], k) => place(it, Models.coconutPalm(320 + k), dx, dz, k));
+      // the rock seawall along the shore
+      for (let k = 0; k < 36; k++) {
+        const dx = -36 + k * 4.2 + (k % 2) * 1.3, dz = 23 + (k % 3) * 1.4;
+        const rk = new T.Mesh(KT.blob(1.7 + (k % 3) * 0.5, 1, 0.3, 1200 + k), mat('thRock', 0x55504a, 0.95));
+        place(it, rk, dx, dz, k, { colliders: false, y: it.y - 1.2 - (k % 3) * 0.4 });
+      }
+      // the breakwater: a concrete walkway on piled rock out into the sea,
+      // with a little beacon at its head
+      const bwX = 40, bw0 = 24, bw1 = 130, deckY = it.y - 0.15;
+      const walk = new T.Mesh(new THREE.BoxGeometry(4.2, 1.6, bw1 - bw0), mat('thWalk', 0xc9c3b4, 0.9));
+      place(it, walk, bwX, (bw0 + bw1) / 2, 0, { colliders: false, y: deckY - 0.8 });
+      for (let k = 0; k < 2 * Math.floor((bw1 - bw0) / 3.6); k++) {
+        const sd = k % 2 ? 1 : -1, dz = bw0 + Math.floor(k / 2) * 3.6 + (k % 4) * 0.6;
+        const rk = new T.Mesh(KT.blob(1.6 + (k % 3) * 0.45, 1, 0.3, 1400 + k), mat('thRock2', 0x7e786e, 0.95));
+        place(it, rk, bwX + sd * (3.4 + (k % 3) * 0.5), dz, k, { colliders: false, y: deckY - 1.4 + (k % 2) * 0.3 });
+      }
+      const beacon = new T.Group();
+      part(beacon, G.cyl(0.9, 1.1, 2.4, 12), white, 0, 1.2, 0);
+      part(beacon, G.cyl(0.5, 0.5, 1.0, 10), mat('thBeacon', 0xc4212b, 0.6), 0, 2.9, 0);
+      part(beacon, G.sph(0.35, 8, 6), KT.M.lampGlow, 0, 3.6, 0);
+      place(it, KT.bake(beacon), bwX, bw1 - 2, 0, { y: deckY });
+      {
+        // walkable deck (above the seabed) and its edges
+        const c0 = W(bwX, (bw0 + bw1) / 2), len = bw1 - bw0, ux = ax, uz = az, vx = it.out.x, vz = it.out.z;
+        Hw.addPlatform(c0.x, c0.z, 0, len / 2 + 4, (lx, lz) => {
+          const along = lx * vx + lz * vz, across = lx * ux + lz * uz;
+          return Math.abs(across) < 2.1 && Math.abs(along) < len / 2 ? deckY : null;
+        });
+        for (let dz = bw0 + 4; dz < bw1 - 3; dz += 6) [-1, 1].forEach((sd) => { const q = W(bwX + sd * 2.45, dz); Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 0.25, hd: 3.1, rot: it.rot, minY: deckY - 0.8 }); });
+        it.breakwater = { x0: W(bwX, bw0 + 2), x1: W(bwX, bw1 - 4), y: deckY };
+      }
+      // the fishing harbour: sand down to the water and boats moored in the bay
+      sandSheet(it, -96, -40, 2, 30, 0xdcbf8a);
+      const BOATS = [[-60, 40, 0.3], [-72, 52, -0.4], [-50, 60, 0.9], [-84, 44, 1.2], [-64, 70, -0.2], [-90, 64, 0.6], [-44, 48, 2.0], [-78, 82, 0.1], [-56, 88, 1.6], [-96, 90, -0.8], [-40, 74, 0.5], [-70, 100, 2.4]];
+      BOATS.forEach(([dx, dz, r], k) => {
+        const b = place(it, Models.vallam(k + 20), dx, dz, r, { colliders: false, y: KT.Highway.SEA_Y + 0.05 });
+        b.scale.setScalar(k % 3 === 0 ? 1.6 : 1.2);
+        const t0 = k * 0.7;
+        it.anim.push((t) => { b.position.y = KT.Highway.SEA_Y + 0.05 + Math.sin(t * 1.1 + t0) * 0.08; b.rotation.z = Math.sin(t * 0.9 + t0) * 0.04; });
+      });
+      [[-64, 14, 0.2, 5], [-76, 12, -0.1, 7], [-52, 16, 0.4, 9]].forEach(([dx, dz, r, k]) => place(it, Models.vallam(k), dx, dz, HP + r, { colliders: false }));
+      // a few people walking out on the breakwater and in the park
+      beachCrowd(it, 10, -60, 0, -44, -20, 3100);
+    },
     mermaidBeach(it) {
       // Shankhumugham: the mermaid in her shell back from the water, the old
       // stone mandapam on the sand, fishing boats drawn up, and crowds out
@@ -2314,6 +2426,13 @@
   // ------------------------------------------------- Varkala and Kovalam
   // Land shaped in "place" coordinates (dx along, dz away from the road
   // towards the sea), so the models line up with the cliffs and hills.
+  // a site frame square to the coastline: dx along the shore, dz out to sea
+  function coastFrame(it) {
+    const Hw = KT.Highway, z = it.sg.z, e = 4;
+    let nx = -1, nz = (Hw.coastX(z + e) - Hw.coastX(z - e)) / (2 * e);
+    const l = Math.hypot(nx, nz); nx /= l; nz /= l;
+    return Object.assign({}, it, { end: false, f: Object.assign({}, it.f, { fx: -nz, fz: nx }), out: { x: nx, z: nz }, rot: Math.atan2(-nx, -nz) });
+  }
   function placeFrame(it) {
     const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz;
     const c = Math.cos(it.rot), s = Math.sin(it.rot);
@@ -2343,6 +2462,23 @@
         const k = 1 - ss(72, 100, ax);
         // the beach is raised out of the sea; further out the seabed stays
         return dz > 24 ? Math.min(h, lerp(h, t, k)) : lerp(h, t, k);
+      });
+    } else if (it.sg.kind === 'thangassery') {
+      // Thangassery: the lighthouse compound on level ground right on the
+      // shore, a rock seawall dropping to the sea, and on the harbour side
+      // a strip of sand running down to the water (laid out square to the
+      // coastline, not to the road)
+      it.beachY = beach;
+      const toC = placeFrame(it.cf);
+      Hw.addLandform(it.sg.x, it.sg.z, it.cf.rot, 150, (h, lx, lz) => {
+        const toP = toC;
+        const [dx, dz] = toP(lx, lz), ax = Math.abs(dx);
+        if (dz < -60 || ax > 120) return h;
+        let t = it.y;
+        if (dx < -38) t = dz < 4 ? it.y : lerp(it.y, beach, ss(4, 14, dz));   // the harbour beach
+        if (dz > 20 || (dx < -38 && dz > 22)) t = lerp(dx < -38 ? beach : it.y, sea - 2.2, ss(dx < -38 ? 22 : 20, dx < -38 ? 46 : 27, dz));
+        const k = (1 - ss(95, 120, ax)) * (1 - ss(40, 60, -dz));
+        return dz > 30 ? Math.min(h, lerp(h, t, k)) : lerp(h, t, k);
       });
     } else {
       // Kovalam: the sand runs down from the promenade to the sea, with
@@ -2389,9 +2525,15 @@
     m.castShadow = m.receiveShadow = true;
     return m;
   }
-  // the Kovalam lighthouse can be entered and climbed: a door at its foot
-  // (into the tower's interior level) and the walkable gallery on top
-  function kovalamLighthouse(lh) {
+  // a lighthouse that can be entered and climbed (Kovalam, Thangassery): a
+  // door at its foot (into the tower's interior level) and the walkable
+  // gallery on top
+  const LH_SITES = {
+    kovalam: { name: 'Kovalam', top: 'The three beaches of Kovalam below you! Press E by the door to go back down.', flag: 'kovTop' },
+    thangassery: { name: 'Thangassery', top: 'Kollam’s fishing harbour, the breakwater and the open sea below you! Press E by the door to go back down.', flag: 'thTop' }
+  };
+  function kovalamLighthouse(lh) { climbableLighthouse(lh, 'kovalam'); }
+  function climbableLighthouse(lh, site) {
     const Hw = KT.Highway, base = lh.position.y, deck = base + lh.userData.deck;
     lh.updateMatrixWorld(true);
     const W = (x, y, z) => lh.localToWorld(new T.Vector3(x, y, z));
@@ -2406,17 +2548,21 @@
     const door = W(0, 0, 2.95), out = W(0, 0, 6.3), gal = W(0, 0, -2.35), side = W(1, 0, -2.35);
     const heading = lh.rotation.y;
     const tx = side.x - gal.x, tz = side.z - gal.z, ox = gal.x - c.x, oz = gal.z - c.z;
-    KT.Lighthouse.kovalam = {
+    const S = LH_SITES[site];
+    const rec = {
       outside: { x: out.x, z: out.z, heading },
       galleryAt: { x: gal.x, z: gal.z, heading: Math.atan2(tx, tz), camYaw: Math.atan2(-tx + ox * 0.4, -tz + oz * 0.4) },
       gallery: new T.Vector3(gal.x, deck, gal.z),
-      deckY: deck
+      deckY: deck, name: S.name, topToast: S.top, flag: S.flag
     };
+    KT.Lighthouse.sites = KT.Lighthouse.sites || {};
+    KT.Lighthouse.sites[site] = rec;
+    if (site === 'kovalam') KT.Lighthouse.kovalam = rec;
     const doorV = new T.Vector3(door.x, Hw.groundY(door.x, door.z).y, door.z), dn = W(0, 0, 2.35), downV = new T.Vector3(dn.x, deck, dn.z);
-    Hw.interactables.push({ id: 'kov-lh-in', label: 'Enter the Kovalam lighthouse', radius: 3.4, pos: () => doorV,
-      enabled: () => KT.Player.pos.y < deck - 4, action: () => KT.Game.enterLighthouse({ site: 'kovalam' }) });
-    Hw.interactables.push({ id: 'kov-lh-down', label: 'Go back down the stairs', radius: 2.4, pos: () => downV,
-      enabled: () => KT.Player.pos.y > deck - 1, action: () => KT.Game.enterLighthouse({ site: 'kovalam', from: 'gallery' }) });
+    Hw.interactables.push({ id: site + '-lh-in', label: 'Enter the ' + S.name + ' lighthouse', radius: 3.4, pos: () => doorV,
+      enabled: () => KT.Player.pos.y < deck - 4, action: () => KT.Game.enterLighthouse({ site }) });
+    Hw.interactables.push({ id: site + '-lh-down', label: 'Go back down the stairs', radius: 2.4, pos: () => downV,
+      enabled: () => KT.Player.pos.y > deck - 1, action: () => KT.Game.enterLighthouse({ site, from: 'gallery' }) });
   }
   function sandSheet(it, X0, X1, Z0, Z1, color, minY) {
     const f = it.f, ax = it.end ? -f.rx : f.fx, az = it.end ? -f.rz : f.fz, Hw = KT.Highway;

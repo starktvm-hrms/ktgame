@@ -40,9 +40,22 @@
     alappuzha: { title: 'Alappuzha Lighthouse', ml: 'ആലപ്പുഴ വിളക്കുമാടം  \u2022  1862', rose: 'ALAPPUZHA 1862', exit: 'EXIT \u2022 Alappuzha Beach', exitLabel: 'Go outside to Alappuzha beach',
       board: ['Built in 1862', 'Once lit with coconut oil', 'Guarding the Alappuzha coast'], beachTitle: 'Alappuzha Beach', beachLines: ['Golden sand \u2022 the old pier', 'Ships, coir and spices', 'Climb up for the view!'], keeperName: 'Abdul' },
     kovalam: { title: 'Kovalam Lighthouse', ml: 'കോവളം വിളക്കുമാടം  \u2022  1972', rose: 'KOVALAM 1972', exit: 'EXIT \u2022 Lighthouse Beach', exitLabel: 'Go outside to Lighthouse Beach',
-      board: ['Opened in 1972', 'On Kurumkal hill', 'Guarding Vizhinjam harbour'], beachTitle: 'Kovalam\u2019s beaches', beachLines: ['Lighthouse Beach \u2022 Hawa Beach', 'Samudra Beach', 'Climb up for the view!'], keeperName: 'Thankappan' }
+      board: ['Opened in 1972', 'On Kurumkal hill', 'Guarding Vizhinjam harbour'], beachTitle: 'Kovalam\u2019s beaches', beachLines: ['Lighthouse Beach \u2022 Hawa Beach', 'Samudra Beach', 'Climb up for the view!'], keeperName: 'Thankappan' },
+    thangassery: { title: 'Thangassery Lighthouse', ml: 'തങ്കശ്ശേരി വിളക്കുമാടം  \u2022  1902', rose: 'THANGASSERY 1902', exit: 'EXIT \u2022 Thangassery', exitLabel: 'Go outside to the lighthouse grounds',
+      board: ['Built in 1902', '41 metres tall', 'The red and white spiral'], beachTitle: 'Kollam harbour', beachLines: ['The fishing harbour \u2022 the breakwater', 'Kollam beach to the north', 'Climb up for the view!'], keeperName: 'Joseph', stairs: 'white' }
   };
   const SITE_FACTS = {
+    thangassery: {
+      history: ['This lighthouse at Thangassery, by Kollam, was built in 1902. At 41 m it is one of the tallest on the Kerala coast.',
+        'Its tower is painted in a red and white spiral, so ships can tell it from the other lighthouses by day.',
+        'Thangassery was a trading post of the Portuguese and then the Dutch; ruins of their fort still stand nearby.'],
+      beaches: ['Below the tower lies Kollam\u2019s fishing harbour, full of boats, and a rock breakwater running out to sea.',
+        'Kollam beach and its park stretch away to the north.',
+        'From the gallery at the top you can see the harbour, the breakwater, the town and the Arabian Sea.'],
+      keeper: ['Namaskaram! I\u2019m Joseph, the keeper. Welcome to the Thangassery lighthouse.',
+        'Read the exhibits and press E to look closely. The great lens is at the back.',
+        'Then climb the white spiral stairs to the gallery. Mind the steps: there are a lot of them!']
+    },
     kovalam: {
       history: ['This lighthouse stands on Kurumkal hill above Kovalam\u2019s Lighthouse Beach. It was opened in 1972 and is about 36 m tall.',
         'Its light guides fishing boats and ships into Vizhinjam, one of the oldest harbours on the coast, just to the south.',
@@ -183,13 +196,14 @@
     const rail = [];
     for (let i = 0; i < steps; i++) {
       const a = a0 - i * da;
-      const s = part(room, G.box(0.62, 0.1, 1.95), i % 2 ? M.woodDark : M.wood, Math.sin(a) * 1.25, rise * (i + 1) - 0.05, Math.cos(a) * 1.25, 0, a, 0);
+      const whiteStairs = SITE.stairs === 'white';
+      const s = part(room, G.box(0.62, 0.1, 1.95), whiteStairs ? M.white : (i % 2 ? M.woodDark : M.wood), Math.sin(a) * 1.25, rise * (i + 1) - 0.05, Math.cos(a) * 1.25, 0, a, 0);
       s.castShadow = true;
       const pr = ring(a, 2.15);
-      part(room, G.box(0.04, 0.9, 0.04), M.darkGrey, pr.x, rise * (i + 1) + 0.45, pr.z);
+      part(room, G.box(0.04, 0.9, 0.04), whiteStairs ? KT.mat('ironBlack', { color: 0x1c1c1c, roughness: 0.5 }) : M.darkGrey, pr.x, rise * (i + 1) + 0.45, pr.z);
       rail.push(new T.Vector3(pr.x, rise * (i + 1) + 0.92, pr.z));
     }
-    room.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(rail), 120, 0.035, 6, false), M.brass));
+    room.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(rail), 120, 0.035, 6, false), SITE.stairs === 'white' ? KT.mat('ironBlack', { color: 0x1c1c1c, roughness: 0.5 }) : M.brass));
     addCol({ type: 'circle', x: 0, z: 0, r: STAIR_R });
     interact('lh-up', 'Climb the spiral stairs to the gallery', { x: 0, z: 2.75 }, 1.9, () => KT.Game.climbLighthouse());
 

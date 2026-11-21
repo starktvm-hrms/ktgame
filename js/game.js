@@ -320,9 +320,9 @@
     if (Game.level === 'home') {
       if (P.mode === 'foot') d.pos = { x: P.pos.x, y: P.pos.y, z: P.pos.z };
       d.heading = P.heading;
-    } else if (Game.level === 'lighthouse' && KT.Lighthouse.site === 'kovalam' && KT.Lighthouse.kovalam) {
-      // inside the Kovalam lighthouse: resume on the highway by its door
-      d.hwHub = KT.Highway.status(KT.Lighthouse.kovalam.outside).nearest;
+    } else if (Game.level === 'lighthouse' && KT.Lighthouse.sites && KT.Lighthouse.sites[KT.Lighthouse.site]) {
+      // inside a highway lighthouse (Kovalam, Thangassery): resume on the highway by its door
+      d.hwHub = KT.Highway.status(KT.Lighthouse.sites[KT.Lighthouse.site].outside).nearest;
     } else if (Game.level === 'lighthouse') {
       // inside the lighthouse: resume just outside its door
       const o = KT.Lighthouse.outside;
@@ -1048,21 +1048,23 @@
   };
   Game.leaveLighthouse = function () {
     const LH = KT.Lighthouse;
-    if (LH.site === 'kovalam' && LH.kovalam) { const o = LH.kovalam.outside; return Game.goHighway({ spot: { x: o.x, z: o.z, heading: o.heading }, quiet: true }); }
+    const hs = LH.sites && LH.sites[LH.site];
+    if (hs) { const o = hs.outside; return Game.goHighway({ spot: { x: o.x, z: o.z, heading: o.heading }, quiet: true }); }
     const o = LH.outside;
     return Game.goHome({ at: o, heading: o.heading, quiet: true, title: 'Alappuzha Beach' });
   };
   Game.climbLighthouse = async function () {
     const LH = KT.Lighthouse;
-    if (LH.site === 'kovalam' && LH.kovalam) {
-      const k = LH.kovalam, g = k.galleryAt;
+    const hs = LH.sites && LH.sites[LH.site];
+    if (hs) {
+      const k = hs, g = k.galleryAt;
       await Game.goHighway({ spot: { x: g.x, z: g.z, heading: g.heading }, quiet: true });
       const P = KT.Player;
       P.pos.y = k.deckY + 0.3; P.vy = 0;
       KT.CameraRig.yaw = g.camYaw; KT.CameraRig.snap = true;
-      KT.UI.toast('The three beaches of Kovalam below you! Press E by the door to go back down.', 'info');
+      KT.UI.toast(k.topToast, 'info');
       const d = Game.data;
-      if (!d.kovTop) { d.kovTop = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the Kovalam lighthouse! +20 coins', 'star'); }
+      if (!d[k.flag]) { d[k.flag] = true; Game.addXP(30); Game.addCoins(20); KT.UI.toast('You climbed the ' + k.name + ' lighthouse! +20 coins', 'star'); }
       return;
     }
     const g = LH.galleryAt;
@@ -1080,7 +1082,7 @@
     $('speedo').classList.add('hidden');
     KT.UI.drawCompass(-KT.CameraRig.yaw, null, P.pos);
     lhUiT += dt;
-    if (lhUiT > 0.1) { lhUiT = 0; KT.UI.drawMinimap(LH.mapPos(), P.heading, null, 'Alappuzha Lighthouse \u2022 inside'); }
+    if (lhUiT > 0.1) { lhUiT = 0; KT.UI.drawMinimap(LH.mapPos(), P.heading, null, LH.siteInfo().title + ' \u2022 inside'); }
   }
   let lhUiT = 0;
 

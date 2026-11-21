@@ -428,6 +428,9 @@
       via: [['Ponnumthuruthu Jetty', 8.674, 76.802]], dest: 'Ponnumthuruthu Island' },
     { nh: 'Varkala Road', name: 'Varkala', city: 'tvm', from: { road: 'Ponnumthuruthu Road', town: 'Ponnumthuruthu Jetty', shift: -70 },
       via: [['Varkala', 8.7334, 76.709]], dest: 'Varkala Cliff' },
+    // ---- Kollam: the road down to Thangassery on the shore
+    { nh: 'Thangassery Road', name: 'Thangassery', city: 'klm', from: { hub: 'klm', off: 360 },
+      via: [['Thangassery', 8.879, 76.581]], dest: 'Thangassery Lighthouse' },
     { nh: 'Kovalam Road', name: 'Kovalam', city: 'tvm', from: { road: 'MG Road', town: 'Shankhumugham', shift: 70 },
       via: [['Vizhinjam Junction', 8.43, 76.965], ['Kovalam', 8.388, 76.975]], dest: 'Kovalam Beach' }
   ];
@@ -1007,7 +1010,7 @@
   // { x, z, r, cos, sin, y(lx, lz) -> height or null } in the platform's own axes
   const PLATFORMS = Hw.PLATFORMS = [];
   let SANDY_ = null;
-  const sandySights = () => SANDY_ || (SANDY_ = Hw.sightList().filter((sg) => sg.dest && (sg.kind === 'mermaidBeach' || sg.kind === 'varkalaCliff' || sg.kind === 'kovalamBeach')));
+  const sandySights = () => SANDY_ || (SANDY_ = Hw.sightList().filter((sg) => sg.dest && (sg.kind === 'mermaidBeach' || sg.kind === 'varkalaCliff' || sg.kind === 'kovalamBeach' || sg.kind === 'thangassery')));
   Hw.addPlatform = function (x, z, rot, r, fn) { PLATFORMS.push({ x, z, r, cos: Math.cos(rot), sin: Math.sin(rot), y: fn }); };
   Hw.isWater = function (x, z) { return Hw.groundY(x, z).y < Hw.waterLevelAt(x, z) - 0.3; };
   Hw.deepWater = (x, z, gy) => gy < Hw.waterLevelAt(x, z) - 0.6;
@@ -2002,7 +2005,7 @@
   const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 30, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
-  const DEST_R = { gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, varkalaCliff: 46, kovalamBeach: 46, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
+  const DEST_R = { gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, varkalaCliff: 46, kovalamBeach: 46, thangassery: 52, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
   Hw.sightList = function () {
     if (sightCache) return sightCache;
     sightCache = [];
@@ -2886,7 +2889,7 @@
     const rot = faceRoad(side);
     switch (L) {
       case 'gopuram': hubPlace(hub, Models.gopuram(), 20, side, rot); break;
-      case 'lighthouse': { const lh = hubPlace(hub, Models.lighthouse({ spiral: true, H: 38 }), 20, side + 10, rot); hub.beam = lh.userData.beam; break; } // Thangassery: 41 m, barber-pole bands
+      case 'lighthouse': break; // (Thangassery stands on the shore, at the end of its own road: see destinations.js)
       case 'shrine': hubPlace(hub, Models.hillShrine(), 25, side + 20, rot); break;
       case 'backwaters': {
         waterDisc(hub, 25, side + 5, 30);
