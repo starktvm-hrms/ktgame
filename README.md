@@ -22,6 +22,20 @@ fades into the live 3D backwaters. Anyone who signs in early sees a
 welcome and the bar, and goes on to the character creator as soon as the
 world is ready. A remembered player goes straight on.
 
+## Picking up where you left off
+
+Continue puts you back at the exact spot where you left the game, facing the
+same way:
+
+- **On the highway**: you are on foot where you stood, or where your
+  vehicle was. If you were up on a platform, a bridge or the Thampanoor
+  skywalk, you come back up on it.
+- **Inside the Kovalam or Thangassery lighthouse**: just outside its door.
+- **In the home village**: where you last walked.
+
+The spot is saved every 20 seconds and whenever the page is closed or
+hidden.
+
 ## Game modes
 
 After signing in you choose how to play:

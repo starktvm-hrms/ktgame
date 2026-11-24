@@ -303,7 +303,12 @@
       KT.Net.connect();
       KT.UI.setOnline(0, false);
     } else KT.UI.setOnline(0, false);
-    if (saved && Game.data.map === 'highway') Game.goHighway({ hub: Game.data.hwHub, board: false, quiet: true });
+    // back where you left off: the exact spot on the highway (else its nearest bus stand)
+    if (saved && Game.data.map === 'highway') {
+      const p = Game.data.hwPos;
+      if (p && isFinite(p.x) && isFinite(p.z)) Game.goHighway({ spot: { x: p.x, z: p.z, y: p.y, heading: Game.data.hwHeading || 0 }, quiet: true });
+      else Game.goHighway({ hub: Game.data.hwHub, board: false, quiet: true });
+    }
     setTimeout(Game.checkUnlocks, 2500);
     if (!saved) {
       KT.UI.banner('Kerala', 'God’s Own Country', 'title');
@@ -333,8 +338,23 @@
       const o = KT.Lighthouse.outside;
       d.pos = { x: o.x, y: KT.Geo.height(o.x, o.z), z: o.z };
       d.heading = o.heading;
-    } else d.hwHub = KT.Highway.status(P.pos).nearest;
-    d.map = Game.level === 'lighthouse' ? (KT.Lighthouse.site === 'kovalam' ? 'highway' : 'home') : Game.level;
+    } else {
+      // on the highway: the exact spot (in a vehicle, where the vehicle is)
+      const Hw = KT.Highway, at = P.mode !== 'foot' && P.bus && P.bus.obj ? P.bus.obj.position : P.pos;
+      d.hwHub = Hw.status(at).nearest;
+      if (Hw.built && !Hw.isWater(at.x, at.z)) {
+        d.hwPos = { x: Math.round(at.x * 100) / 100, y: Math.round(at.y * 100) / 100, z: Math.round(at.z * 100) / 100 };
+        d.hwHeading = P.mode !== 'foot' && P.bus ? P.bus.heading : P.heading;
+      }
+    }
+    // (inside a highway lighthouse, resume by its door on the highway)
+    const lhSite = Game.level === 'lighthouse' && KT.Lighthouse.sites && KT.Lighthouse.sites[KT.Lighthouse.site];
+    if (lhSite && lhSite.outside) {
+      const o = lhSite.outside;
+      d.hwPos = { x: o.x, z: o.z };
+      d.hwHeading = o.heading || 0;
+    }
+    d.map = Game.level === 'lighthouse' ? (lhSite ? 'highway' : 'home') : Game.level;
     d.cfg = Game.cfg;
     d.playTime = Math.round(d.playTime * 10) / 10;
     if (Game.user) {
@@ -923,7 +943,9 @@
     const foot = opts.spot ? new THREE.Vector3(opts.spot.x, 0, opts.spot.z)
       : opts.at ? Hw.at(Hw.project(opts.at.x, opts.at.z).s, Hw.project(opts.at.x, opts.at.z).lat) : Hw.at(hub.s, -10.2);
     if (opts.at || opts.spot) Hw.stream(foot, 999);
-    P.pos.set(foot.x, Hw.groundY(foot.x, foot.z).y, foot.z);
+    // (on a platform, a bridge or a skywalk when it was saved: back up on it)
+    const sy = opts.spot && opts.spot.y !== undefined && isFinite(opts.spot.y) ? opts.spot.y + 0.6 : undefined;
+    P.pos.set(foot.x, Hw.groundY(foot.x, foot.z, sy).y, foot.z);
     P.heading = opts.spot && opts.spot.heading !== undefined ? opts.spot.heading : hub.stopHeading;
     P.vy = 0;
     switchLevel(Hw, Hw.scene);
