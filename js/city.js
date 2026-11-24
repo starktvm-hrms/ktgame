@@ -73,6 +73,7 @@
       if (px - Hw.coastX(pz) < 80 || Hw.waterLevelAt(px, pz) > -1e8) return false;
       if (sights.some((s) => Math.hypot(px - s.x, pz - s.z) < s.r + 12)) return false;
       if (pads.some((P) => Math.hypot(px - P.x, pz - P.z) < P.r + 6)) return false;
+      if (KT.Rail.dist(px, pz) < 15) return false;
       const h = Hw.height(px, pz);
       return Math.abs(Hw.height(px + 5, pz) - h) < 2 && Math.abs(Hw.height(px, pz + 5) - h) < 2;
     };

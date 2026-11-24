@@ -123,7 +123,8 @@
     const ballast = mat('tcBallast', 0x6e6458, 0.98), rail = mat('tcRail', 0x8a8c8e, 0.35, { metalness: 0.8 }), post = mat('tcPost', 0x3f6fa8, 0.5, { metalness: 0.4 });
     const Z0 = -64, Z1 = 64, L = Z1 - Z0;
     // platforms (x ranges) and tracks (x centres)
-    const PL = [[42, 48], [59.5, 64.5], [74.5, 79.5]], TR = [51.5, 56.5, 67, 72, 82, 87];
+    // (the main line itself runs on the two tracks beyond the last platform)
+    const PL = [[42, 48], [59.5, 64.5], [74.5, 79.5]], TR = KT.Rail ? [51.5, 56.5, 67, 72] : [51.5, 56.5, 67, 72, 82, 87];
     PL.forEach(([a, b]) => {
       part(g, G.box(b - a, 0.95, L), conc, (a + b) / 2, 0.475, 0);
       part(g, G.box(0.35, 0.97, L), edge, a + 0.15, 0.48, 0);
@@ -173,16 +174,6 @@
     };
     const a = rake(5, true); a.position.set(56.5, 0.3, -40); root.add(a);
     const b = rake(4, false); b.position.set(72, 0.3, -30); root.add(b);
-    // a third train pulls in and out of the far platform
-    const c = rake(5, true); c.position.set(87, 0.3, -200); root.add(c);
-    let phase = 0;
-    anim.push((t) => {
-      // in for a minute, out for a minute: ease along the line
-      const k = (t / 120) % 1, arrive = k < 0.5 ? KT.smoothstep(0, 0.2, k) : 1 - KT.smoothstep(0.5, 0.7, k);
-      c.position.z = KT.lerp(-260, -42, arrive);
-      c.visible = c.position.z > -170;
-      phase = k;
-    });
     cols.push({ type: 'box', x: 56.5, z: 3, hw: 1.6, hd: 64, maxY: 4 }, { type: 'box', x: 72, z: 3, hw: 1.6, hd: 46, maxY: 4 });
   }
 

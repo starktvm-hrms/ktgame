@@ -599,6 +599,7 @@
     drawRoadPath(g, s - span, s + span, toMap, 9, '#2d2d2d');
     near.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.5, '#f4efe2', R));
     drawRoadPath(g, s - span, s + span, toMap, 1.5, '#f4efe2');
+    if (KT.Rail && KT.Rail.ready) KT.Rail.drawPaths(g, toMap, 2.5, { x: p.x, z: p.z, r: span });
     g.font = 'bold 12px system-ui, sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
     KT.DISTRICTS.forEach((d, i) => {
@@ -680,6 +681,8 @@
     branches.forEach((R) => drawRoadPath(g, 0, R.len, toMap, 1.3, '#e8b85a', R));
     drawRoadPath(g, 0, sEnd, toMap, 4 + 2 * Math.min(view.zoom, 3), '#2d2d2d');
     drawRoadPath(g, 0, sEnd, toMap, 1.5, '#ffd34d');
+    // the railway
+    if (KT.Rail && KT.Rail.ready) KT.Rail.drawPaths(g, toMap, 1.2 + 0.4 * Math.min(view.zoom, 3));
     // highway numbers
     const shields = branches.filter((R) => /^NH /.test(R.nh)).map((R) => [R.nh.replace('NH ', ''), R.frame(R.len * 0.5)]);
     [['66', Hw.frame(Hw.hubS(0) + 1500)]].concat(shields).forEach(([num, f]) => {

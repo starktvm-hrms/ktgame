@@ -495,6 +495,38 @@ always drive through.
 - What is left open: the roads out to the state borders, one coastal lane,
   and the highway's very end at the sea.
 
+### The railway
+
+Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
+
+- **Lines**, double track on the main lines and single track on the branches:
+  - Thiruvananthapuram Central – Kollam – Kayamkulam;
+  - from Kayamkulam to Ernakulam both ways, by Alappuzha and by Kottayam;
+  - Ernakulam – Thrissur – Shoranur;
+  - Shoranur – Palakkad, on towards Coimbatore;
+  - Shoranur – Kozhikode – Kannur – Kasaragod, on towards Mangaluru;
+  - branches: Kollam – Punalur – Sengottai, Thiruvananthapuram – Neyyattinkara,
+    Thrissur – Guruvayur, Shoranur – Nilambur, Palakkad – Kollengode and
+    Ernakulam – Cochin Harbour.
+
+  The lines start from Thampanoor's own platforms.
+- **Track**: rails on concrete sleepers on a ballast embankment (the land is
+  shaped to it), girder bridges on piers over rivers, backwaters and dips,
+  and overhead electric masts and wires. Where a line meets a road there is
+  a level crossing; its gates come down while a train is near.
+- **Stations**, 55 in all, at every main station on the map:
+  - platforms with yellow name boards in Malayalam and English, a shelter,
+    benches, lamps and waiting passengers;
+  - a cream station building under a tiled roof, with a foot overbridge at
+    the junctions;
+  - a lane from the nearest road.
+- **Trains**: an electric engine with six to eight coaches (blue, grey or
+  red-and-grey) running up and down every line to a timetable, stopping at
+  each station.
+- **Ride**: at any station, press E on the platform to take a train to any
+  other station.
+- The railway is drawn on the minimap and the big map.
+
 ### Trees and grass
 
 - **Coconut trees**: tall (11 to 15 m), slender, ringed grey trunks with a

@@ -903,6 +903,8 @@
       });
       if (sw > 0) h = KT.lerp(h, sy / sw, 1 - keep);
     }
+    // the railway's embankments
+    if (KT.Rail && KT.Rail.ready) h = KT.Rail.bank(x, z, h, gh);
     // level ground for the sights (after the town's, which may reach them)
     for (let i = 0; i < PADS.length; i++) {
       const P = PADS[i], d = Math.hypot(x - P.x, z - P.z);
@@ -1412,7 +1414,7 @@
     };
     const free = (x, z, pad) => {
       const p = Hw.nearestRoad(x, z, 900);
-      if (p.d < ROAD_HALF + pad || !Hw.inMap(x, z)) return null;
+      if (p.d < ROAD_HALF + pad || !Hw.inMap(x, z) || KT.Rail.dist(x, z) < 10) return null;
       if (HUB_XZ.some((c) => Math.hypot(x - c.x, z - c.z) < 232)) return null;
       if (Hw.waterLevelAt(x, z) > Hw.height(x, z) - 0.5) return null;
       if (p.d < 20 && nearShop(p.road, p.s, p.lat)) return null;
@@ -3433,8 +3435,12 @@
     buildUnderpasses();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
     KT.City.init();
+    KT.Rail.plan();
     Hw.built = true;
   };
+
+  // (for js/rail.js, which lays its lines the way the roads are laid)
+  Hw._mk = { makeRoad, curveThrough, heightProfile, levelAt, leave, STEP, HUB_XZ, ROAD_HALF };
 
   // the Arabian Sea: one strip from just inside the coastline far out west
   function buildSea() {
@@ -3668,7 +3674,7 @@
       const far = nr.d > (nr.road.half || ROAD_HALF) + 6;
       const town = HUB_XZ.some((c) => Math.abs(x - c.x) < 232 && Math.abs(z - c.z) < 232 && Math.hypot(x - c.x, z - c.z) < 232);
       const hills = Hw.PONMUDI && Math.hypot(x - Hw.PONMUDI.x, z - Hw.PONMUDI.z) < Hw.PONMUDI.r;
-      const city = KT.City.weight(x, z) > 0.2; // (the capital plants its own trees)
+      const city = KT.City.weight(x, z) > 0.2 || KT.Rail.dist(x, z) < 12; // (the capital plants its own trees; none on the railway)
       if (far && !town && !hills && !city) {
         const h = Hw.height(x, z), E = x - Hw.coastX(z);
         const paddy = KT.noise(x * 0.004 + 9, z * 0.004) > 0.25 && nr.d > 40 && nr.d < 260 && h < nr.road.y(nr.s) + 3;
@@ -3766,7 +3772,7 @@
           fgCache.set(ck, c);
           if (hash(gx, gz, 3) < 0.82) {
             const h = Hw.height(x, z), nr = Hw.nearestRoad(x, z, 20);
-            const ok = nr.d > (nr.road.half || ROAD_HALF) + 1.2 && Hw.waterLevelAt(x, z) < h - 0.3 && x - Hw.coastX(z) > 70 &&
+            const ok = nr.d > (nr.road.half || ROAD_HALF) + 1.2 && Hw.waterLevelAt(x, z) < h - 0.3 && x - Hw.coastX(z) > 70 && KT.Rail.dist(x, z) > 7 &&
               KT.City.weight(x, z) < 0.4 && !HUB_XZ.some((q) => Math.abs(x - q.x) < 175 && Math.hypot(x - q.x, z - q.z) < 175) &&
               !PADS.some((P) => Math.abs(x - P.x) < P.r && Math.hypot(x - P.x, z - P.z) < P.r);
             if (ok) {
@@ -3801,6 +3807,7 @@
         if ((x - pos.x) * (x - pos.x) + (z - pos.z) * (z - pos.z) > R * R) continue;
         gcCache.set(ck, none);
         if (KT.City.weight(x, z) > 0.5 && hash(gx, gz, 9) < 0.85) continue; // (mostly bare in the capital)
+        if (KT.Rail.dist(x, z) < 6) continue;
         const p = Hw.project(x, z);
         if (Math.abs(p.lat) < ROAD_HALF + 1.4) continue;
         const b = Hw.nearBranch(x, z, ROAD_HALF + 1.4);
@@ -3884,6 +3891,7 @@
     if (mats.water.userData.normal) mats.water.userData.normal.offset.set(Hw.animTime * 0.01, Hw.animTime * 0.006);
     Hw.stream(player.pos, 2);
     KT.City.update(dt, player.pos);
+    KT.Rail.update(dt, player.pos);
     placeLampLights(dt, player.pos);
     KT.Traffic.updateHighway(dt, camera ? camera.position : null);
     const kochi = Hw.hubs.find((h) => h.lagoon && h.group.visible);
