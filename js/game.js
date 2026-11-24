@@ -1225,6 +1225,9 @@
       }
       // out in the open, away from every road
       if (st.dist >= 200 && Math.min(onRoad.d, Math.abs(st.lat)) > 250) zone = 'Countryside \u2022 near ' + near.name;
+      // in the capital: its locality
+      const loc = KT.City.locality(P.pos.x, P.pos.z);
+      if (loc) zone = loc.name + ' \u2022 ' + (!onRoad.road.main && onRoad.d < 30 && !onRoad.road.lane ? onRoad.road.nh : 'Thiruvananthapuram');
       KT.UI.drawMinimapHighway(P.pos, inBus ? P.bus.heading : P.heading, zone);
     }
   }

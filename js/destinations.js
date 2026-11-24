@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const T = THREE, G = KT.G, part = KT.part, Models = KT.Models;
-  const D = KT.Dest = { items: [] };
+  const D = KT.Dest = { items: [], EXTRA: {} };
   const HP = Math.PI / 2;
 
   // ---------------------------------------------------------- planning
@@ -59,7 +59,7 @@
         // (the zoo compound is square: its corners need the extra room)
         // the Padmatheertham tank is sunk into the ground
         if (k === 'gopuramTemple') Hw.addLandform(sg.x, sg.z, it.rot, 150, (h, lx, lz) => (Math.abs(lx - TANK.x) < TANK.hx && Math.abs(lz - TANK.z) < TANK.hz ? it.y + TANK.floor : h));
-        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'zoo' ? 14 : k === 'secretariat' ? 20 : k === 'gopuramTemple' ? 56 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' });
+        pads.push({ x: sg.x, z: sg.z, r: sg.r + (k === 'thampanoor' ? 14 : k === 'zoo' ? 14 : k === 'secretariat' ? 20 : k === 'gopuramTemple' ? 56 : 0), y: it.y + (k === 'hillPalace' ? 2.2 : 0), paved: k === 'zoo' || k === 'secretariat' || k === 'gopuramTemple' || k === 'thampanoor' });
       }
       if (it.lake) lakes.push(it.lake);
     });
@@ -90,6 +90,7 @@
     }
     return obj;
   }
+  D.place = place;
   const mat = (name, color, rough) => KT.mat(name, { color, roughness: rough === undefined ? 0.8 : rough });
   function waterOf(it, lake) {
     const m = new T.Mesh(new T.CircleGeometry(lake.r + 6, 48), KT.Highway.waterMaterial());
@@ -2637,7 +2638,7 @@
       return;
     }
     infoBoard(it);
-    (BUILD[it.sg.kind] || BUILD.palace)(it);
+    (BUILD[it.sg.kind] || D.EXTRA[it.sg.kind] || BUILD.palace)(it);
     if (it.river) riverWater(it);
     it.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     KT.Entities.indexPalms(it.group, Hw.palmIndex);

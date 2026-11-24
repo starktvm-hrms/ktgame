@@ -1311,6 +1311,7 @@
         if (RIVERS.some((r) => r.s > start - 90 && r.s < end + 90)) continue;
       }
       if (road.junctions.some((j) => j.s > start - 60 && j.s < end + 60)) continue;
+      { const q = road.at(start, 0); if (KT.City.weight(q.x, q.z) > 0.4) continue; } // (the capital has its own shopfronts)
       if (onRoadBridge(road, start, 60) || onRoadBridge(road, end, 60)) continue;
       if (CUTS.some((c) => (c.U === road && start < c.su + c.span + 50 && end > c.su - c.span - 50) || (c.L === road && start < c.sl + c.len && end > c.sl - c.len))) continue;
       // not in water (a backwater channel or a lake beside the road)
@@ -1378,6 +1379,12 @@
       U.setXY(i, x / 7, z / 7);
       const pr = Hw.nearestRoad(x, z, 900);
       const c = tileColor(x, z, h, pr.d, pr.road.y(pr.s), pr.road.half);
+      // the capital's localities: dusty, built-up ground
+      const cw = KT.City.weight(x, z);
+      if (cw > 0) {
+        const n = KT.noise(x * 0.07 + 3, z * 0.07);
+        c.lerp(_c2.setRGB(0.74 + n * 0.08, 0.74 + n * 0.08, 0.6 + n * 0.05), cw * KT.clamp(0.55 + n * 0.6, 0.2, 0.8));
+      }
       // town centres: trodden, dusty ground between the buildings
       if (pr.road === MAIN) {
         const hs = HUB_S[Hw.hubIndexAt(pr.s)], tw = (1 - KT.smoothstep(150, 180, Math.abs(pr.s - hs))) * (1 - KT.smoothstep(52, 70, pr.d));
@@ -2021,7 +2028,7 @@
   const SIGHT_R = { kollamBeach: 28, kuttanad: 26, marari: 28, vembanad: 28, illikkal: 22, eravikulam: 26, marayoor: 24, marineDrive: 28, thrissurZoo: 22, parambikulam: 22, kottakkunnu: 22, beypore: 28, kadalundi: 24, snakePark: 22, church: 16, mosque: 14, fort: 24, kathakali: 12, wildlife: 24, spice: 18, hillview: 18, elephantCamp: 18, museum: 15, cliff: 28, jatayu: 16, lake: 24, snakeboat: 24, beachLight: 24, birds: 22, tea: 20, waterfall: 30, shrine: 16, garden: 22, football: 24, dam: 30, theyyam: 8, beach: 28, lakeTemple: 18 };
   let sightCache = null;
   // all attractions with their positions, for the maps and discovery
-  const DEST_R = { gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, varkalaCliff: 46, kovalamBeach: 46, thangassery: 52, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
+  const DEST_R = { thampanoor: 106, gopuramTemple: 82, palace: 20, fortGate: 16, clockTower: 10, secretariat: 64, museum: 18, zoo: 78, hillPalace: 22, mermaidBeach: 40, varkalaCliff: 46, kovalamBeach: 46, thangassery: 52, lakeVillage: 48, reservoir: 50, waterfall: 24, hilltop: 26, islandTemple: 56 };
   Hw.sightList = function () {
     if (sightCache) return sightCache;
     sightCache = [];
@@ -2940,6 +2947,7 @@
     if (KT.Real.enabled) KT.Real.surface(forecourtMat, 'painted_plaster_wall', 0.6);
     return forecourtMat;
   }
+  Hw.forecourtMaterial = () => forecourtMaterial();
   function buildForecourts(hub, gaps) {
     const L0 = FOOT1 + 0.6, L1 = 21.2, NL = 4;
     const pos = [], uv = [], idx = [];
@@ -3171,6 +3179,7 @@
     bridgeRoads();
     buildUnderpasses();
     KT.DISTRICTS.forEach((d, i) => Hw.hubs.push({ index: i, district: d, s: Hw.hubS(i), built: false }));
+    KT.City.init();
     Hw.built = true;
   };
 
@@ -3405,7 +3414,8 @@
       const far = nr.d > (nr.road.half || ROAD_HALF) + 6;
       const town = HUB_XZ.some((c) => Math.abs(x - c.x) < 232 && Math.abs(z - c.z) < 232 && Math.hypot(x - c.x, z - c.z) < 232);
       const hills = Hw.PONMUDI && Math.hypot(x - Hw.PONMUDI.x, z - Hw.PONMUDI.z) < Hw.PONMUDI.r;
-      if (far && !town && !hills) {
+      const city = KT.City.weight(x, z) > 0.2; // (the capital plants its own trees)
+      if (far && !town && !hills && !city) {
         const h = Hw.height(x, z), E = x - Hw.coastX(z);
         const paddy = KT.noise(x * 0.004 + 9, z * 0.004) > 0.25 && nr.d > 40 && nr.d < 260 && h < nr.road.y(nr.s) + 3;
         const wet = Hw.waterLevelAt(x, z) > h - 0.6 || E < 60;
@@ -3500,6 +3510,7 @@
         if (r0 > 0.72) { gcCache.set(ck, none); continue; }
         if ((x - pos.x) * (x - pos.x) + (z - pos.z) * (z - pos.z) > R * R) continue;
         gcCache.set(ck, none);
+        if (KT.City.weight(x, z) > 0.5 && hash(gx, gz, 9) < 0.85) continue; // (mostly bare in the capital)
         const p = Hw.project(x, z);
         if (Math.abs(p.lat) < ROAD_HALF + 1.4) continue;
         const b = Hw.nearBranch(x, z, ROAD_HALF + 1.4);
@@ -3582,6 +3593,7 @@
     if (camera) { Hw.sky.position.copy(camera.position); Hw.horizon.position.set(camera.position.x, 0, camera.position.z); Hw.clouds.position.set(camera.position.x, 0, camera.position.z); }
     if (mats.water.userData.normal) mats.water.userData.normal.offset.set(Hw.animTime * 0.01, Hw.animTime * 0.006);
     Hw.stream(player.pos, 2);
+    KT.City.update(dt, player.pos);
     placeLampLights(dt, player.pos);
     KT.Traffic.updateHighway(dt, camera ? camera.position : null);
     const kochi = Hw.hubs.find((h) => h.lagoon && h.group.visible);

@@ -558,6 +558,45 @@ bus stands, or straight to a sight such as the Napier Museum or Ponmudi
 Hills. At a bus stand you arrive in your KSRTC bus. At a sight you arrive on
 foot, and the bus waits at the nearest bus stand.
 
+## Thiruvananthapuram, the capital city
+
+The capital is built up as a city (js/city.js). Its localities, at their real
+places, are filled with:
+
+- unbroken rows of shop blocks along both sides of every road through them,
+  with cement forecourts from the road's edge to the shops;
+- apartment blocks of four to nine floors behind them, with windows,
+  sunshades, balconies, stilt parking, water tanks and, on some, a red sheet
+  roof over the terrace;
+- a few glass office towers, and red-tiled Kerala houses with sit-outs in
+  the leafy areas;
+- mango, jackfruit, banyan and coconut trees between them.
+
+The localities are Kowdiar, Vellayambalam, Sasthamangalam, Vazhuthacaud,
+Palayam, Thampanoor, Jagathy, Poojapura, Chalai, East Fort, Vanchiyoor,
+Pettah, Kesavadasapuram and Pattom. The minimap names the one you are in, and
+a note pops up as you enter each. The buildings are instanced: each model
+part is one draw call for the whole city, and the city is built the first
+time you come near. Low quality leaves out the trees.
+
+### Thampanoor
+
+Off MG Road, by Statue Junction, Thampanoor Road leads to the city's
+transport hub (js/thampanoor.js):
+
+- **Thiruvananthapuram Central railway station**: a long cream stone
+  building with arched windows, a clock tower, corner pavilions and grey
+  hipped roofs, with its name board over the porch. Behind it, platforms
+  under blue sheds, a foot overbridge, two trains waiting and a third that
+  pulls in and out.
+- **The KSRTC Central bus station** across the road: two white towers with
+  glass strips, a curved glass front with an arched door between them, round
+  pavilions at the corners, and bus bays under red sheds full of KSRTC buses.
+- The roundabout garden with its fountain in front of the station, a
+  prepaid auto stand, lamps along the road, and travellers waiting.
+- **The skywalk**, a glass bridge over the road between the two. Climb the
+  stairs at either end and walk across; traffic passes underneath.
+
 ## Thiruvananthapuram's sights
 
 Thiruvananthapuram's sights stand at their real places, each reached by its
@@ -705,6 +744,7 @@ js/                   game code (terrain, world, highway, vehicle, entities, pla
                       destinations = sights on their own roads (Thiruvananthapuram),
                       toon = cel-shaded lighting, ink outlines and colour grade,
                       realism = realistic finish: ambient occlusion, bloom, grade, photo normal maps,
+                      city = Thiruvananthapuram's localities and city blocks, thampanoor = station & bus terminal,
                       radio = Malayalam internet radio,
                       townfolk = people, tourists and street traffic in the district towns,
                       life = working people with daily routines, and the drivers in traffic,
