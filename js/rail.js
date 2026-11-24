@@ -85,6 +85,8 @@
         if (E < 150) p.x += 150 - E;
         hubs.forEach((h) => { const d = Math.hypot(p.x - h.x, p.z - h.z); if (d < 330) { const u = unit(p.x - h.x, p.z - h.z); p.x = h.x + u.x * 330; p.z = h.z + u.z * 330; } });
         sights.forEach((sg) => { const d = Math.hypot(p.x - sg.x, p.z - sg.z), m = sg.r + 90; if (d < m) { const u = unit(p.x - sg.x, p.z - sg.z); p.x = sg.x + u.x * m; p.z = sg.z + u.z * m; } });
+        // (and off the roads: a station stands beside them, not on them)
+        Hw.roads.forEach((V) => { if (!V.near(p.x, p.z, 60)) return; const q = V.project(p.x, p.z), m = (V.half || 5.5) + 45; if (q.d < m && q.s > 0 && q.s < V.len) { const f = V.frame(q.s), sd = q.lat < 0 ? -1 : 1; p.x = f.x + f.rx * sd * m; p.z = f.z + f.rz * sd * m; } });
       }
       where[k] = p;
     });
@@ -99,28 +101,64 @@
         Object.assign(C[0], { t: { x: a.x * sg, z: a.z * sg }, back: 0, fwd: 85 });
       }
       if (last) C[C.length - 1].back = 85;
-      // keep clear of the towns, the sights and the sea: bend round them
+      // keep clear of the towns, the sights and the roads: bend round them.
+      // A line may cross a road (a level crossing, at a good angle, away
+      // from its junctions), but never runs along it or over it.
+      const BW0 = L.double ? 4.6 : 2.4;
+      const roadConflict = (x, z, i) => {
+        const tx = cv.PX[Math.min(cv.PX.length - 1, i + 2)] - cv.PX[Math.max(0, i - 2)], tz = cv.PZ[Math.min(cv.PZ.length - 1, i + 2)] - cv.PZ[Math.max(0, i - 2)], tl = Math.hypot(tx, tz) || 1;
+        for (const V of Hw.roads) {
+          if (V.rail || !V.near(x, z, 40)) continue;
+          const p = V.project(x, z), hw = (V.half || 5.5) + BW0 + 5;
+          if (p.d > hw || p.s < 2 || p.s > V.len - 2) continue;
+          const f = V.frame(p.s), cos = Math.abs((tx * f.fx + tz * f.fz) / tl);
+          const nearJ = V.junctions.some((j) => !j.rail && Math.abs(j.s - p.s) < 30);
+          if (cos > 0.6 || nearJ || (V.bridges && V.bridges.some((b) => p.s > b.s0 - 20 && p.s < b.s1 + 20))) {
+            // push the line off to the side of the road it is on
+            const side = p.lat < 0 ? -1 : 1, off = (V.half || 5.5) + BW0 + 34;
+            return { x: f.x + f.rx * side * off, z: f.z + f.rz * side * off };
+          }
+        }
+        return null;
+      };
       let cv = null;
-      for (let pass = 0; pass < 8; pass++) {
+      for (let pass = 0; pass < 22; pass++) {
         cv = M.curveThrough(C, { avoidTowns: true, passes: 2, angles: 18 });
-        let fix = null;
-        for (let i = 40; i < cv.PX.length - 40 && !fix; i += 6) {
+        const fixes = [];
+        for (let i = 40; i < cv.PX.length - 40 && fixes.length < 6; i += 5) {
+          if (fixes.length && i - fixes[fixes.length - 1].i < 90) continue;
           const x = cv.PX[i], z = cv.PZ[i];
           const h = hubs.find((q) => Math.hypot(x - q.x, z - q.z) < 250);
           const sg = !h && sights.find((q) => q.kind !== 'thampanoor' && Math.hypot(x - q.x, z - q.z) < q.r + 14);
           const o = h ? { x: h.x, z: h.z, r: 320 } : sg ? { x: sg.x, z: sg.z, r: sg.r + 50 } : null;
           if (o) {
             const u = unit(x - o.x, z - o.z);
-            fix = { i, x: o.x + u.x * o.r, z: o.z + u.z * o.r };
+            fixes.push({ i, x: o.x + u.x * o.r, z: o.z + u.z * o.r });
+            continue;
           }
+          // (the first and last stretches out of Thampanoor are the station's own)
+          if ((first && i * M.STEP < 160) || (last && (cv.PX.length - i) * M.STEP < 160)) continue;
+          const rc = roadConflict(x, z, i);
+          if (rc) fixes.push(Object.assign(rc, { i }));
         }
-        if (fix && C.some((c) => Math.hypot(c.x - fix.x, c.z - fix.z) < 60)) fix = null;
-        if (!fix) break;
-        // insert the bend between the stations it falls between
-        const sAt = fix.i * M.STEP;
-        let k = 0;
-        while (k < C.length - 1 && cv.S[k + 1] < sAt) k++;
-        C.splice(k + 1, 0, { x: fix.x, z: fix.z });
+        // a bend that falls right on an existing point (a station, an earlier
+        // bend) moves that point instead
+        let moved = 0;
+        const ok = fixes.filter((fx) => {
+          const c = C.find((c) => Math.hypot(c.x - fx.x, c.z - fx.z) < 60);
+          if (!c) return true;
+          if (c.t || pass > 13) return false; // (Thampanoor's own start stays)
+          c.x = fx.x; c.z = fx.z; moved++;
+          return false;
+        });
+        if (!ok.length && !moved) break;
+        // insert each bend between the points it falls between (from the far end)
+        ok.sort((a, b) => b.i - a.i).forEach((fx) => {
+          const sAt = fx.i * M.STEP;
+          let k = 0;
+          while (k < C.length - 1 && cv.S[k + 1] < sAt) k++;
+          C.splice(k + 1, 0, { x: fx.x, z: fx.z });
+        });
       }
       const PY = M.heightProfile(cv.PX, cv.PZ, 7000 + li * 913);
       // railways climb gently: smooth the profile more than a road's
@@ -230,6 +268,7 @@
             const s = i * M.STEP;
             M.levelAt(R.PY, s, V.y(p.s) + 0.08, 14, 140);
             Rail.crossings.push({ R, s, V, vs: p.s, x, z, BW, gates: null });
+            V.junctions.push({ s: p.s, side: 0, other: R, rail: true });
           }
           inside = on;
         }
@@ -427,16 +466,25 @@
   }
 
   // level crossing gates (their arms come down when a train is near)
+  let crossSign = null, lcSign = null;
   function buildGates(c) {
     const MT = mats(), V = c.V, f = V.frame(c.vs), y = V.y(c.vs), half = V.half || 5.5;
+    const rf = c.R.frame(c.s), sin = Math.max(0.35, Math.abs(f.fx * rf.rz - f.fz * rf.rx));
+    const span = (c.BW + 0.6) / sin; // (how far the track reaches along the road)
     const g = new T.Group(), arms = [];
+    const P = (d, lat) => ({ x: f.x + f.fx * d + f.rx * lat, z: f.z + f.fz * d + f.rz * lat });
+    // the crossing deck: concrete panels across the road between the rails
+    const deck = part(g, G.box(half * 2 + 0.4, 0.06, span * 2), KT.mat('lcDeck', { color: 0x6f6d68, roughness: 0.85 }), f.x, y + 0.03, f.z, 0, f.heading, 0);
+    deck.castShadow = false;
+    // stop lines across the road on both sides
+    [-1, 1].forEach((along) => { const q = P(along * (span + 4), 0); part(g, G.box(half * 2, 0.02, 0.3), KT.mat('lcLine', { color: 0xf2f2ee, roughness: 0.6 }), q.x, y + 0.04, q.z, 0, f.heading, 0).castShadow = false; });
+    // gates on both sides of the line, from both sides of the road
     [-1, 1].forEach((along) => {
       [-1, 1].forEach((side) => {
-        const d = along * (c.BW + 3.5);
-        const x = f.x + f.fx * d + f.rx * side * (half + 0.9), z = f.z + f.fz * d + f.rz * side * (half + 0.9);
-        part(g, G.box(0.35, 1.2, 0.35), MT.gatePost, x, y + 0.6, z);
+        const q = P(along * (span + 2.5), side * (half + 0.9));
+        part(g, G.box(0.35, 1.2, 0.35), MT.gatePost, q.x, y + 0.6, q.z);
         const pivot = new T.Group();
-        pivot.position.set(x, y + 1.05, z);
+        pivot.position.set(q.x, y + 1.05, q.z);
         pivot.rotation.y = f.heading + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
         const arm = part(pivot, G.box(0.12, 0.12, half + 0.6), MT.gateArm, 0, 0, (half + 0.6) / 2);
         arm.castShadow = true;
@@ -444,6 +492,29 @@
         arms.push(pivot);
       });
     });
+    // warning signs on both approaches: the white cross and "level crossing"
+    if (!crossSign) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      const x = cv.getContext('2d');
+      x.translate(64, 64);
+      [1, -1].forEach((r) => { x.save(); x.rotate(r * Math.PI / 4); x.fillStyle = '#c4212b'; x.fillRect(-60, -13, 120, 26); x.fillStyle = '#ffffff'; x.fillRect(-56, -9, 112, 18); x.restore(); });
+      const t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding;
+      crossSign = KT.mat('lcCross', { map: t, alphaTest: 0.5, side: T.DoubleSide, roughness: 0.6 });
+      lcSign = new T.MeshStandardMaterial({ map: KT.textTexture([{ text: 'LEVEL CROSSING', size: 34 }, { text: 'ലെവൽ ക്രോസ്', size: 30 }, { text: 'STOP • LOOK • GO', size: 24 }], { bg: '#f2c230', color: '#1b1b1b', border: true, borderColor: '#1b1b1b', width: 320, height: 180 }), roughness: 0.5 });
+    }
+    [-1, 1].forEach((along) => {
+      // (on the left of the road, facing the traffic that comes towards the line)
+      const q = P(along * (span + 14), -along * (half + 1.6));
+      part(g, G.cyl(0.06, 0.06, 3, 6), KT.M.darkGrey, q.x, y + 1.5, q.z);
+      const face = f.heading + (along > 0 ? 0 : Math.PI);
+      part(g, G.plane(1.3, 1.3), crossSign, q.x, y + 2.7, q.z, 0, face, 0).castShadow = false;
+      part(g, G.plane(1.2, 0.68), lcSign, q.x - f.fx * along * 0.02, y + 1.7, q.z - f.fz * along * 0.02, 0, face, 0).castShadow = false;
+    });
+    // the gatekeeper's hut
+    const h = P(-(span + 4.5), half + 3.2);
+    part(g, G.box(2.2, 2.4, 2.2), KT.mat('lcHut', { color: 0xe9d8a6, roughness: 0.85 }), h.x, y + 1.2, h.z, 0, f.heading, 0);
+    part(g, G.box(2.8, 0.18, 2.8), KT.mat('lcHutRoof', { color: 0x8e3424, roughness: 0.6 }), h.x, y + 2.5, h.z, 0, f.heading, 0);
+    KT.Highway.addCollider({ type: 'box', x: h.x, z: h.z, hw: 1.1, hd: 1.1, rot: f.heading });
     c.gates = { g, arms, down: 0 };
     return g;
   }

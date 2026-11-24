@@ -512,8 +512,20 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
   The lines start from Thampanoor's own platforms.
 - **Track**: rails on concrete sleepers on a ballast embankment (the land is
   shaped to it), girder bridges on piers over rivers, backwaters and dips,
-  and overhead electric masts and wires. Where a line meets a road there is
-  a level crossing; its gates come down while a train is near.
+  and overhead electric masts and wires.
+- **Lines and roads**: the lines are laid clear of the roads. Where a line
+  would run along or over a road, near a junction or on a road bridge, it
+  bends away.
+- **Level crossings**: where a line does cross a road, the line comes to
+  the road's height and gets a full level crossing:
+  - a concrete deck across the road and stop lines on both sides;
+  - red-and-white gates on both sides of the line, which come down while a
+    train is near;
+  - white-cross and "Level crossing / ലെവൽ ക്രോസ്" warning signs on both
+    approaches;
+  - a gatekeeper's hut.
+
+  The road's kerbs, poles and stalls stay clear of the crossing.
 - **Stations**, 55 in all, at every main station on the map:
   - platforms with yellow name boards in Malayalam and English, a shelter,
     benches, lamps and waiting passengers;
