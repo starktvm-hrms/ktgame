@@ -475,6 +475,40 @@ game loads):
   look.
 - **Classic**: the earliest look.
 
+### A connected road network
+
+The roads join up into one network, as in an open-world city game: you can
+always drive through.
+
+- A street or village road that stopped at its hamlet, and the highway's
+  short stubs, now run on to the nearest other road along a new village
+  road.
+- Roads to sights (Ponmudi, Aruvikkara, Varkala, Kovalam) keep their road
+  end at the sight, and a village road branches off just before it, back to
+  the network.
+- In Thiruvananthapuram, a **Ring Road** runs round the east of the city from
+  NH 66 to the Ponmudi road. A grid of about 60 city streets, 110 m apart and
+  lined up with MG Road, fills the localities between it, MG Road and the
+  beach road. The streets meet each other and the roads at junctions; none
+  crosses another. Every piece joins roads at both ends, and any piece left
+  hanging is removed.
+- What is left open: the roads out to the state borders, one coastal lane,
+  and the highway's very end at the sea.
+
+### Trees and grass
+
+- **Coconut trees**: tall (11 to 15 m), slender, ringed grey trunks with a
+  gentle curve. Each crown has about 22 long feather fronds whose leaflets
+  fold down in a V: the young ones stand up, the middle ones arch out and
+  the old ones droop. A dry brown frond or two hangs down the trunk, under
+  bunches of green, yellow and orange coconuts. The fronds sway in the wind,
+  and far-off trees use a lighter version.
+- The thin areca palms are gone. The groves between the coconuts now mix in
+  mango and jackfruit trees, broad shade trees and banana plants.
+- **Short grass**: a carpet of fine blades a hand high covers open ground
+  close around you (not roads, towns, sand or water), on a fresher green
+  ground, on the highway and in the home village.
+
 ### World detail
 
 Ten photo textures from Poly Haven (CC0: palm bark, tree bark, laterite,

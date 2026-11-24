@@ -47,76 +47,164 @@
     return g;
   }
 
-  Models.coconutPalm = function (seed) {
+  // ------------------------------------------------------ coconut trees
+  // A Kerala coconut tree: a tall, slender, ringed grey trunk with a gentle
+  // curve, a crown of long feather fronds (young ones standing up, the
+  // middle ones arching out, old ones drooping, a dry brown one or two
+  // hanging down the trunk) with their leaflets folded down in a V, and
+  // bunches of green, yellow and orange coconuts under the crown.
+  const frondMats = {};
+  function frondTex(dead) {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 512;
+    const g = c.getContext('2d'), rng = KT.makeRng(dead ? 71 : 17);
+    const greens = dead ? ['#8a6a3a', '#9c7a44', '#7a5a30'] : ['#3f7d2a', '#4b8a2e', '#57963a', '#356d24'];
+    // leaflets: thin blades from the midrib towards the tip (the tip is at the top)
+    for (let y = 504; y > 8; y -= 5.5) {
+      const t = 1 - y / 512, L = (0.3 + 0.7 * Math.sin(Math.PI * Math.min(1, t * 1.08))) * 60;
+      [-1, 1].forEach((sd) => {
+        if (rng() < 0.07) return; // (a torn gap)
+        g.fillStyle = greens[Math.floor(rng() * greens.length)];
+        g.beginPath();
+        g.moveTo(64, y + 1.5); g.lineTo(64, y - 1.5);
+        g.lineTo(64 + sd * L, y - L * 0.6 - 1); g.lineTo(64 + sd * L * 0.96, y - L * 0.6 + 1.2);
+        g.closePath(); g.fill();
+        if (!dead && rng() < 0.4) { g.fillStyle = 'rgba(200,190,90,0.6)'; g.fillRect(64 + sd * L * 0.85 - 1, y - L * 0.6 - 1, 3, 2); }
+      });
+    }
+    // the midrib
+    g.fillStyle = dead ? '#6a4a26' : '#b5ad58'; g.fillRect(62, 0, 4, 512);
+    const t = new T.CanvasTexture(c);
+    t.encoding = T.sRGBEncoding;
+    t.anisotropy = KT.maxAnisotropy;
+    return t;
+  }
+  function frondMat(dead) {
+    const k = dead ? 'dead' : 'live';
+    if (frondMats[k]) return frondMats[k];
+    const m = KT.mat(dead ? 'coconutFrondDry' : 'coconutFrond', { map: frondTex(dead), alphaTest: 0.4, side: T.DoubleSide, roughness: 0.75 });
+    KT.addWind(m, 0.015);
+    frondMats[k] = m;
+    return m;
+  }
+  // one frond along +z: rising at `pitch`, bending down by `droop`, its two
+  // rows of leaflets folded down by `fold`
+  const frondGeos = {};
+  function coconutFrond(len, pitch, droop, fold, segs) {
+    const key = [len, pitch, droop, fold, segs].join(':');
+    if (frondGeos[key]) return frondGeos[key];
+    const pos = [], uv = [], idx = [], N = segs || 8, W = 1.05;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const z = len * Math.cos(pitch) * t, y = len * (Math.sin(pitch) * t - droop * t * t);
+      const w = W * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.05 + 0.04)), 0.6);
+      pos.push(-w * Math.cos(fold), y - w * Math.sin(fold), z, 0, y + 0.03, z, w * Math.cos(fold), y - w * Math.sin(fold), z);
+      uv.push(0, t, 0.5, t, 1, t);
+      if (i) { const a = (i - 1) * 3, b = i * 3; idx.push(a, b, a + 1, a + 1, b, b + 1, a + 1, b + 1, a + 2, a + 2, b + 1, b + 2); }
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    frondGeos[key] = geo;
+    return geo;
+  }
+  function coconutTree(seed, low) {
     const rng = KT.makeRng(seed || 3);
     const g = new T.Group();
-    const h = 8.5;
-    const lean = 1.2 + rng() * 0.6;
-    const pts = [
-      new T.Vector3(0, 0, 0), new T.Vector3(lean * 0.1, h * 0.3, 0),
-      new T.Vector3(lean * 0.45, h * 0.65, 0), new T.Vector3(lean, h, 0)
-    ];
-    const trunk = new T.Mesh(trunkGeometry(pts, 0.3, 0.18), KT.M.palmBark);
-    // bark uv: stretch rings along height
-    const U = trunk.geometry.attributes.uv;
-    for (let k = 0; k < U.count; k++) U.setXY(k, U.getX(k) * 0.5, U.getY(k) * 1.0);
+    const h = 11 + rng() * 4, lean = 1.2 + rng() * 1.6, bow = (rng() - 0.5) * 1.2;
+    const pts = [new T.Vector3(0, 0, 0), new T.Vector3(lean * 0.04, h * 0.25, bow * 0.3), new T.Vector3(lean * 0.3, h * 0.55, bow * 0.6),
+      new T.Vector3(lean * 0.7, h * 0.82, bow * 0.5), new T.Vector3(lean, h, bow * 0.3)];
+    let trunk;
+    if (low) trunk = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 6, 0.2, 5, false), KT.M.palmBark);
+    else {
+      trunk = new T.Mesh(trunkGeometry(pts, 0.27, 0.16, 9), KT.M.palmBark);
+      const U = trunk.geometry.attributes.uv;
+      for (let k = 0; k < U.count; k++) U.setXY(k, U.getX(k) * 0.5, U.getY(k) * h / 4);
+      part(g, G.cyl(0.3, 0.46, 0.45, 9), KT.M.palmBark, 0, 0.18, 0); // the swollen foot
+    }
     g.add(trunk);
-    // root flare
-    part(g, G.cyl(0.32, 0.5, 0.5, 8), KT.M.palmBark, 0, 0.2, 0);
     const top = new T.Group();
-    top.position.set(lean, h, 0);
+    top.position.copy(pts[4]);
     g.add(top);
-    const fg = frondGeometry(1.6, 4.6, 2.6, 0.25);
-    const n = 11;
-    for (let i = 0; i < n; i++) {
-      const f = new T.Mesh(fg, KT.M.frond);
-      f.rotation.y = (i / n) * Math.PI * 2 + rng() * 0.3;
-      f.rotation.x = -0.25 + rng() * 0.35 - (i % 2) * 0.25;
-      top.add(f);
+    const live = low ? KT.M.frond : frondMat(false), dry = frondMat(true);
+    const segs = low ? 4 : 8;
+    // [count, pitch, droop, fold, length] from the youngest to the oldest
+    const tiers = low ? [[3, 1.0, 0.3, 0.5, 4.2], [6, 0.35, 0.6, 0.6, 4.8], [4, -0.15, 0.75, 0.7, 4.6]]
+      : [[5, 1.05, 0.3, 0.5, 4.2], [9, 0.4, 0.6, 0.6, 5.0], [8, -0.1, 0.75, 0.7, 4.8]];
+    let k = 0;
+    tiers.forEach(([n, pitch, droop, fold, len], ti) => {
+      for (let i = 0; i < n; i++, k++) {
+        const f = new T.Mesh(coconutFrond(len, pitch, droop, fold, segs), live);
+        f.rotation.y = k * 2.39996 + rng() * 0.3; // (the golden angle: evenly round)
+        f.position.y = -ti * 0.12;
+        top.add(f);
+      }
+    });
+    if (!low) {
+      // dry fronds hanging down the trunk
+      for (let i = 0; i < 2; i++) {
+        const f = new T.Mesh(coconutFrond(4.2, -1.15, 0.12, 0.35, 5), dry);
+        f.rotation.y = rng() * 6.28; f.position.y = -0.4;
+        top.add(f);
+      }
+      // the coconuts, in two bunches under the crown
+      const nutM = [KT.mat('nutGreen', { color: 0x5f7d1f, roughness: 0.55 }), KT.mat('nutYellow', { color: 0xc9a22c, roughness: 0.55 }), KT.mat('nutOrange', { color: 0xc8752c, roughness: 0.6 })];
+      for (let b = 0; b < 2; b++) {
+        const a0 = b * Math.PI + rng();
+        const m = nutM[Math.floor(rng() * 3)];
+        for (let i = 0; i < 6; i++) {
+          const a = a0 + (i - 2.5) * 0.35;
+          part(top, G.sph(0.2, 7, 5), m, Math.cos(a) * 0.42, -0.45 - (i % 2) * 0.22, Math.sin(a) * 0.42, 0, 0, 0, 1, 1.15, 1);
+        }
+      }
+      part(top, G.sph(0.32, 8, 6), KT.mat('crownHeart', { color: 0x6d6a3a, roughness: 0.8 }), 0, -0.05, 0, 0, 0, 0, 1, 0.7, 1);
     }
-    for (let i = 0; i < 3; i++) {
-      const f = new T.Mesh(frondGeometry(1.0, 2.6, 0.2, 0.2), KT.M.frond);
-      f.rotation.y = i * 2.1;
-      f.rotation.x = -1.0;
-      top.add(f);
-    }
-    // coconuts
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      part(top, G.sph(0.2, 8, 6), KT.M.coconut, Math.cos(a) * 0.32, -0.35 - (i % 2) * 0.15, Math.sin(a) * 0.32);
-    }
-    part(top, G.sph(0.3, 8, 6), KT.M.barkLight, 0, -0.1, 0, 0, 0, 0, 1, 0.6, 1);
     g.userData.palmTrunk = pts.map((p) => p.toArray()); // (for climbing it)
     return KT.bake(g);
-  };
+  }
+  Models.coconutPalm = function (seed) { return coconutTree(seed, false); };
+  // Distant tree: the same shape with a fraction of the triangles.
+  Models.coconutPalmLow = function (seed) { return coconutTree(seed, true); };
 
-  // Distant palm: same silhouette with a fraction of the triangles.
-  Models.coconutPalmLow = function (seed) {
-    const rng = KT.makeRng(seed || 3);
+  // A patch of short grass: a few dozen fine blades a hand high, to carpet
+  // the ground close around you.
+  let grassTex = null;
+  Models.shortGrass = function () {
+    // (colour from a little texture: dark at the root, fresh at the tip, a
+    // different green in each column; merged models keep only uvs)
+    if (!grassTex) {
+      const c = document.createElement('canvas');
+      c.width = 8; c.height = 16;
+      const g = c.getContext('2d');
+      const tips = ['#7fae45', '#6a9e3a', '#8bb84e', '#5e9234', '#9cbf5a', '#72a640', '#668f35', '#84b048'];
+      for (let i = 0; i < 8; i++) {
+        const gr = g.createLinearGradient(0, 16, 0, 0);
+        gr.addColorStop(0, '#4d6e2c'); gr.addColorStop(1, tips[i]);
+        g.fillStyle = gr; g.fillRect(i, 0, 1, 16);
+      }
+      grassTex = new T.CanvasTexture(c);
+      grassTex.encoding = T.sRGBEncoding;
+      grassTex.magFilter = T.NearestFilter;
+    }
+    const pos = [], uv = [], rng = KT.makeRng(404);
+    for (let i = 0; i < 60; i++) {
+      const a = rng() * 6.28, r = Math.sqrt(rng()) * 0.8, x = Math.cos(a) * r, z = Math.sin(a) * r;
+      const h = 0.06 + rng() * 0.12, w = 0.025 + rng() * 0.02, ry = rng() * 6.28, lean = (rng() - 0.5) * 0.12;
+      const cx = Math.cos(ry) * w, cz = Math.sin(ry) * w, u = (Math.floor(rng() * 8) + 0.5) / 8;
+      pos.push(x - cx, 0, z - cz, x + cx, 0, z + cz, x + lean, h, z + lean * 0.5);
+      uv.push(u, 0.05, u, 0.05, u, 0.95);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    // (normals straight up: lit like the ground beneath)
+    geo.setAttribute('normal', new T.Float32BufferAttribute(pos.map((v, i) => (i % 3 === 1 ? 1 : 0)), 3));
+    const m = KT.mat('shortGrass', { map: grassTex, side: T.DoubleSide, roughness: 0.95 });
     const g = new T.Group();
-    const h = 8.5;
-    const lean = 1.2 + rng() * 0.6;
-    const pts = [new T.Vector3(0, 0, 0), new T.Vector3(lean * 0.1, h * 0.3, 0), new T.Vector3(lean * 0.45, h * 0.65, 0), new T.Vector3(lean, h, 0)];
-    const curve = new T.CatmullRomCurve3(pts);
-    g.add(new T.Mesh(new T.TubeGeometry(curve, 5, 0.22, 5, false), KT.M.palmBark));
-    const top = new T.Group();
-    top.position.set(lean, h, 0);
-    g.add(top);
-    const fg = new T.PlaneGeometry(1.6, 4.6, 1, 3);
-    fg.translate(0, 2.3, 0);
-    const P = fg.attributes.position;
-    for (let i = 0; i < P.count; i++) {
-      const y = P.getY(i), t = y / 4.6;
-      P.setXYZ(i, P.getX(i), Math.sin(t * Math.PI * 0.55) * 1.15 - t * t * 2.6, y);
-    }
-    fg.computeVertexNormals();
-    for (let i = 0; i < 8; i++) {
-      const f = new T.Mesh(fg, KT.M.frond);
-      f.rotation.y = (i / 8) * Math.PI * 2;
-      f.rotation.x = -0.2;
-      top.add(f);
-    }
-    return KT.bake(g);
+    g.add(new T.Mesh(geo, m));
+    return g;
   };
 
   Models.arecaPalm = function () {

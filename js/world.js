@@ -444,7 +444,8 @@
     palm(20, [145, 205, -40, 20], 16, (x, z) => Math.hypot(x - 175, z + 10) < 28);
     palm(8, [236, 264, 82, 108], 17, (x, z) => Math.hypot(x - 250, z - 95) < 13);
     palm(40, [-30, 330, -200, -174], 18);
-    scatter(inst, 'arecaPalm', 40, [-130, 0, -60, 190], { collider: 0.3, clear: 1.5 });
+    scatter(inst, 'mangoTree', 20, [-130, 0, -60, 190], { collider: 0.7, clear: 3.5, seed: 31 });
+    scatter(inst, 'jackfruitTree', 18, [-130, 0, -60, 190], { collider: 0.6, clear: 3, seed: 32 });
     scatter(inst, 'bananaTree', 70, [-130, 5, -80, 195], { collider: 0.4, clear: 1.6 });
     scatter(inst, 'mangoTree', 26, [-125, -10, -80, 190], { collider: 0.7, clear: 3.5 });
     scatter(inst, 'jackfruitTree', 22, [-125, -10, -80, 190], { collider: 0.6, clear: 3 });
@@ -453,7 +454,8 @@
     scatter(inst, 'floweringBush2', 25, [-200, 200, 180, 215], { collider: 0.6, clear: 1.2 });
     // coconut groves round the coir village
     palm(260, [-360, -165, -200, 160], 21);
-    scatter(inst, 'arecaPalm', 50, [-360, -165, -200, 160], { collider: 0.3, clear: 1.5, seed: 22 });
+    scatter(inst, 'mangoTree', 22, [-360, -165, -200, 160], { collider: 0.7, clear: 3.5, seed: 22 });
+    scatter(inst, 'jackfruitTree', 18, [-360, -165, -200, 160], { collider: 0.6, clear: 3, seed: 26 });
     scatter(inst, 'banyanTree', 3, [-300, -190, -40, 120], { collider: 1.4, clear: 8 });
     scatter(inst, 'mangrove', 30, [328, 345, -165, 165], { collider: 0.5, clear: 2, minH: -0.6 });
     // palms, mangoes and gardens round Krishnapuram Palace
@@ -462,6 +464,9 @@
     scatter(inst, 'floweringBush0', 40, [-80, 20, -340, -260], { collider: 0.6, clear: 1.2, seed: 25 });
     // ground cover
     scatter(inst, 'grassTuft', 2200, [-200, 30, -200, 230], { clear: 0.1, seed: 5 });
+    // a carpet of short grass
+    scatter(inst, 'shortGrass', 14000, [-200, 30, -200, 230], { clear: 0.1, seed: 41 });
+    scatter(inst, 'shortGrass', 4000, [-360, -160, -150, 150], { clear: 0.1, seed: 42 });
     scatter(inst, 'grassTuft', 600, [-360, -160, -150, 150], { clear: 0.1, seed: 6 });
     scatter(inst, 'flowerPatch', 260, [-140, 20, -120, 200], { clear: 0.2 });
     scatter(inst, 'rock', 60, [-360, 200, -350, 230], { collider: 0.9, clear: 1.2 });
@@ -479,7 +484,7 @@
 
   function defineInstances(inst) {
     for (let v = 0; v < 3; v++) inst.define('coconutPalm' + v, () => Models.coconutPalm(v * 17 + 3), { low: () => Models.coconutPalmLow(v * 17 + 3), lodDist: 140 });
-    inst.define('arecaPalm', Models.arecaPalm);
+    inst.define('shortGrass', Models.shortGrass, { maxDist: 55, noShadow: true });
     inst.define('bananaTree', Models.bananaTree);
     inst.define('mangoTree', Models.mangoTree);
     inst.define('jackfruitTree', Models.jackfruitTree);
@@ -568,7 +573,7 @@
     await tick();
     progress(0.7, 'Growing the forests...');
     World.inst = inst;
-    World.instanced = inst.build(scene, { noShadow: { grassTuft: true, flowerPatch: true, paddyRice: true, teaBush: quality !== 'high' }, chunk: 120 });
+    World.instanced = inst.build(scene, { noShadow: { grassTuft: true, shortGrass: true, flowerPatch: true, paddyRice: true, teaBush: quality !== 'high' }, chunk: 120 });
     World.instanced.forEach((m) => {
       const n = m.name;
       if (n.indexOf('coconutPalm') === 0 || n === 'arecaPalm' || n === 'bananaTree') {

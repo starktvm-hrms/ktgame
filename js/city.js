@@ -14,23 +14,7 @@
   const T = THREE, G = KT.G, part = KT.part;
   const City = KT.City = { circles: [], built: false, group: null };
 
-  // name, lon, lat, radius (game m), leafy (more houses and trees), dense (more blocks)
-  const LOCALITIES = [
-    ['Kowdiar', 76.962, 8.5215, 190, 1, 0, 'Wide, leafy avenues and the old palace quarter'],
-    ['Vellayambalam', 76.9575, 8.509, 170, 1, 0, 'Museum, zoo and the Kanakakkunnu grounds nearby'],
-    ['Sasthamangalam', 76.973, 8.511, 180, 1, 0, 'Quiet lanes of old Kerala houses'],
-    ['Vazhuthacaud', 76.9615, 8.4995, 170, 0, 1, 'Theatres, colleges and film-festival crowds'],
-    ['Palayam', 76.9488, 8.503, 160, 0, 1, 'The Secretariat, Statue Junction and the busiest shops'],
-    ['Thampanoor', 76.953, 8.4875, 170, 0, 1, 'The Central railway station and the KSRTC bus terminal'],
-    ['Jagathy', 76.9665, 8.4925, 160, 1, 0, 'A homely neighbourhood off the main roads'],
-    ['Poojapura', 76.978, 8.4885, 180, 1, 0, 'Home of the central jail and the Poojapura Mandapam'],
-    ['Chalai', 76.9505, 8.4785, 150, 0, 1, 'The old bazaar: spices, steel pots and flowers'],
-    ['East Fort', 76.946, 8.4835, 140, 0, 1, 'The fort walls round the Padmanabhaswamy Temple'],
-    ['Vanchiyoor', 76.939, 8.4955, 170, 0, 1, 'Law courts and narrow, busy streets'],
-    ['Pettah', 76.928, 8.4935, 160, 0, 0, 'Between the city and the beach road'],
-    ['Kesavadasapuram', 76.952, 8.531, 170, 0, 1, 'A busy junction on the road north'],
-    ['Pattom', 76.938, 8.5225, 150, 0, 1, 'Offices, the PSC and Pattom Palace']
-  ];
+  const LOCALITIES = KT.TVM_LOCALITIES;
 
   // ---------------------------------------------------------- planning
   City.init = function () {

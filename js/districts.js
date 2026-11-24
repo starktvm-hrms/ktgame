@@ -32,6 +32,25 @@
       facts: ['Kasaragod is Kerala’s northernmost district, where seven languages are spoken.', 'Bekal Fort, a keyhole-shaped fort by the sea, is the largest in Kerala.'] }
   ];
 
+  // Thiruvananthapuram's localities (js/city.js builds them up)
+  // name, lon, lat, radius (game m), leafy (more houses and trees), dense (more blocks)
+  KT.TVM_LOCALITIES = [
+    ['Kowdiar', 76.962, 8.5215, 256, 1, 0, 'Wide, leafy avenues and the old palace quarter'],
+    ['Vellayambalam', 76.9575, 8.509, 230, 1, 0, 'Museum, zoo and the Kanakakkunnu grounds nearby'],
+    ['Sasthamangalam', 76.973, 8.511, 243, 1, 0, 'Quiet lanes of old Kerala houses'],
+    ['Vazhuthacaud', 76.9615, 8.4995, 230, 0, 1, 'Theatres, colleges and film-festival crowds'],
+    ['Palayam', 76.9488, 8.503, 216, 0, 1, 'The Secretariat, Statue Junction and the busiest shops'],
+    ['Thampanoor', 76.953, 8.4875, 230, 0, 1, 'The Central railway station and the KSRTC bus terminal'],
+    ['Jagathy', 76.9665, 8.4925, 216, 1, 0, 'A homely neighbourhood off the main roads'],
+    ['Poojapura', 76.978, 8.4885, 243, 1, 0, 'Home of the central jail and the Poojapura Mandapam'],
+    ['Chalai', 76.9505, 8.4785, 202, 0, 1, 'The old bazaar: spices, steel pots and flowers'],
+    ['East Fort', 76.946, 8.4835, 189, 0, 1, 'The fort walls round the Padmanabhaswamy Temple'],
+    ['Vanchiyoor', 76.939, 8.4955, 230, 0, 1, 'Law courts and narrow, busy streets'],
+    ['Pettah', 76.928, 8.4935, 216, 0, 0, 'Between the city and the beach road'],
+    ['Kesavadasapuram', 76.952, 8.531, 230, 0, 1, 'A busy junction on the road north'],
+    ['Pattom', 76.938, 8.5225, 202, 0, 1, 'Offices, the PSC and Pattom Palace']
+  ];
+
   // Major tourist attractions of each district. `main` is the landmark
   // built beside the district centre; the others stand in the district's
   // town. kind picks the model, icon is used on the maps.
