@@ -159,7 +159,8 @@
       for (let i = 0; i < n; i++) {
         const z = i * 21.6;
         part(t, G.box(3, 3.1, 21), coachM, 0, 2.55, z);
-        part(t, G.cyl(1.5, 1.5, 21, 12, 1, false, 0, Math.PI), roofC, 0, 4.1, z, Math.PI / 2, 0, Math.PI / 2, 1, 1, 0.25);
+        part(t, G.box(3, 0.3, 21), roofC, 0, 4.25, z);
+        part(t, G.box(2.3, 0.22, 20.6), roofC, 0, 4.5, z);
         part(t, G.box(2.4, 0.8, 19), under, 0, 0.75, z);
       }
       if (engine) {

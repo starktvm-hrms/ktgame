@@ -153,8 +153,8 @@
         if (wl > -1e8 && R.PY[i] < wl + 4) M.levelAt(R.PY, i * M.STEP, wl + 4.5, 60, 160);
       }
     });
-    stationSites(Hw, M, tvmFrame);
     crossings(Hw, M);
+    stationSites(Hw, M, tvmFrame);
     buildGrid();
     Rail.ready = true;
   };
@@ -162,7 +162,18 @@
   // each station's ground, platforms side and the lane from the nearest road
   function stationSites(Hw, M, tvmFrame) {
     Rail.stations.forEach((st) => {
-      const R = st.R, f = R.frame(st.s), y = R.y(st.s);
+      const R = st.R;
+      // (a station never stands on a level crossing: slide it along the line)
+      if (!st.tvm) for (let it = 0; it < 4; it++) {
+        const c = Rail.crossings.find((c) => c.R === R && Math.abs(c.s - st.s) < 100);
+        if (!c) break;
+        const ns = c.s + (st.s >= c.s ? 1 : -1) * 105;
+        if (ns < 90 || ns > R.len - 90) break;
+        st.s = ns;
+        st.lines.find((l) => l.R === R).s = ns;
+        const stop = R.stops.find((p) => p.key === st.key); if (stop) stop.s = ns;
+      }
+      const f = R.frame(st.s), y = R.y(st.s);
       st.x = f.x; st.z = f.z; st.y = y; st.heading = f.heading;
       if (st.tvm) {
         st.platform = { x: tvmFrame.platform.x, z: tvmFrame.platform.z };
@@ -534,7 +545,9 @@
       });
       const side = new T.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.2 });
       part(g, G.box(3, 3.1, 21), side, 0, 2.55, 0);
-      part(g, G.cyl(1.5, 1.5, 21, 10, 1, false, 0, Math.PI), KT.mat('coachRoof', { color: 0x8d9296, roughness: 0.5, metalness: 0.4 }), 0, 4.1, 0, Math.PI / 2, 0, Math.PI / 2, 1, 1, 0.25);
+      const roofM = KT.mat('coachRoof', { color: 0x8d9296, roughness: 0.5, metalness: 0.4 });
+      part(g, G.box(3, 0.3, 21), roofM, 0, 4.25, 0);
+      part(g, G.box(2.3, 0.22, 20.6), roofM, 0, 4.5, 0);
       part(g, G.box(2.4, 0.8, 19), KT.mat('coachUnder', { color: 0x26282a, roughness: 0.8 }), 0, 0.75, 0);
       return KT.bake(g);
     };
@@ -582,6 +595,7 @@
     return { s: leg.s0 + (leg.s1 - leg.s0) * e, back, moving: leg.s1 !== leg.s0 };
   }
   Rail.trainAt = (tr, t) => trainAt(tr, t);
+  Rail._prof = { buildChunk: (R, k) => buildChunk(R, k), buildStation: (st) => buildStation(st) };
   function makeTrains() {
     Rail.lines.forEach((R, li) => {
       R.tt = timetable(R);
