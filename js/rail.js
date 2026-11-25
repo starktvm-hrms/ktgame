@@ -431,11 +431,13 @@
       g.strokeRect(4, 4, W - 8, H - 8);
       g.beginPath(); g.moveTo(4, H - 4); g.lineTo(W / 2, 4); g.lineTo(W - 4, H - 4); g.stroke();
     }, true);
+    // (the track's strips are seen from either side: their winding follows
+    // the line's own axes, which face down on some stretches)
     MATS = {
-      ballast: KT.mat('railBallast', { map: ballast, roughness: 0.98 }),
-      sleepers: KT.mat('railSleepers', { map: sleepers, roughness: 0.92 }),
-      rail: KT.mat('railSteel', { color: 0x8d8f91, roughness: 0.32, metalness: 0.85 }),
-      deck: KT.mat('railDeck', { color: 0xa29d94, roughness: 0.9 }),
+      ballast: KT.mat('railBallast', { map: ballast, roughness: 0.98, side: T.DoubleSide }),
+      sleepers: KT.mat('railSleepers', { map: sleepers, roughness: 0.92, side: T.DoubleSide }),
+      rail: KT.mat('railSteel', { color: 0x8d8f91, roughness: 0.32, metalness: 0.85, side: T.DoubleSide }),
+      deck: KT.mat('railDeck', { color: 0xa29d94, roughness: 0.9, side: T.DoubleSide }),
       girder: KT.mat('railGirder', { map: girder, alphaTest: 0.5, side: T.DoubleSide, roughness: 0.6, metalness: 0.5 }),
       pier: KT.mat('railPier', { color: 0x9b968c, roughness: 0.92 }),
       mast: KT.mat('railMast', { color: 0x9aa0a4, roughness: 0.5, metalness: 0.6 }),
