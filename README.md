@@ -530,6 +530,12 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
   and overhead electric masts and wires. The lines and the stations keep
   well back from the sea, so the beach slopes down to the water as it
   always does: no station stands on a cliff over it.
+- **Lines and junctions**: each line runs in smooth, open curves with no
+  loops or knots, including on its way out of Thampanoor. At a junction
+  station every line runs through along the same platforms and parts from
+  the others beyond them, at the station's own height; lines running side by
+  side keep to one height until they part. Bridge piers and overbridge walls
+  are solid: you walk round them, not through them.
 - **Lines and roads**: the lines are laid clear of the roads. Where a line
   would run along or over a road, near a junction or on a road bridge, it
   bends away.
