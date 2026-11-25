@@ -159,8 +159,28 @@
         break;
       }
       case 'door': noise(t, 0.5, 0.16, 'highpass', 1800, 0.6); tone(180, 'sine', t + 0.35, 0.12, 0.12, sfxBus, 90); break;
+      case 'trainHorn': // a locomotive's long two-tone horn
+        [311, 415].forEach((hz) => {
+          const o = A.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz;
+          const f = A.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+          const gn = A.ctx.createGain(); gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(0.07, t + 0.08);
+          gn.gain.setValueAtTime(0.07, t + 1.2); gn.gain.exponentialRampToValueAtTime(0.0001, t + 1.55);
+          o.connect(f); f.connect(gn); gn.connect(sfxBus); o.start(t); o.stop(t + 1.6);
+        });
+        break;
+      case 'chime': [659, 784, 988].forEach((f, i) => tone(f, 'sine', t + i * 0.32, 0.7, 0.07, ambBus)); break; // the station's announcement chime
+      case 'clack': noise(t, 0.05, 0.14, 'lowpass', 220, 0.8); noise(t + 0.09, 0.05, 0.1, 'lowpass', 200, 0.8); break; // wheels over a rail joint
       default: break;
     }
+  };
+  // the hum of the rails under a train you ride (0..1 with its speed)
+  let roll = null;
+  A.trainRoll = function (v) {
+    if (!A.ready) return;
+    if (!roll && v <= 0) return;
+    if (!roll) roll = loopNoise(500, 0, 'lowpass');
+    const t = A.ctx.currentTime;
+    roll.gain.setTargetAtTime(v * 0.11, t, 0.3);
   };
 
   function chirp(t) {

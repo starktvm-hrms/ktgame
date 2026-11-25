@@ -584,17 +584,44 @@
       part(g, G.box(3.2, 0.15, BW * 2 + 12.4), blue, 40, top + 9, 0);
       [-1, 1].forEach((z) => part(g, G.box(0.3, 6.5, 0.3), blue, 40, top + 3.2, z * (BW + 3)));
     }
+    // a tea stall on the platform (chaya, vada and the newspapers)
+    const sp = plats[0], sz = sp + Math.sign(sp) * 1.5;
+    part(g, G.box(2.6, 0.9, 1.2), KT.mat('stStall', { color: 0x4e7fb5, roughness: 0.7 }), 38, top + 0.45, sz);
+    part(g, G.box(2.8, 0.06, 1.3), KT.M.darkGrey, 38, top + 0.93, sz);
+    [-1.2, 1.2].forEach((x) => part(g, G.box(0.08, 2.2, 0.08), KT.M.darkGrey, 38 + x, top + 1.1, sz));
+    part(g, G.box(3, 0.08, 1.8), KT.mat('stStallRoof', { color: 0xb3261e, roughness: 0.6 }), 38, top + 2.25, sz, Math.sign(sp) * 0.1, 0, 0);
+    const stallBoard = new T.MeshStandardMaterial({ map: KT.textTexture([{ text: 'ചായ • CHAYA', size: 40 }, { text: 'TEA • VADA • SNACKS', size: 28 }], { bg: '#f2c230', color: '#1b1b1b', width: 512, height: 160 }), roughness: 0.6 });
+    part(g, G.plane(2.6, 0.8), stallBoard, 38, top + 1.8, sz - Math.sign(sp) * 0.62, 0, sp > 0 ? Math.PI : 0, 0);
     root.add(KT.bake(g));
     root.add(live);
-    // passengers waiting on the platforms
+    // people on the platforms: some wait on the benches, some walk up and
+    // down with their bags, a porter, the tea seller at his stall
     const rng = KT.makeRng(st.s | 0);
-    const LOOKS = [['male', 'mundu'], ['female', 'saree'], ['male', 'tee'], ['female', 'churidar'], ['male', 'casual']];
-    for (let i = 0; i < 6; i++) {
-      const look = LOOKS[i % LOOKS.length], pz = plats[i % plats.length];
-      const ch = KT.Models.character({ gender: look[0], outfit: look[1], lite: true, seed: (st.s | 0) + i, skin: [0xc08660, 0x8d5a3b, 0xd9a27c][i % 3] });
-      ch.position.set((rng() - 0.5) * 80, top, pz + (rng() - 0.5) * 2.5);
-      ch.rotation.y = rng() * 6.28;
+    const LOOKS = [['male', 'mundu'], ['female', 'saree'], ['male', 'tee'], ['female', 'churidar'], ['male', 'casual'], ['female', 'saree'], ['male', 'mundu']];
+    st.people = [];
+    const person = (i) => {
+      const look = LOOKS[i % LOOKS.length];
+      const ch = KT.Models.character({ gender: look[0], outfit: look[1], lite: true, seed: (st.s | 0) * 7 + i, skin: [0xc08660, 0x8d5a3b, 0xd9a27c, 0xa5724f][i % 4] });
       live.add(ch);
+      return ch;
+    };
+    plats.forEach((pz) => {
+      for (let x = -20; x <= 20; x += 10) if (rng() < 0.65) { // on a bench
+        const ch = person(st.people.length);
+        ch.position.set(x + (rng() - 0.5) * 0.7, top, pz + Math.sign(pz) * 1.2);
+        ch.rotation.y = pz > 0 ? Math.PI : 0;
+        st.people.push({ ch, pose: 'sit' });
+      }
+      for (let i = 0; i < 5; i++) { // walking along the platform
+        const ch = person(st.people.length), x = (rng() - 0.5) * 110, z = pz + (rng() - 0.5) * 2.4;
+        ch.position.set(x, top, z);
+        st.people.push({ ch, pose: 'walk', x, z, cz: z, pz, tx: x, wait: rng() * 4, rng, speed: 0.8 + rng() * 0.5, heading: 0 });
+      }
+    });
+    { // the tea seller behind his counter
+      const ch = person(st.people.length);
+      ch.position.set(38, top, sz + Math.sign(sp) * 1.1); ch.rotation.y = sp > 0 ? Math.PI : 0;
+      st.people.push({ ch, pose: 'idle' });
     }
     root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     // walk on the platforms (in the station's axes)
@@ -616,9 +643,10 @@
   // --------------------------------------------------------------- trains
   // an electric engine and coaches (blue and grey, or red-and-grey)
   let carProtos = null;
+  const sideMats = {};
   function cars() {
     if (carProtos) return carProtos;
-    const coach = (body, band) => {
+    const coach = (body, band, key) => {
       const g = new T.Group();
       const tex = canvasTex(256, 64, (c, W, H) => {
         c.fillStyle = body; c.fillRect(0, 0, W, H);
@@ -627,6 +655,7 @@
         c.fillStyle = '#4a5056'; c.fillRect(2, 10, 8, 42); c.fillRect(W - 10, 10, 8, 42);
       });
       const side = new T.MeshStandardMaterial({ map: tex, roughness: 0.5, metalness: 0.2 });
+      sideMats[key] = side;
       part(g, G.box(3, 3.1, 21), side, 0, 2.55, 0);
       const roofM = KT.mat('coachRoof', { color: 0x8d9296, roughness: 0.5, metalness: 0.4 });
       part(g, G.box(3, 0.3, 21), roofM, 0, 4.25, 0);
@@ -649,10 +678,70 @@
       part(g, G.box(1.6, 0.08, 0.1), KT.M.darkGrey, 0, 5.8, -3.3);
       return KT.bake(g);
     };
-    carProtos = { engine: engine(), blue: coach('#2f5f9f', '#e8e2d0'), grey: coach('#d6d9dc', '#2f5fa0'), lhb: coach('#c9c9c6', '#b3261e') };
+    carProtos = { engine: engine(), blue: coach('#2f5f9f', '#e8e2d0', 'blue'), grey: coach('#d6d9dc', '#2f5fa0', 'grey'), lhb: coach('#c9c9c6', '#b3261e', 'lhb') };
     return carProtos;
   }
+  // the coach you ride in: the same outside, and inside it a floor, cream
+  // walls with open windows, blue bench seats in bays facing each other,
+  // luggage racks, and passengers in the seats. Its +z is the way ahead.
+  const FLOOR = 1.14, SEAT_BAYS = 10, BAY = 1.9, Z0 = -9.5;
+  function openCoach(livery) {
+    cars();
+    const g = new T.Group(), fixed = new T.Group();
+    const side = sideMats[livery];
+    const cream = KT.mat('coachWall', { color: 0xe9e2cf, roughness: 0.85 }), floorM = KT.mat('coachFloor', { color: 0x5b5048, roughness: 0.95 });
+    const seatM = KT.mat('coachSeat', { color: 0x2b4f8a, roughness: 0.7 }), rack = KT.mat('coachRack', { color: 0x9a9c9e, roughness: 0.5, metalness: 0.5 });
+    const roofM = KT.mat('coachRoof', { color: 0x8d9296, roughness: 0.5, metalness: 0.4 }), ceil = KT.mat('coachCeil', { color: 0xf4f1ea, roughness: 0.9 });
+    // outside: the livery on single-sided planes (invisible from within)
+    [-1, 1].forEach((s) => part(fixed, G.plane(21, 3.1), side, s * 1.52, 2.55, 0, 0, s * Math.PI / 2, 0));
+    [-1, 1].forEach((s) => part(fixed, G.plane(3.04, 3.1), side, 0, 2.55, s * 10.52, 0, s > 0 ? 0 : Math.PI, 0));
+    part(fixed, G.box(3, 0.3, 21), roofM, 0, 4.25, 0);
+    part(fixed, G.box(2.3, 0.22, 20.6), roofM, 0, 4.5, 0);
+    part(fixed, G.box(2.4, 0.8, 19), KT.mat('coachUnder', { color: 0x26282a, roughness: 0.8 }), 0, 0.75, 0);
+    // inside
+    part(fixed, G.box(2.96, 0.08, 20.9), floorM, 0, FLOOR - 0.04, 0);
+    part(fixed, G.box(2.96, 0.06, 20.9), ceil, 0, 4.06, 0);
+    [-1, 1].forEach((s) => {
+      part(fixed, G.box(0.06, 1.0, 20.9), cream, s * 1.455, 1.6, 0);   // below the windows
+      part(fixed, G.box(0.06, 0.72, 20.9), cream, s * 1.455, 3.66, 0); // above them
+      for (let k = 0; k <= SEAT_BAYS; k++) part(fixed, G.box(0.06, 1.2, 0.3), cream, s * 1.455, 2.7, Z0 + k * BAY); // the pillars between
+      part(fixed, G.box(0.5, 0.03, 20), rack, s * 1.18, 3.38, 0);
+    });
+    [-1, 1].forEach((s) => part(fixed, G.box(2.96, 3.0, 0.06), KT.mat('coachEnd', { color: 0x7d7a72, roughness: 0.8 }), 0, 2.6, s * 10.42));
+    // bench seats: two benches face each other in every window bay
+    for (let k = 0; k < SEAT_BAYS; k++) {
+      const zc = Z0 + BAY / 2 + k * BAY;
+      [-1, 1].forEach((sx) => [-1, 1].forEach((fz) => {
+        const z = zc - fz * 0.66; // (the bench faces fz: its back is away from the bay's middle)
+        part(fixed, G.box(1.05, 0.08, 0.5), seatM, sx * 0.92, FLOOR + 0.45, z);
+        part(fixed, G.box(1.05, 0.6, 0.08), seatM, sx * 0.92, FLOOR + 0.78, z - fz * 0.27, -fz * 0.15, 0, 0);
+      }));
+    }
+    g.add(KT.bake(fixed));
+    g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // your seat: by the window, facing the way ahead, in the fifth bay
+    const myBay = 4, myZ = Z0 + BAY / 2 + myBay * BAY - 0.66;
+    g.userData.seat = new T.Vector3(1.16, FLOOR - 0.06, myZ);
+    g.userData.eye = new T.Vector3(0.42, FLOOR + 1.22, myZ + 0.45); // (leaning back: the window frames the view)
+    // the other passengers (their seats; never yours)
+    const rng = KT.makeRng(livery.length * 17 + 3), LOOKS = [['male', 'mundu'], ['female', 'saree'], ['male', 'tee'], ['female', 'churidar'], ['male', 'casual']];
+    const live = new T.Group(), people = [];
+    for (let i = 0; i < 7; i++) {
+      const bay = (i * 3 + 1) % SEAT_BAYS, sx = i % 2 ? -1 : 1, fz = (i >> 1) % 2 ? -1 : 1, win = rng() < 0.7;
+      if (bay === myBay && sx > 0 && fz > 0) continue;
+      const look = LOOKS[i % LOOKS.length];
+      const ch = KT.Models.character({ gender: look[0], outfit: look[1], lite: true, seed: 900 + i, skin: [0xc08660, 0x8d5a3b, 0xd9a27c][i % 3] });
+      ch.position.set(sx * (win ? 1.16 : 0.64), FLOOR - 0.06, Z0 + BAY / 2 + bay * BAY - fz * 0.66);
+      ch.rotation.y = fz > 0 ? 0 : Math.PI;
+      live.add(ch); people.push(ch);
+    }
+    g.add(live);
+    g.userData.people = people;
+    return g;
+  }
   const DWELL = 18, SPEED = 22, CAR = 21.6;
+  const trainLen = (cars) => cars * CAR + 2; // engine's middle to the last coach's
+  const clampEngine = (R, cars, s, dir) => dir > 0 ? KT.clamp(s, Math.min(trainLen(cars), R.len), R.len) : KT.clamp(s, 0, Math.max(0, R.len - trainLen(cars)));
   function timetable(R) {
     // times along the line, out and back, stopping at each station
     const stops = R.stops.map((s) => s.s).sort((a, b) => a - b);
@@ -682,14 +771,21 @@
   function makeTrains() {
     Rail.lines.forEach((R, li) => {
       R.tt = timetable(R);
-      const n = Math.max(1, Math.round(R.len / 7000)) * (R.double ? 2 : 1);
+      // a busy railway: a train every few minutes at every station
+      const n = Math.max(2, Math.round(R.len / 3200)) * (R.double ? 2 : 1);
       for (let i = 0; i < n; i++) Rail.trains.push({ R, offset: (R.tt.T * 2 / n) * i + li * 37, cars: 6 + ((li + i) % 3), livery: ['blue', 'grey', 'lhb'][(li + i) % 3], mesh: null });
     });
   }
   function trainMesh(tr) {
     const P = cars(), g = new T.Group(), list = [];
     const e = P.engine.clone(); g.add(e); list.push(e);
-    for (let i = 0; i < tr.cars; i++) { const c = P[tr.livery].clone(); g.add(c); list.push(c); }
+    for (let i = 0; i < tr.cars; i++) {
+      // (on your train, the first coach is the one you sit in)
+      const mine = tr.ride && i === (tr.coachIdx || 0);
+      const c = mine ? openCoach(tr.livery) : P[tr.livery].clone();
+      g.add(c); list.push(c);
+      if (mine) tr.coach = c;
+    }
     g.userData.cars = list;
     g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return g;
@@ -697,11 +793,33 @@
   function placeTrain(tr, st) {
     const R = tr.R, list = tr.mesh.userData.cars;
     // the engine leads; on a double line each way has its own track (on the left)
-    const lat = R.double ? (st.back ? TRACK : -TRACK) : 0, dir = st.back ? -1 : 1;
+    const lat = tr.lat !== undefined ? tr.lat : R.double ? (st.back ? TRACK : -TRACK) : 0, dir = st.back ? -1 : 1;
+    // (the whole train stays on the line: at its ends it stands back from them)
+    const es = clampEngine(R, list.length - 1, st.s, dir);
     list.forEach((c, i) => {
-      const s = KT.clamp(st.s - dir * (i * CAR + (i ? 2 : 0)), 0, R.len), f = R.frame(s);
+      const s = KT.clamp(es - dir * (i * CAR + (i ? 2 : 0)), 0, R.len), f = R.frame(s);
       c.position.set(f.x + f.rx * lat, R.y(s), f.z + f.rz * lat);
       c.rotation.y = f.heading + (st.back ? Math.PI : 0);
+    });
+  }
+
+  // the people on a platform: the seated wait, the walkers stroll up and
+  // down and stop now and then (in the station's own axes: x along it)
+  function animatePeople(st, dt) {
+    const top = 0.3;
+    st.people.forEach((p) => {
+      if (p.pose !== 'walk') { KT.Models.animateCharacter(p.ch, p.pose, dt); return; }
+      let moving = false;
+      if (p.wait > 0) p.wait -= dt;
+      else {
+        const dx = p.tx - p.x;
+        if (Math.abs(dx) < 0.25) { p.wait = 1 + p.rng() * 6; p.tx = (p.rng() - 0.5) * 120; p.cz = p.pz + (p.rng() - 0.5) * 2.4; }
+        else { p.x += Math.sign(dx) * p.speed * dt; p.heading = dx > 0 ? Math.PI / 2 : -Math.PI / 2; moving = true; }
+      }
+      p.z += (p.cz - p.z) * (1 - Math.exp(-dt * 0.8));
+      p.ch.position.set(p.x, top, p.z);
+      p.ch.rotation.y = KT.angleLerp(p.ch.rotation.y, p.heading, 1 - Math.exp(-dt * 8));
+      KT.Models.animateCharacter(p.ch, moving ? 'walk' : 'idle', dt, p.speed / 1.1);
     });
   }
 
@@ -744,6 +862,7 @@
         Hw.interactables.push({ label: '\u{1F686} Take a train from ' + st.name, radius: 10, pos: () => new T.Vector3(st.platform.x, st.y + 0.8, st.platform.z), action: () => Rail.openTravel(st) });
       }
       if (st.root) { st.root.visible = d < 1200; st.live.visible = d < 300; }
+      if (st.root && st.live.visible && st.people) animatePeople(st, dt);
     });
     Rail.crossings.forEach((c) => {
       const d = Math.hypot(c.x - pos.x, c.z - pos.z);
@@ -751,13 +870,23 @@
       if (c.gates) c.gates.g.visible = d < 900;
     });
     // trains
+    Rail.sfxT = (Rail.sfxT || 0) - dt;
+    const ride = Rail.ride;
     Rail.trains.forEach((tr) => {
+      if (tr.ride) return; // (your own train moves with you: updateRider)
       const st = trainAt(tr, Rail.time), f = tr.R.frame(st.s);
-      const near = Math.hypot(f.x - pos.x, f.z - pos.z) < 1500;
+      const dist = Math.hypot(f.x - pos.x, f.z - pos.z), near = dist < 1500;
+      // a horn as a train pulls out, the station chime as one draws in
+      if (tr.now && near && Rail.sfxT <= 0) {
+        if (st.moving && !tr.now.moving && dist < 450) { KT.Audio.play('trainHorn'); Rail.sfxT = 4; }
+        else if (!st.moving && tr.now.moving && dist < 260) { KT.Audio.play('chime'); Rail.sfxT = 4; }
+      }
       tr.now = st;
       if (near && !tr.mesh) { tr.mesh = trainMesh(tr); scene.add(tr.mesh); }
       if (tr.mesh) {
-        tr.mesh.visible = near;
+        // (not through your own train on the same track)
+        const clash = ride && ride.train && tr.R === ride.train.R && !!st.back === !!ride.train.back && Math.abs(st.s - ride.train.s) < 320;
+        tr.mesh.visible = near && !clash;
         if (near) placeTrain(tr, st);
       }
     });
@@ -768,6 +897,17 @@
       c.gates.down = KT.clamp(c.gates.down + (busy ? dt : -dt) * 0.8, 0, 1);
       c.gates.arms.forEach((a) => { a.rotation.x = -(1 - c.gates.down) * 1.35; });
     });
+    // your train, while you are not yet (or no longer) in it
+    if (Rail.ride && KT.Player.mode !== 'train') tickRide(dt);
+    for (let i = leaving.length - 1; i >= 0; i--) {
+      const tr = leaving[i], dir = tr.back ? -1 : 1;
+      tr.v = Math.min(RIDE_V, tr.v + RIDE_A * dt);
+      tr.s += dir * tr.v * dt;
+      tr.leaveT -= dt;
+      if (tr.leaveT <= 0 || tr.s <= 0 || tr.s >= tr.R.len) { removeTrain(tr); leaving.splice(i, 1); continue; }
+      tr.now = { s: tr.s, back: tr.back, moving: true };
+      placeTrain(tr, tr.now);
+    }
   };
 
   // ------------------------------------------------------------ travel
@@ -782,7 +922,16 @@
         const st = Rail.stations.find((x) => x.key === k);
         if (!st) return;
         const here = st === from;
-        html += '<button class="travel-btn' + (here ? ' here' : '') + '" data-rail="' + Rail.stations.indexOf(st) + '"><span class="t-name"><span class="t-icon">\u{1F689}</span> ' + esc(st.name) + '</span><span class="t-ml">' + esc(st.ml) + '</span><span class="t-sub">' + (here ? 'You are here' : 'Take the train') + '</span></button>';
+        let sub = 'You are here';
+        if (!here) {
+          const legs = routeTo(from, st);
+          if (!legs) sub = 'No train';
+          else {
+            const km = KT.Vehicle.toKm(legs.reduce((a, l) => a + Math.abs(l.s1 - l.s0), 0));
+            sub = (legs.length === 1 ? 'Direct train' : 'Change at ' + stOf(legs[0].to).name) + ' • ' + km.toFixed(km < 10 ? 1 : 0) + ' km';
+          }
+        }
+        html += '<button class="travel-btn' + (here ? ' here' : '') + '" data-rail="' + Rail.stations.indexOf(st) + '"><span class="t-name"><span class="t-icon">\u{1F689}</span> ' + esc(st.name) + '</span><span class="t-ml">' + esc(st.ml) + '</span><span class="t-sub">' + esc(sub) + '</span></button>';
       });
       html += '</div>';
     });
@@ -790,17 +939,323 @@
     list.querySelectorAll('[data-rail]').forEach((b) => { b.onclick = () => Rail.travel(+b.dataset.rail, from); });
     G2.setState('fasttravel');
   };
-  Rail.travel = async function (i, from) {
+  // book a train: it comes in to your platform, you take a seat and ride
+  Rail.travel = function (i, from) {
     const st = Rail.stations[i], G2 = KT.Game;
-    if (!st || st === from) { G2.setState('playing'); return; }
-    const Hw = KT.Highway, p = st.platform;
-    const f = st.R.frame(st.s);
-    await G2.goHighway({ spot: { x: p.x, z: p.z, heading: f.heading }, quiet: true });
-    // (stand up on the platform)
-    const P = KT.Player;
-    P.pos.y = Hw.groundY(p.x, p.z, st.y + 3).y;
-    KT.UI.banner(st.name, st.ml + '  •  \u{1F686} by train from ' + from.name, 'title');
+    G2.setState('playing');
+    if (!st || st === from) return;
+    if (Rail.ride) { KT.UI.toast('Your train is already on its way.'); return; }
+    const legs = routeTo(from, st);
+    if (!legs) { KT.UI.toast('No train runs there from here.'); return; }
+    Rail.ride = { legs, li: 0, dest: st.key, origin: from.key, state: 'change', t: 0.01, train: null, stops: [], next: 0 };
+  };
+
+  // ------------------------------------------------------------ the ride
+  // Your train draws in to the platform, you take a window seat, and it
+  // carries you down the line, stopping at every station (get off at any),
+  // to where you booked, changing trains at a junction when you must.
+  const RIDE_V = 31, RIDE_A = 0.85, RIDE_STOP = 6;
+  const leaving = [];
+  Rail.ride = null;
+  const coachOff = (tr) => ((tr.coachIdx || 0) + 1) * CAR + 2; // your coach's middle, behind the engine's
+  const sOn = (st, R) => { const l = st.lines.find((l) => l.R === R); return l ? l.s : st.s; };
+  const stOf = (k) => Rail.stations.find((s) => s.key === k);
+  // how far a station's platform lies to the side of its line
+  function platLat(st, R) { const f = R.frame(sOn(st, R)); return (st.platform.x - f.x) * f.rx + (st.platform.z - f.z) * f.rz; }
+
+  // the way from one station to another: by distance, changing trains as
+  // little as possible; as legs, one per train
+  function routeTo(from, to) {
+    const adj = {};
+    Rail.lines.forEach((R) => {
+      const stops = R.stops.slice().sort((a, b) => a.s - b.s);
+      for (let i = 0; i < stops.length - 1; i++) {
+        const a = stops[i], b = stops[i + 1];
+        (adj[a.key] = adj[a.key] || []).push({ to: b.key, R, s0: a.s, s1: b.s, d: b.s - a.s });
+        (adj[b.key] = adj[b.key] || []).push({ to: a.key, R, s0: b.s, s1: a.s, d: b.s - a.s });
+      }
+    });
+    const best = new Map(), prev = new Map(), Q = [];
+    const idOf = (k, R) => k + '|' + (R ? R.id : 0);
+    const push = (k, R, cost, from, e) => { const id = idOf(k, R); if (best.has(id) && best.get(id) <= cost) return; best.set(id, cost); if (e) prev.set(id, { from, e }); Q.push({ id, k, R, cost }); };
+    push(from.key, null, 0);
+    let end = null;
+    while (Q.length) {
+      Q.sort((a, b) => a.cost - b.cost);
+      const c = Q.shift();
+      if (best.get(c.id) < c.cost) continue;
+      if (c.k === to.key) { end = c.id; break; }
+      (adj[c.k] || []).forEach((e) => push(e.to, e.R, c.cost + e.d + (c.R && c.R !== e.R ? 2500 : 0), c.id, e));
+    }
+    if (!end) return null;
+    const hops = [];
+    for (let id = end; prev.has(id); id = prev.get(id).from) hops.unshift(prev.get(id).e);
+    const legs = [];
+    let at = from.key;
+    hops.forEach((e) => {
+      const L = legs[legs.length - 1];
+      if (L && L.R === e.R) { L.s1 = e.s1; L.to = e.to; } else legs.push({ R: e.R, s0: e.s0, s1: e.s1, from: at, to: e.to });
+      at = e.to;
+    });
+    return legs;
+  }
+
+  function removeTrain(tr) {
+    if (tr.mesh) { scene.remove(tr.mesh); tr.mesh = null; }
+    const i = Rail.trains.indexOf(tr);
+    if (i >= 0) Rail.trains.splice(i, 1);
+  }
+  // the train goes on without you, and away
+  function release(tr) { tr.leaveT = 45; leaving.push(tr); }
+
+  // the next train of your journey comes in to the platform
+  function startLeg() {
+    const ride = Rail.ride, leg = ride.legs[ride.li], R = leg.R, from = stOf(leg.from);
+    const back = leg.s1 < leg.s0, dir = back ? -1 : 1;
+    const pl = platLat(from, R);
+    // the track by your platform: on a double line each way has its own,
+    // but at Thampanoor the train waits at the platform whichever way it goes
+    const lat = !R.double ? 0 : from.tvm ? Math.sign(pl) * TRACK : (back ? TRACK : -TRACK);
+    const cars = 5;
+    // leaving from the end of a line, the train stands with its tail at the
+    // platform: you sit in the last coach; elsewhere in the first
+    const atEnd = dir > 0 ? leg.s0 < trainLen(cars) : leg.s0 > R.len - trainLen(cars);
+    const tr = { R, cars, coachIdx: atEnd ? cars - 1 : 0, livery: ['blue', 'grey', 'lhb'][(ride.li + Rail.stations.indexOf(from)) % 3], mesh: null, ride: true, back, lat, s: 0, v: 0, now: null, heading: 0 };
+    const stopS = clampEngine(R, cars, leg.s0 + dir * coachOff(tr), dir); // (the engine's s when your coach stands at the platform)
+    tr.s = stopS;
+    const room = dir > 0 ? stopS - trainLen(cars) : R.len - trainLen(cars) - stopS;
+    const run = Math.min(380, room - 5);
+    tr.mesh = trainMesh(tr);
+    scene.add(tr.mesh);
+    Rail.trains.push(tr);
+    ride.train = tr; ride.leg = leg; ride.dir = dir; ride.stopS = stopS;
+    const lo = Math.min(leg.s0, leg.s1) - 1, hi = Math.max(leg.s0, leg.s1) + 1;
+    ride.stops = R.stops.filter((p) => p.s > lo && p.s < hi && p.key !== leg.from).sort((a, b) => (a.s - b.s) * dir);
+    ride.next = 0;
+    const dest = stOf(ride.dest).name;
+    if (run < 120) { ride.state = 'doors'; ride.t = 8; KT.UI.toast('\u{1F686} Your train to ' + dest + ' is waiting at the platform.', 'info'); }
+    else {
+      tr.s = stopS - dir * run;
+      ride.state = 'arrive'; ride.t = 0; ride.dur = 20; ride.from = tr.s;
+      KT.UI.toast('\u{1F686} Your train to ' + dest + ' is coming in to the platform.', 'info');
+      KT.Audio.play('trainHorn');
+    }
+    placeRide(tr);
+  }
+  function placeRide(tr) {
+    tr.s = KT.clamp(tr.s, 0, tr.R.len);
+    tr.now = { s: tr.s, back: tr.back, moving: tr.v > 0.1 };
+    placeTrain(tr, tr.now);
+    tr.heading = tr.R.frame(tr.s).heading + (tr.back ? Math.PI : 0);
+  }
+
+  function tickRide(dt) {
+    const ride = Rail.ride;
+    if (!ride) return;
+    if (ride.state === 'change') { ride.t -= dt; if (ride.t <= 0) startLeg(); return; }
+    const tr = ride.train, P = KT.Player, dir = ride.dir;
+    if (!tr) return;
+    switch (ride.state) {
+      case 'arrive': { // slowing in to a stand at your platform
+        ride.t += dt;
+        const k = Math.min(1, ride.t / ride.dur), e = 1 - (1 - k) * (1 - k);
+        tr.s = ride.from + (ride.stopS - ride.from) * e;
+        tr.v = Math.abs(ride.stopS - ride.from) * 2 * (1 - k) / ride.dur;
+        if (k >= 1) { tr.v = 0; ride.state = 'doors'; ride.t = 7; KT.Audio.play('door'); }
+        break;
+      }
+      case 'doors': { // standing at your platform: you get in
+        ride.t -= dt;
+        if (P.mode === 'foot') {
+          const f = tr.R.frame(ride.leg.s0);
+          if (Math.hypot(P.pos.x - f.x, P.pos.z - f.z) > 80) { if (ride.t <= 0) missed(); break; }
+          board();
+        }
+        if (ride.t <= 0) {
+          if (P.mode === 'train') { ride.state = 'go'; KT.Audio.play('trainHorn'); }
+          else missed(); // (you drove off instead)
+        }
+        break;
+      }
+      case 'go': { // down the line to the next stop
+        const stop = ride.stops[ride.next], target = clampEngine(tr.R, tr.cars, stop.s + dir * coachOff(tr), dir);
+        const d = (target - tr.s) * dir, brake = tr.v * tr.v / (2 * RIDE_A);
+        if (d <= brake + 0.5) tr.v = Math.max(0, tr.v - RIDE_A * 1.08 * dt); else tr.v = Math.min(RIDE_V, tr.v + RIDE_A * dt);
+        if (d < 0.4 || (d < 4 && tr.v < 0.25)) { tr.s = target; tr.v = 0; ride.state = 'stop'; ride.t = RIDE_STOP; KT.Audio.play('chime'); arriveAt(stop); }
+        else tr.s += dir * Math.min(tr.v * dt, Math.max(0, d));
+        break;
+      }
+      case 'stop': { // at a station; then on again
+        ride.t -= dt;
+        if (ride.t <= 0) { ride.next++; ride.state = 'go'; KT.Audio.play('trainHorn'); }
+        break;
+      }
+      default: break;
+    }
+    if (ride.train) placeRide(ride.train);
+  }
+
+  function board() {
+    const ride = Rail.ride, tr = ride.train, P = KT.Player, Cam = KT.CameraRig;
+    P.mode = 'train'; P.bus = null; P.speed = 0; P.gesture = null; P.vy = 0;
+    if (P.obj.parent) P.obj.parent.remove(P.obj);
+    tr.coach.add(P.obj);
+    P.obj.position.copy(tr.coach.userData.seat);
+    P.obj.rotation.set(0, 0, 0);
+    P.obj.visible = false;
+    ride.prevFirst = Cam.first;
+    Cam.first = true; Cam.pitch = 0.04; Cam.snap = true;
+    Cam.yaw = Math.atan2(-Math.cos(tr.heading), Math.sin(tr.heading)); // (out of your window)
+    KT.Audio.play('door');
+    KT.UI.toast('A window seat. Look around with the mouse • V outside view • R skip ahead • E get off at a station', 'info');
+    if (KT.Game.onEvent) KT.Game.onEvent('boardTrain');
+  }
+  // off the train onto the platform beside your coach
+  function alight(st) {
+    const ride = Rail.ride, tr = ride.train, R = tr.R, P = KT.Player, Hw = KT.Highway, Cam = KT.CameraRig;
+    const cs = tr.s - ride.dir * coachOff(tr), pl = platLat(st, R);
+    const lat = R.double && !st.tvm ? Math.sign(tr.lat) * (bedHalf(R) + 3) : pl;
+    const q = R.at(cs + ride.dir * 1.5, lat), f = R.frame(cs);
+    if (P.obj.parent) P.obj.parent.remove(P.obj);
+    P.scene.add(P.obj);
+    P.mode = 'foot'; P.bus = null; P.speed = 0; P.vy = 0; P.grounded = true;
+    P.pos.set(q.x, Hw.groundY(q.x, q.z, st.y + 3).y, q.z);
+    P.heading = Math.atan2(f.fx * ride.dir, f.fz * ride.dir);
+    P.obj.position.copy(P.pos); P.obj.rotation.set(0, P.heading, 0); P.obj.visible = true;
+    Cam.first = !!ride.prevFirst; Cam.snap = true; Cam.yaw = P.heading + Math.PI; Cam.pitch = 0.3;
+    if (KT.Audio.trainRoll) KT.Audio.trainRoll(0);
+    KT.Audio.play('door');
+  }
+  function arriveAt(stop) {
+    const ride = Rail.ride, st = stOf(stop.key);
+    if (ride.next < ride.stops.length - 1) {
+      KT.UI.toast('\u{1F689} ' + st.name + ' • ' + st.ml + ' — ' + (KT.Input.touch ? 'tap the action button' : 'E') + ' to get off here', 'info');
+      return;
+    }
+    // the end of this leg: off you get
+    alight(st);
+    release(ride.train); ride.train = null;
+    if (ride.li < ride.legs.length - 1) {
+      ride.li++; ride.state = 'change'; ride.t = 4;
+      KT.UI.banner(st.name, st.ml + '  •  change here for ' + stOf(ride.dest).name, 'title');
+    } else finish(st);
+  }
+  function finish(st) {
+    const ride = Rail.ride;
+    KT.UI.banner(st.name, st.ml + '  •  \u{1F686} by train from ' + stOf(ride.origin).name, 'title');
     KT.Audio.play('star');
+    Rail.ride = null;
+    if (KT.Game.onEvent) KT.Game.onEvent('trainArrive');
+  }
+  function missed() {
+    const ride = Rail.ride;
+    release(ride.train); ride.train = null; Rail.ride = null;
+    KT.UI.toast('You missed your train. Book another at the platform.');
+  }
+  // get off at the station the train is standing at
+  Rail.getOff = function () {
+    const ride = Rail.ride;
+    if (!ride || !ride.train) return;
+    if (ride.state !== 'stop' && ride.state !== 'doors') { KT.UI.toast('Wait until the train stops at a station.'); return; }
+    const st = stOf(ride.state === 'doors' ? ride.leg.from : ride.stops[ride.next].key);
+    alight(st);
+    release(ride.train); ride.train = null; Rail.ride = null;
+    KT.UI.banner(st.name, st.ml, 'title');
+  };
+  // skip the long middle of a leg: the train jumps to just short of its last stop
+  Rail.skip = function () {
+    const ride = Rail.ride;
+    if (!ride || !ride.train || ride.state !== 'go') return;
+    const tr = ride.train, dir = ride.dir, last = ride.stops[ride.stops.length - 1], target = clampEngine(tr.R, tr.cars, last.s + dir * coachOff(tr), dir);
+    if ((target - tr.s) * dir < 700) { KT.UI.toast('Nearly there already.'); return; }
+    tr.s = target - dir * 520; tr.v = Math.min(tr.v, 26); ride.next = ride.stops.length - 1;
+    placeRide(tr);
+    const p = tr.R.at(tr.s, 0);
+    KT.Highway.stream(new T.Vector3(p.x, 0, p.z), 999);
+    KT.CameraRig.snap = true;
+    KT.UI.toast('Skipping ahead to ' + stOf(last.key).name + '…', 'info');
+  };
+  Rail.toggleView = function () {
+    const Cam = KT.CameraRig, tr = Rail.ride && Rail.ride.train;
+    Cam.first = !Cam.first; Cam.snap = true;
+    if (Cam.first && tr) { Cam.yaw = Math.atan2(-Math.cos(tr.heading), Math.sin(tr.heading)); Cam.pitch = 0.04; }
+    else { Cam.pitch = 0.55; }
+    KT.UI.toast(Cam.first ? 'At your window' : 'Outside the train', 'info');
+  };
+  // leaving the map (or the game) mid-ride: the ride is over
+  Rail.abort = function () {
+    const ride = Rail.ride, P = KT.Player;
+    if (!ride) return;
+    if (ride.train) removeTrain(ride.train);
+    if (P.mode === 'train') { P.mode = 'foot'; KT.CameraRig.first = !!ride.prevFirst; if (KT.Audio.trainRoll) KT.Audio.trainRoll(0); }
+    Rail.ride = null;
+  };
+  // where a save made mid-ride puts you: your destination's platform
+  Rail.savePoint = function () {
+    const ride = Rail.ride;
+    if (!ride || KT.Player.mode !== 'train') return null;
+    const st = stOf(ride.dest), f = st.R.frame(st.s);
+    return { x: st.platform.x, y: st.y + 0.3, z: st.platform.z, heading: f.heading };
+  };
+  // the seat: each frame while you ride (from the player's update, before the camera)
+  Rail.updateRider = function (dt, input) {
+    const ride = Rail.ride, P = KT.Player;
+    if (!ride || !ride.train) { P.mode = 'foot'; if (P.obj.parent !== P.scene) { if (P.obj.parent) P.obj.parent.remove(P.obj); P.scene.add(P.obj); } P.obj.visible = true; return; }
+    tickRide(dt);
+    const tr = ride.train;
+    if (!tr) return;
+    tr.coach.updateMatrixWorld(true);
+    P.obj.getWorldPosition(P.pos);
+    P.heading = tr.heading;
+    KT.Models.animateCharacter(P.obj, 'sit', dt);
+    P.state = 'sit';
+    tr.coach.userData.people.forEach((c) => KT.Models.animateCharacter(c, 'sit', dt));
+    // the sound of the rails: a hum with the speed, and the joints clacking by
+    if (KT.Audio.trainRoll) KT.Audio.trainRoll(tr.v / RIDE_V);
+    ride.clack = (ride.clack || 0) - tr.v * dt;
+    if (ride.clack <= 0 && tr.v > 2) { ride.clack = CAR / 2; KT.Audio.play('clack'); }
+  };
+  // the camera while you ride: at your window, or outside following the train
+  Rail.rideCamera = function (dt, camera, Cam) {
+    const ride = Rail.ride, tr = ride && ride.train, P = KT.Player;
+    if (!tr) return false;
+    const coach = tr.coach;
+    coach.updateMatrixWorld(true);
+    P.obj.visible = false;
+    Cam.pitch = KT.clamp(Cam.pitch, -1.1, 1.1);
+    if (Cam.first) {
+      const eye = coach.localToWorld(coach.userData.eye.clone());
+      const fwd = new T.Vector3(-Math.sin(Cam.yaw) * Math.cos(Cam.pitch), -Math.sin(Cam.pitch), -Math.cos(Cam.yaw) * Math.cos(Cam.pitch));
+      camera.position.copy(eye);
+      camera.lookAt(eye.clone().add(fwd));
+      return true;
+    }
+    // (from above the coconut crowns, so no fronds hang in the view)
+    const target = coach.getWorldPosition(new T.Vector3()); target.y += 3;
+    const dist = KT.clamp(Cam.targetDist * 5, 16, 80), cp = Math.cos(Cam.pitch);
+    const desired = target.clone().add(new T.Vector3(Math.sin(Cam.yaw) * cp, Math.sin(Cam.pitch), Math.cos(Cam.yaw) * cp).multiplyScalar(dist));
+    const gy = KT.Highway.groundY(desired.x, desired.z).y;
+    const minY = Math.max(gy + 4, target.y + 15);
+    if (desired.y < minY) desired.y = minY;
+    if (Cam.snap) { camera.position.copy(desired); Cam.snap = false; } else camera.position.lerp(desired, 1 - Math.exp(-dt * 10));
+    camera.lookAt(target);
+    return true;
+  };
+  // for the HUD
+  Rail.rideInfo = function () {
+    const ride = Rail.ride, tr = ride && ride.train;
+    if (!ride) return null;
+    const leg = ride.leg, next = ride.stops[Math.min(ride.next, ride.stops.length - 1)];
+    return { state: ride.state, line: leg ? leg.R.name : '', R: leg && leg.R, s: tr ? tr.s - ride.dir * coachOff(tr) : 0, dir: ride.dir || 1, stops: ride.stops, next: next && stOf(next.key), nextS: next && next.s, dest: stOf(ride.dest), kmh: tr ? tr.v * 3.6 : 0, legs: ride.legs.length, li: ride.li };
+  };
+  Rail.shortName = (k) => k.toUpperCase(); // (the station codes, for the route bar)
+  Rail.ridePrompt = function (key) {
+    const ride = Rail.ride;
+    if (!ride) return null;
+    if (ride.state === 'doors') return key + 'Get off • the train is about to leave';
+    if (ride.state === 'stop') return key + 'Get off here • V view • R skip ahead';
+    const n = ride.stops[ride.next];
+    return (n ? 'Next stop ' + stOf(n.key).name + ' • ' : '') + 'V outside view • R skip ahead';
   };
 
   // the lines on the maps (for ui.js)

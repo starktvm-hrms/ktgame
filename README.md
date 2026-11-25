@@ -545,15 +545,29 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
   The road's kerbs, poles and stalls stay clear of the crossing.
 - **Stations**, 55 in all, at every main station on the map:
   - platforms with yellow name boards in Malayalam and English, a shelter,
-    benches, lamps and waiting passengers;
+    benches, lamps and a tea stall (chaya, vada, snacks);
+  - people: passengers waiting on the benches, others walking up and down
+    the platform with their bags, the tea seller at his counter;
   - a cream station building under a tiled roof, with a foot overbridge at
     the junctions;
   - a lane from the nearest road.
 - **Trains**: an electric engine with six to eight coaches (blue, grey or
-  red-and-grey) running up and down every line to a timetable, stopping at
-  each station.
-- **Ride**: at any station, press E on the platform to take a train to any
-  other station.
+  red-and-grey) running up and down every line to a timetable, a train
+  every few minutes at every station. A train sounds its horn as it pulls
+  out, and the station chime plays as one draws in.
+- **Riding a train**: at any station, press E on the platform and pick your
+  station. Your train comes in to the platform (at Thampanoor it waits
+  there), you take a window seat, and it carries you down the line:
+  - inside the coach there are bench seats in bays, luggage racks, open
+    windows and other passengers; look around freely with the mouse, or
+    press **V** to watch the train from outside;
+  - it stops at every station on the way (the name comes up; press **E**
+    while it stands to get off there), and at a junction you change to the
+    next train when your station is on another line;
+  - the route bar shows the line's stations, your train and the next stop,
+    the distance to it and the speed;
+  - press **R** on a long stretch to skip ahead to just before your stop;
+  - a save made mid-ride puts you on the platform you are riding to.
 - The railway is drawn on the minimap and the big map.
 
 ### Trees and grass

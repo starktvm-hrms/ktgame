@@ -340,11 +340,13 @@
       d.heading = o.heading;
     } else {
       // on the highway: the exact spot (in a vehicle, where the vehicle is)
-      const Hw = KT.Highway, veh = P.mode === 'bus' && P.bus && P.bus.obj ? P.bus : null, at = veh ? veh.obj.position : P.pos;
+      // (mid train ride: the platform you are riding to)
+      const Hw = KT.Highway, veh = P.mode === 'bus' && P.bus && P.bus.obj ? P.bus : null, rp = KT.Rail && KT.Rail.savePoint && KT.Rail.savePoint();
+      const at = rp || (veh ? veh.obj.position : P.pos);
       d.hwHub = Hw.status(at).nearest;
-      if (Hw.built && (!Hw.isWater(at.x, at.z) || (veh && veh.spec.water))) {
+      if (Hw.built && (rp || !Hw.isWater(at.x, at.z) || (veh && veh.spec.water))) {
         d.hwPos = { x: Math.round(at.x * 100) / 100, y: Math.round(at.y * 100) / 100, z: Math.round(at.z * 100) / 100 };
-        d.hwHeading = veh ? veh.heading : P.heading;
+        d.hwHeading = rp ? rp.heading : veh ? veh.heading : P.heading;
         // (and the vehicle you were in: the KSRTC bus, or your own ride and its paint)
         d.hwVeh = veh ? { type: veh.type, look: veh.look || null, ksrtc: veh === Hw.bus } : null;
       }
@@ -431,7 +433,7 @@
   Game.rideVehicle = function (id) {
     const P = KT.Player;
     if (P.mode === 'bus' && P.bus && P.bus.type === id) { Game.setState('playing'); return; }
-    if (P.mode !== 'foot') { KT.UI.toast('Get off the ' + (P.bus ? P.bus.spec.name : 'canoe') + ' first.'); Game.setState('playing'); return; }
+    if (P.mode !== 'foot') { KT.UI.toast('Get off the ' + (P.bus ? P.bus.spec.name : P.mode === 'train' ? 'train' : 'canoe') + ' first.'); Game.setState('playing'); return; }
     if (KT.L.noVehicles || (KT.Lighthouse.onGallery && KT.Lighthouse.onGallery())) { KT.UI.toast('No vehicles up here! Go outside first.'); Game.setState('playing'); return; }
     if (Game.ride) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
     const L = KT.L, h = P.heading;
@@ -711,11 +713,13 @@
     if (I.consume('radio')) KT.Radio.key();
     if (I.consume('groups')) { KT.Groups.open(); return; }
     if (I.consume('mic')) KT.Voice.toggle(KT.Groups.active);
-    if (I.consume('view')) { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); }
+    if (I.consume('view')) { if (P.mode === 'train') KT.Rail.toggleView(); else { KT.CameraRig.first = !KT.CameraRig.first; KT.UI.toast(KT.CameraRig.first ? 'First-person view' : 'Third-person view'); } }
     if (I.consume('photo')) { Game.setState('photo'); KT.UI.toast('Camera mode: frame your shot and press C / Space to snap. Esc to exit.'); return; }
     if (I.consume('help')) { Game.setState('paused'); return; }
     if (I.consume('recover') && P.mode === 'bus') { recoverVehicle(); return; }
+    if (I.consume('recover') && P.mode === 'train') { KT.Rail.skip(); return; }
     if (I.consume('interact')) {
+      if (P.mode === 'train') { KT.Rail.getOff(); return; }
       if (P.mode === 'canoe') { P.leaveCanoe(); return; }
       if (P.mode === 'climb') { P.climbAction(); return; }
       if (P.mode === 'bus' && P.bus.stuckT > 1.5) { recoverVehicle(); return; }
@@ -766,11 +770,12 @@
         const plain = c.palm.plain;
         KT.UI.prompt(c.tapT > 0 ? (plain ? 'Twisting off a coconut…' : 'Collecting the toddy…') : P.climbTop() ? (E.palmReady(c.palm) ? key + (plain ? 'Pick a tender coconut' : 'Collect the toddy') : (plain ? 'No ripe coconuts left' : 'The pot is still filling') + ' • S to climb down') : 'W climb up • S climb down • ' + key + 'Get down');
       }
+      else if (P.mode === 'train') KT.UI.prompt(KT.Rail.ridePrompt(key));
       else if (P.mode === 'bus' && P.bus.stuckT > 1.5) KT.UI.prompt((KT.Input.touch ? '' : '[R] ') + 'Stuck? Get back on the road');
       else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
       else KT.UI.prompt(best ? key + best.label : null);
     } else KT.UI.prompt(null);
-    $('btn-action').classList.toggle('glow', !!best || P.mode === 'canoe' || P.mode === 'bus');
+    $('btn-action').classList.toggle('glow', !!best || P.mode === 'canoe' || P.mode === 'bus' || (P.mode === 'train' && KT.Rail.ride && KT.Rail.ride.state === 'stop'));
   }
 
   // ------------------------------------------------- home: KSRTC stand
@@ -882,6 +887,7 @@
 
   function switchLevel(L, scene) {
     const P = KT.Player;
+    if (KT.Rail && KT.Rail.ride) KT.Rail.abort();
     if (P.mode === 'bus' && P.bus) {
       P.bus.occupied = false; P.bus.speed = 0;
       P.bus.obj.remove(P.obj);
@@ -1248,7 +1254,8 @@
     hwUiT += dt;
     if (hwUiT > 0.1) {
       hwUiT = 0;
-      KT.UI.drawRoute(st.s, st);
+      const ri = KT.Rail && KT.Rail.ride && KT.Rail.rideInfo();
+      if (ri && ri.R) KT.UI.drawRailRoute(ri); else KT.UI.drawRoute(st.s, st);
       const near = KT.DISTRICTS[st.nearest];
       const way = KT.Highway.nearestWaypoint(st.s);
       const onRoad = KT.Highway.nearestRoad(P.pos.x, P.pos.z, 400);

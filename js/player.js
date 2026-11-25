@@ -48,6 +48,7 @@
     if (P.mode === 'canoe') return updateCanoe(dt, input, cam);
     if (P.mode === 'climb') return updateClimb(dt, input);
     if (P.mode === 'bus') return updateBus(dt, input);
+    if (P.mode === 'train') return KT.Rail.updateRider(dt, input);
     const f = P.forward(cam.yaw);
     const r = { x: Math.cos(cam.yaw), z: -Math.sin(cam.yaw) };
     let mx = f.x * input.move.y + r.x * input.move.x;
@@ -453,6 +454,8 @@
     Cam.yaw -= l.dx * 0.0042;
     Cam.pitch = KT.clamp(Cam.pitch + l.dy * 0.0035, Cam.first ? -1.2 : -0.35, Cam.first ? 1.2 : 1.25);
     if (l.zoom) Cam.targetDist = KT.clamp(Cam.targetDist + l.zoom * 0.8, 2.5, 16);
+    // in a train: at your window, or outside following it
+    if (P.mode === 'train' && KT.Rail.rideCamera(dt, camera, Cam)) return;
     // gently swing behind the player while moving
     const inBus = P.mode === 'bus';
     const moving = P.mode === 'canoe' ? Math.abs(KT.Entities.canoe.speed) > 0.5 : inBus ? Math.abs(P.bus.speed) > 0.5 : P.speed > 0.5;

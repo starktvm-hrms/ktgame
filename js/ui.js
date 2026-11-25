@@ -519,6 +519,49 @@
     $('route-next').textContent = txt;
   };
 
+  // the route bar on a train: the stations of the line, your train on it
+  UI.drawRailRoute = function (ri) {
+    const c = $('route-bar');
+    const g = c.getContext('2d');
+    const W = c.width, H = c.height, pad = 18, R = ri.R;
+    const stops = R.stops.slice().sort((a, b) => a.s - b.s);
+    const s0 = stops[0].s, s1 = stops[stops.length - 1].s;
+    const xOf = (v) => pad + KT.clamp((v - s0) / Math.max(1, s1 - s0), 0, 1) * (W - pad * 2);
+    g.clearRect(0, 0, W, H);
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(pad, 16); g.lineTo(W - pad, 16); g.stroke();
+    // the stretch you are riding, in the line's colour
+    const a = ri.stops.length ? ri.stops[ri.stops.length - 1].s : ri.s;
+    g.strokeStyle = '#ffd34d'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(xOf(Math.min(ri.s, a)), 16); g.lineTo(xOf(Math.max(ri.s, a)), 16); g.stroke();
+    g.font = 'bold 9px system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'top';
+    const onLeg = (k) => ri.stops.some((p) => p.key === k);
+    stops.forEach((p) => {
+      const x = xOf(p.s), isNext = ri.next && ri.next.key === p.key, isDest = ri.dest && ri.dest.key === p.key;
+      g.fillStyle = isDest ? '#3ddc84' : onLeg(p.key) ? '#f4efe2' : 'rgba(255,255,255,0.45)';
+      g.strokeStyle = '#173b2a'; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, 16, isNext || isDest ? 6.5 : 4.5, 0, Math.PI * 2); g.fill(); g.stroke();
+      if (isNext || isDest || stops.length <= 8 || stops.indexOf(p) % 2 === 0) {
+        g.fillStyle = isNext ? '#ffd34d' : 'rgba(255,255,255,0.85)';
+        g.fillText(KT.Rail.shortName(p.key), x, 26);
+      }
+    });
+    // the train
+    const bx = xOf(ri.s);
+    g.fillStyle = '#d6232a'; g.strokeStyle = '#fff'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(bx, 11); g.lineTo(bx - 7, 1); g.lineTo(bx + 7, 1); g.closePath(); g.fill(); g.stroke();
+    let txt = '\u{1F686} ' + ri.line;
+    if (ri.next && ri.nextS !== undefined) {
+      const km = KT.Vehicle.toKm(Math.abs(ri.nextS - ri.s));
+      txt += '  •  Next: ' + ri.next.name + ' ' + km.toFixed(km < 10 ? 1 : 0) + ' km';
+    }
+    if (ri.kmh > 1) txt += '  •  ' + Math.round(ri.kmh) + ' km/h';
+    if (ri.legs > 1) txt += '  •  train ' + (ri.li + 1) + ' of ' + ri.legs;
+    $('route-next').textContent = txt;
+  };
+
   // --------------------------------------------------------- speedometer
   UI.drawSpeedo = function (kmh) {
     const c = $('speedo');
