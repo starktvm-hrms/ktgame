@@ -521,7 +521,12 @@
       if (!isBridge(s)) continue;
       const f = R.frame(s), y = R.y(s), gy = Math.min(Hw.height(f.x, f.z), Hw.waterLevelAt(f.x, f.z) > -1e8 ? Hw.waterLevelAt(f.x, f.z) - 3 : 1e9);
       const h = y - 1.4 - gy;
-      if (h > 0.5) part(parts, G.box(BW * 2 + 0.4, h, 1.6), MT.pier, f.x, gy + h / 2, f.z, 0, f.heading, 0);
+      if (h > 0.5) {
+        part(parts, G.box(BW * 2 + 0.4, h, 1.6), MT.pier, f.x, gy + h / 2, f.z, 0, f.heading, 0);
+        // (solid: you walk round a pier, not through it)
+        const key = 'railPier' + R.id + ':' + s;
+        if (!Hw.tileColliders.has(key)) { Hw.tileColliders.add(key); Hw.addCollider({ type: 'box', x: f.x, z: f.z, hw: BW + 0.2, hd: 0.8, rot: f.heading, maxY: y - 1.4 }); }
+      }
     }
     const mastSide = R.double ? 1 : 1;
     let prevTops = null;
@@ -586,6 +591,7 @@
         [q, out].forEach((p) => { const c = Hw.groundColor(p.x, p.z, top); shelf.col.push(c.r, c.g, c.b); });
         if (n) { const a = sbase + (n - 1) * 2, c2 = sbase + n * 2; shelf.idx.push(a, c2, a + 1, a + 1, c2, c2 + 1); }
         if (top - y0 > 0.6) part(cope, G.box(0.7, 0.18, 2.05), coping, q.x + f.rx * sd * 0.2, top + 0.05, q.z + f.rz * sd * 0.2, 0, f.heading, 0);
+        if (top - y0 > 1.2) Hw.addCollider({ type: 'box', x: q.x + f.rx * sd * 0.3, z: q.z + f.rz * sd * 0.3, hw: 0.35, hd: 1.05, rot: f.heading, maxY: top - 0.3 });
         n++;
       }
     });
