@@ -533,14 +533,27 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
 - **Lines and roads**: the lines are laid clear of the roads. Where a line
   would run along or over a road, near a junction or on a road bridge, it
   bends away.
-- **Level crossings**: where a line does cross a road, the line comes to
-  the road's height and gets a full level crossing:
+- **Road overbridges**: where a highway (the NH or a branch highway)
+  crosses a line and has room for the ramps, it goes over on a bridge:
+  - the road climbs on long, gentle ramps to clear the overhead wires
+    by a good margin, and its embankment raises the land along them;
+  - a concrete deck with parapets carries it over the line;
+  - the line runs under it through a cutting held back by grey
+    block-faced abutment walls with a coping along the top, which taper
+    away as the cutting eases back into the usual banks;
+  - no station stands in the cutting.
+- **Level crossings**: the village roads and lanes (and a highway with a
+  junction too close for ramps) cross on the level. The line comes to the
+  road's height and the crossing gets:
   - a concrete deck across the road and stop lines on both sides;
-  - red-and-white gates on both sides of the line, which come down while a
-    train is near;
+  - a yellow-and-black lifting boom on each side of the line, right across
+    the road, with red plates hanging under it and a counterweight at the
+    pivot; the booms come down while a train is near;
+  - a red STOP / നിൽക്കുക disc by each boom, and a black-and-white height
+    gauge over each approach;
+  - weathered plank fencing along the line beside the road;
   - white-cross and "Level crossing / ലെവൽ ക്രോസ്" warning signs on both
-    approaches;
-  - a gatekeeper's hut.
+    approaches, and a gatekeeper's hut.
 
   The road's kerbs, poles and stalls stay clear of the crossing.
 - **Stations**, 55 in all, at every main station on the map, built after
@@ -554,7 +567,7 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
     posts with pipe rails between the tracks; overhead-wire portals at
     both ends;
   - on the double lines a roofed foot overbridge with stairs down to each
-    platform;
+    platform, each stair under its own blue sheet roof;
   - people: passengers waiting on the benches, others walking up and down
     the platform with their bags, knots of people standing talking under
     the shelter, the tea seller at his counter;

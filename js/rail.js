@@ -222,9 +222,10 @@
       const R = st.R;
       // (a station never stands on a level crossing: slide it along the line)
       if (!st.tvm) for (let it = 0; it < 4; it++) {
-        const c = Rail.crossings.find((c) => c.R === R && Math.abs(c.s - st.s) < 100);
+        // (nor in an overbridge's walled cutting)
+        const c = Rail.crossings.find((c) => c.R === R && Math.abs(c.s - st.s) < 100) || Rail.robs.find((b) => b.R === R && Math.abs(b.s - st.s) < b.reachS + 90);
         if (!c) break;
-        const ns = c.s + (st.s >= c.s ? 1 : -1) * 105;
+        const ns = c.s + (st.s >= c.s ? 1 : -1) * (c.reachS ? c.reachS + 95 : 105);
         if (ns < 90 || ns > R.len - 90) break;
         st.s = ns;
         st.lines.find((l) => l.R === R).s = ns;
@@ -272,7 +273,12 @@
   // level crossings: where a road meets the line, the line comes to the
   // road's height, and gates stand on both sides
   Rail.crossings = [];
+  // road overbridges: a highway climbs over the line on a concrete deck,
+  // between block-walled abutments; the line runs through a cutting there
+  Rail.robs = [];
+  const ROB_CLEAR = 9.4; // (road over rail: room for the overhead wires)
   function crossings(Hw, M) {
+    const found = [];
     Rail.lines.forEach((R) => {
       const BW = bedHalf(R);
       Hw.roads.forEach((V) => {
@@ -283,16 +289,59 @@
           if (!V.near(x, z, 10)) { inside = false; continue; }
           const p = V.project(x, z), hw = (V.half || 5.5) + 0.5;
           const on = p.d < hw && p.s > 0 && p.s < V.len;
-          if (on && !inside) {
-            const s = i * M.STEP;
-            M.levelAt(R.PY, s, V.y(p.s) + 0.08, 14, 140);
-            Rail.crossings.push({ R, s, V, vs: p.s, x, z, BW, gates: null });
-            V.junctions.push({ s: p.s, side: 0, other: R, rail: true });
-          }
+          if (on && !inside) found.push({ R, s: i * M.STEP, V, vs: p.s, x, z, BW });
           inside = on;
         }
       });
     });
+    // the highways go over on a bridge where they have room for the ramps;
+    // the village roads and lanes (and a crowded highway) cross on the level
+    found.forEach((c) => {
+      if (!c.V.country && robFits(Hw, M, c, found)) { makeRob(Hw, M, c); return; }
+      M.levelAt(c.R.PY, c.s, c.V.y(c.vs) + 0.08, 14, 140);
+      Rail.crossings.push(Object.assign(c, { gates: null }));
+      c.V.junctions.push({ s: c.vs, side: 0, other: c.R, rail: true });
+    });
+  }
+  function robFits(Hw, M, c, found) {
+    const V = c.V, need = Math.max(0, ROB_CLEAR - (V.y(c.vs) - c.R.y(c.s))), ramp = Math.max(130, need / 0.04);
+    c.need = need; c.ramp = ramp;
+    if (c.vs < ramp + 20 || c.vs > V.len - ramp - 20) return false;
+    // (no junction on the ramps, no other crossing, underpass, town or sight near)
+    if (V.junctions.some((j) => Math.abs(j.s - c.vs) < ramp + 30)) return false;
+    if (found.some((o) => o !== c && o.V === V && Math.abs(o.vs - c.vs) < ramp * 2 + 40)) return false;
+    if ((Hw.cuts || []).some((k) => (k.U === V && Math.abs(k.su - c.vs) < ramp + 80) || (k.L === V && Math.abs(k.sl - c.vs) < ramp + 80))) return false;
+    const reach = ramp + 90;
+    if (Hw.PADS.some((P) => Math.hypot(P.x - c.x, P.z - c.z) < reach + P.r)) return false;
+    if (V.main && KT.DISTRICTS.some((d, i) => Math.abs(Hw.hubS(i) - c.vs) < 340 + ramp)) return false;
+    if (Hw.hubs && Hw.hubs.some((h) => h.x !== undefined && Math.hypot(h.x - c.x, h.z - c.z) < 340 + ramp)) return false;
+    return true;
+  }
+  function makeRob(Hw, M, c) {
+    const V = c.V, R = c.R, HU = V.half || M.ROAD_HALF, need = c.need, ramp = c.ramp;
+    // lift the road, with long, gentle ramps either side
+    if (need > 0) for (let i = 0; i <= V.LAST; i++) {
+      const d = Math.abs(i * M.STEP - c.vs);
+      if (d < ramp) V.PY[i] += need * (1 - KT.smoothstep(ramp * 0.18, ramp, d));
+    }
+    const fu = V.frame(c.vs), fr = R.frame(c.s);
+    const sin = Math.max(0.3, Math.abs(fu.fx * fr.rz - fu.fz * fr.rx));
+    const wl = c.BW + 3.8;                               // (the abutment walls stand this far out from the line)
+    const span = Math.min(60, (wl + 1.2) / sin + 2);    // (the deck, along the road)
+    const reachS = Math.min(140, (HU + 34) / sin);      // (the walled cutting, along the line)
+    const rob = { R, s: c.s, V, vs: c.vs, x: c.x, z: c.z, BW: c.BW, wl, span, reachS, sin, built: null };
+    Rail.robs.push(rob);
+    // the highway draws the deck and its parapets, and knows what is under it
+    Hw.cuts.push({ U: V, su: c.vs, L: R, sl: c.s, x: c.x, z: c.z, span, len: 0, w1: wl, reach: span + 30, depth: V.y(c.vs) - R.y(c.s), rail: true });
+    for (let s = c.vs - span; s <= c.vs + span; s += 6) {
+      const f = V.frame(s);
+      [-1, 1].forEach((sd) => { const q = V.at(s, sd * (HU + 0.35)); Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 0.2, hd: 3.2, rot: f.heading, minY: V.y(s) - 2 }); });
+    }
+  }
+  // (is (s, lateral d) on line R inside an overbridge's walled cutting?)
+  function robAt(R, s) {
+    for (let i = 0; i < Rail.robs.length; i++) { const b = Rail.robs[i]; if (b.R === R && Math.abs(s - b.s) < b.reachS) return b; }
+    return null;
   }
 
   // a coarse grid of the cells the lines pass, for quick "near a line?" tests
@@ -330,7 +379,15 @@
     if (cw <= 0) return h;
     for (let i = 0; i < L.length; i++) {
       const R = L[i], p = R.project(x, z);
-      const w = cw * (1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d));
+      // (under an overbridge the cutting is walled: sheer at the abutments,
+      // easing back to the usual banks towards its ends)
+      const b = Rail.robs.length ? robAt(R, p.s) : null;
+      let w;
+      if (b) {
+        const e = KT.smoothstep(b.reachS * 0.75, b.reachS, Math.abs(p.s - b.s));
+        const sheer = p.d < b.wl + 0.2 ? 1 : 0, soft = 1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d);
+        w = cw * KT.lerp(sheer, soft, e);
+      } else w = cw * (1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d));
       if (w <= 0) continue;
       keep *= 1 - w; sw += w; sy += w * (R.y(KT.clamp(p.s, 0, R.len)) - 0.8);
     }
@@ -487,6 +544,46 @@
     return g;
   }
 
+  // an overbridge's abutments: block-faced retaining walls either side of the
+  // line, from the track up to the land the road's embankment holds up
+  let robBlock = null;
+  function buildRob(b) {
+    const Hw = KT.Highway, R = b.R, g = new T.Group();
+    if (!robBlock) {
+      const tex = canvasTex(256, 256, (x, W, H) => {
+        const rng = KT.makeRng(41);
+        x.fillStyle = '#7d8083'; x.fillRect(0, 0, W, H);
+        const bh = 32, bw = 64;
+        for (let r = 0; r < H / bh; r++) for (let c = -1; c < W / bw + 1; c++) {
+          const ox = (r % 2) * bw / 2, v = 128 + Math.floor(rng() * 34);
+          x.fillStyle = 'rgb(' + v + ',' + (v + 2) + ',' + (v + 4) + ')';
+          x.fillRect(c * bw + ox + 2, r * bh + 2, bw - 4, bh - 4);
+        }
+        for (let i = 0; i < 900; i++) { const v = 90 + rng() * 80; x.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',0.35)'; x.fillRect(rng() * W, rng() * H, 2, 2); }
+      }, true);
+      robBlock = KT.mat('robBlock', { map: tex, roughness: 0.92, side: T.DoubleSide });
+    }
+    const wall = L(), cope = new T.Group(), coping = KT.mat('robCoping', { color: 0xb9b6ae, roughness: 0.85 });
+    [-1, 1].forEach((sd) => {
+      const lat = sd * b.wl, base = wall.pos.length / 3;
+      let n = 0;
+      for (let s = b.s - b.reachS; s <= b.s + b.reachS + 0.01; s += 2) {
+        const ss = KT.clamp(s, 0, R.len), f = R.frame(ss), y0 = R.y(ss) - 0.9;
+        const o = R.at(ss, sd * (b.wl + 0.9)), top = Math.max(y0 + 0.2, Hw.height(o.x, o.z) + 0.15);
+        const q = R.at(ss, lat);
+        wall.pos.push(q.x, y0, q.z, q.x, top, q.z);
+        wall.uv.push(ss / 4, 0, ss / 4, (top - y0) / 2);
+        if (n) { const a = base + (n - 1) * 2, c2 = base + n * 2; wall.idx.push(a, c2, a + 1, a + 1, c2, c2 + 1); }
+        if (top - y0 > 0.6) part(cope, G.box(0.7, 0.18, 2.05), coping, q.x + f.rx * sd * 0.2, top + 0.05, q.z + f.rz * sd * 0.2, 0, f.heading, 0);
+        n++;
+      }
+    });
+    const wm = meshOf(wall, robBlock); wm.castShadow = true; g.add(wm);
+    g.add(KT.bake(cope));
+    b.built = g;
+    return g;
+  }
+
   // level crossing gates (their arms come down when a train is near)
   let crossSign = null, lcSign = null;
   function buildGates(c) {
@@ -500,20 +597,59 @@
     deck.castShadow = false;
     // stop lines across the road on both sides
     [-1, 1].forEach((along) => { const q = P(along * (span + 4), 0); part(g, G.box(half * 2, 0.02, 0.3), KT.mat('lcLine', { color: 0xf2f2ee, roughness: 0.6 }), q.x, y + 0.04, q.z, 0, f.heading, 0).castShadow = false; });
-    // gates on both sides of the line, from both sides of the road
+    // a lifting boom on each side of the line, right across the road: yellow
+    // and black, with red plates hanging under it, on a counterweighted post
+    const red = KT.mat('lcRed', { color: 0xd0202e, roughness: 0.5 }), striped = KT.mat('lcStripe', { map: canvasTex(64, 8, (x, W) => { for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#1b1b1b' : '#f2c230'; x.fillRect(i * W / 8, 0, W / 8, 8); } }), roughness: 0.5 });
+    const postStripe = KT.mat('lcPostStripe', { map: canvasTex(8, 64, (x, W, H) => { for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#1b1b1b' : '#f4f4f0'; x.fillRect(0, i * H / 8, W, H / 8); } }), roughness: 0.55 });
+    const boomLen = half * 2 + 1.6;
     [-1, 1].forEach((along) => {
-      [-1, 1].forEach((side) => {
-        const q = P(along * (span + 2.5), side * (half + 0.9));
-        part(g, G.box(0.35, 1.2, 0.35), MT.gatePost, q.x, y + 0.6, q.z);
-        const pivot = new T.Group();
-        pivot.position.set(q.x, y + 1.05, q.z);
-        pivot.rotation.y = f.heading + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
-        const arm = part(pivot, G.box(0.12, 0.12, half + 0.6), MT.gateArm, 0, 0, (half + 0.6) / 2);
-        arm.castShadow = true;
-        g.add(pivot);
-        arms.push(pivot);
-      });
+      const side = along; // (the pivots stand on opposite sides of the road)
+      const q = P(along * (span + 2.5), side * (half + 1.0));
+      part(g, G.box(0.4, 1.3, 0.4), MT.gatePost, q.x, y + 0.65, q.z);
+      const rest = P(along * (span + 2.5), -side * (half + 1.0)); // (the boom rests on a short post across the road)
+      part(g, G.box(0.18, 0.95, 0.18), postStripe, rest.x, y + 0.48, rest.z);
+      const pivot = new T.Group();
+      pivot.position.set(q.x, y + 1.1, q.z);
+      pivot.rotation.y = f.heading + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+      part(pivot, G.box(0.16, 0.16, boomLen), striped, 0, 0, boomLen / 2 - 0.2).castShadow = true;
+      part(pivot, G.box(0.5, 0.5, 0.7), MT.gatePost, 0, 0, -0.75); // (the counterweight)
+      for (let k = 1.1; k < boomLen - 0.6; k += 0.95) part(pivot, G.box(0.05, 0.62, 0.2), red, 0, -0.42, k);
+      g.add(pivot);
+      arms.push(pivot);
     });
+    // a red STOP disc by each boom, and a height gauge over each approach
+    const stopM = new T.MeshStandardMaterial({ map: (() => {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      const x = cv.getContext('2d');
+      x.fillStyle = '#c8202b'; x.beginPath(); x.arc(64, 64, 62, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = 'bold 30px sans-serif'; x.fillText('STOP', 64, 52);
+      x.font = 'bold 19px sans-serif'; x.fillText('നിൽക്കുക', 64, 80);
+      x.fillStyle = '#ff6a6a'; [[64, 12], [64, 116], [14, 64], [114, 64], [30, 30], [98, 30], [30, 98], [98, 98]].forEach(([a, c]) => { x.beginPath(); x.arc(a, c, 5, 0, Math.PI * 2); x.fill(); });
+      const t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding; return t;
+    })(), alphaTest: 0.5, side: T.DoubleSide, roughness: 0.5 });
+    [-1, 1].forEach((along) => {
+      const q = P(along * (span + 3.6), -along * (half + 1.3)), face = f.heading + (along > 0 ? 0 : Math.PI);
+      part(g, G.cyl(0.05, 0.05, 2.6, 6), KT.M.darkGrey, q.x, y + 1.3, q.z);
+      part(g, G.plane(1.1, 1.1), stopM, q.x, y + 2.3, q.z, 0, face, 0).castShadow = false;
+      // (the height gauge: a black-and-white portal that high vehicles cannot pass)
+      const gl = P(along * (span + 9), -(half + 0.8)), gr = P(along * (span + 9), half + 0.8);
+      [gl, gr].forEach((p) => part(g, G.box(0.25, 5.0, 0.25), postStripe, p.x, y + 2.5, p.z));
+      const gm = P(along * (span + 9), 0);
+      part(g, G.box(0.22, 0.25, half * 2 + 1.9), KT.mat('lcGaugeBar', { map: canvasTex(64, 8, (x, W) => { for (let i = 0; i < 12; i++) { x.fillStyle = i % 2 ? '#1b1b1b' : '#f4f4f0'; x.fillRect(i * W / 12, 0, W / 12, 8); } }), roughness: 0.55 }), gm.x, y + 4.85, gm.z, 0, f.heading + Math.PI / 2, 0);
+    });
+    // weathered plank fencing along the line, beside the road
+    const plank = KT.mat('lcPlank', { color: 0x9c968c, roughness: 0.95 }), fence = new T.Group();
+    const R = c.R, rs = (half + 1.4) / sin;
+    [-1, 1].forEach((dir) => [-1, 1].forEach((sd) => {
+      for (let d = rs; d < rs + 12; d += 0.32) {
+        const s = c.s + dir * d, fr = R.frame(s), q = R.at(s, sd * (c.BW + 2.8));
+        const ry = R.y(s);
+        part(fence, G.box(0.16, 1.5 + ((d * 7) % 0.3), 0.04), plank, q.x, ry - 0.2 + 0.75, q.z, 0, fr.heading + Math.PI / 2, 0);
+      }
+      [0.25, 1.05].forEach((hh) => { const s = c.s + dir * (rs + 6), fr = R.frame(s), q = R.at(s, sd * (c.BW + 2.85)); part(fence, G.box(0.06, 0.08, 12), plank, q.x, R.y(s) - 0.2 + hh, q.z, 0, fr.heading, 0); });
+    }));
+    g.add(KT.bake(fence));
     // warning signs on both approaches: the white cross and "level crossing"
     if (!crossSign) {
       const cv = document.createElement('canvas'); cv.width = cv.height = 128;
@@ -658,6 +794,9 @@
         for (let k = 0; k < 20; k++) part(g, G.box(0.47, 0.325, 1.6), conc, 41.5 + 0.235 + k * 0.47, top + 6.5 - 0.1625 - k * 0.325, pz); // the steps
         [-1, 1].forEach((s) => part(g, G.box(9.4, 0.05, 0.05), pipe, 41.5 + 4.7, top + 4.3, pz + s * 0.8, 0, 0, -Math.atan2(6.5, 9.4)));
         part(g, G.box(0.14, 6.5, 0.14), blue, 50.9, top + 3.25, pz - Math.sign(pz) * 0.9);
+        // a blue sheet roof over the stair, on light posts
+        part(g, G.box(10.2, 0.06, 2.5), blueSheet, 41.5 + 4.7, top + 3.2 + 2.9, pz, 0, 0, -Math.atan2(6.5, 9.4));
+        [41.9, 46.2, 50.5].forEach((x) => [-1, 1].forEach((s) => part(g, G.box(0.08, 2.6, 0.08), pipe, x, top + 6.5 - (x - 41.5) * (6.5 / 9.4) + 1.3, pz + s * 1.1)));
       });
     }
     // a tea stall on the platform (chaya, vada and the newspapers)
@@ -981,6 +1120,11 @@
       const d = Math.hypot(c.x - pos.x, c.z - pos.z);
       if (!c.gates && d < 700) scene.add(buildGates(c));
       if (c.gates) c.gates.g.visible = d < 900;
+    });
+    Rail.robs.forEach((b) => {
+      const d = Math.hypot(b.x - pos.x, b.z - pos.z);
+      if (!b.built && d < 800) scene.add(buildRob(b));
+      if (b.built) b.built.visible = d < 1100;
     });
     // trains
     Rail.sfxT = (Rail.sfxT || 0) - dt;

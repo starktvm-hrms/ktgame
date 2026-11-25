@@ -938,6 +938,7 @@
     // underpasses: a grassy cutting down to the lower road
     if (!Hw._noCut) for (let i = 0; i < CUTS.length; i++) {
       const c = CUTS[i];
+      if (c.rail) continue; // (a road over the railway: js/rail.js walls the line's cutting)
       if (Math.abs(x - c.x) > c.reach || Math.abs(z - c.z) > c.reach) continue;
       const q = c.L.project(x, z), ds = Math.abs(q.s - c.sl);
       if (ds > c.len || q.d > c.w1 + 4) continue;
@@ -1732,6 +1733,8 @@
       });
     }
     // abutments on both sides of the road below, and piers beside it
+    // (over the railway, its block-walled abutments are js/rail.js's)
+    if (c.rail) return KT.bake(g);
     const fl = c.L.frame(c.sl), yl = c.L.y(c.sl);
     [-1, 1].forEach((sd) => {
       // a pier wall beside the road below, right under the deck
