@@ -891,6 +891,13 @@
       const c = tr.ride ? openCoach(tr.livery, i + (tr.R ? tr.R.id : 0)) : P[tr.livery].clone();
       g.add(c); list.push(c);
     }
+    // (an open coach's vestibule is shut where there is no coach beyond it:
+    // at the engine and at the tail)
+    if (tr.ride && list.length > 1) {
+      const shut = KT.mat('coachEnd', { color: 0x7d7a72, roughness: 0.8 }), door = G.box(0.8, 2.1, 0.05);
+      part(list[1], door, shut, 0, FLOOR + 1.05, 10.4);
+      part(list[list.length - 1], door, shut, 0, FLOOR + 1.05, -10.4);
+    }
     g.userData.cars = list;
     g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return g;
@@ -1364,7 +1371,7 @@
   const curCar = (ride) => ride.train.mesh.userData.cars[ride.aboard.car];
   function seatNear(ride) {
     const A = ride.aboard, seats = curCar(ride).userData.seats;
-    return seats.filter((s) => !s.taken && Math.abs(s.z - A.lz) < 1.0).sort((a, b) => (Math.abs(a.z - A.lz) + (a.win ? 0 : 0.3)) - (Math.abs(b.z - A.lz) + (b.win ? 0 : 0.3)))[0] || null;
+    return seats.filter((s) => !s.taken && Math.abs(s.z - A.lz) < 1.3).sort((a, b) => (Math.abs(a.z - A.lz) + (a.win ? 0 : 0.3)) - (Math.abs(b.z - A.lz) + (b.win ? 0 : 0.3)))[0] || null;
   }
   const standing = (ride) => ride.state === 'stop' || ride.state === 'doors' || ride.state === 'hold';
   const atDoor = (ride) => Math.abs(ride.aboard.lz) > 8.6;
@@ -1463,8 +1470,11 @@
         const dx = mx * Math.cos(h) - mz * Math.sin(h), dz = mx * Math.sin(h) + mz * Math.cos(h);
         A.lx = KT.clamp(A.lx + dx * sp, -AISLE, AISLE);
         A.lz += dz * sp;
-        if (A.lz > 10.3) { if (A.car > 1) { A.car--; A.lz = -10.3 + (A.lz - 10.3); } else A.lz = 10.3; }
-        else if (A.lz < -10.3) { if (A.car < list.length - 1) { A.car++; A.lz = 10.3 + (A.lz + 10.3); } else A.lz = -10.3; }
+        if (A.lz > 10.3 && A.car > 1) { A.car--; A.lz = -10.3 + (A.lz - 10.3); }
+        else if (A.lz < -10.3 && A.car < list.length - 1) { A.car++; A.lz = 10.3 + (A.lz + 10.3); }
+        // (the shut ends: at the engine and at the tail)
+        if (A.car <= 1) A.lz = Math.min(A.lz, 9.8);
+        if (A.car >= list.length - 1) A.lz = Math.max(A.lz, -9.8);
         car = list[A.car];
         P.heading = Math.atan2(mx, mz); moving = true;
         P.distance += mag * sp;
