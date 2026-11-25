@@ -1526,7 +1526,7 @@
     // junctions are left open) and reflectors down the centre line
     const kerbW = [], kerbB = [], eyes = [];
     const inTown = (s) => { if (!R.main) return false; const hi = Hw.hubIndexAt(s); return Math.abs(s - Hw.hubS(hi)) < 205; };
-    const open = (s, sd) => R.junctions.some((j) => Math.abs(j.s - s) < 18 && (j.side === 0 || j.side === sd));
+    const open = (s, sd) => R.junctions.some((j) => Math.abs(j.s - s) < (j.open || 18) && (j.side === 0 || j.side === sd));
     const kerbGeo = G.box(0.22, 0.34, 0.96), eyeGeo = G.box(0.14, 0.04, 0.2);
     for (let s = Math.ceil(a0); s < a1 && !C; s += 1) {
       if (bridged(s)) continue;
@@ -1687,39 +1687,35 @@
       if (d < ramp) R.PY[i] += dy * (1 - KT.smoothstep(ramp * 0.2, ramp, d));
     }
   }
+  // Where two roads cross with no junction, they meet on the level as a
+  // crossroads: the less busy one (never the NH) is eased up or down on long,
+  // smooth ramps to the other's height, and both get a junction there, so the
+  // kerbs open and you can turn from one onto the other.
   function buildUnderpasses() {
-    const CLEAR = 6.8;
-    findCrossings().forEach((x) => {
-      let U = x.A, su = x.sa, L = x.B, sl = x.sb;
-      if (U.y(su) < L.y(sl)) { U = x.B; su = x.sb; L = x.A; sl = x.sa; }
-      const need = CLEAR - (U.y(su) - L.y(sl));
-      if (need > 0) {
-        const ramp = Math.max(80, need / 0.045);
-        const busy = (R, s) => R.junctions.some((j) => Math.abs(j.s - s) < ramp + 25) || s < ramp || s > R.len - ramp;
-        if (!busy(L, sl)) lift(L, sl, -need, ramp);
-        else if (!busy(U, su)) lift(U, su, need, ramp);
-        else { lift(L, sl, -need / 2, ramp); lift(U, su, need / 2, ramp); }
-      }
-      const fu = U.frame(su), fl = L.frame(sl);
-      const sin = Math.max(0.12, Math.abs(fu.fx * fl.fz - fu.fz * fl.fx));
-      const depth = U.y(su) - L.y(sl), w1 = (L.half || ROAD_HALF) + 3.5 + Math.max(3, depth * 1.6);
-      const span = Math.min(140, w1 / sin + 4);
-      const len = Math.max(110, depth / 0.045 + 30);
-      CUTS.push({ U, su, L, sl, x: fl.x, z: fl.z, span, len, w1, reach: len + w1 + 10, depth });
+    const xs = findCrossings();
+    const busyness = (R, s, ramp) => R.junctions.filter((j) => Math.abs(j.s - s) < ramp + 25).length + (s < ramp || s > R.len - ramp ? 2 : 0) + (R.main ? 100 : 0);
+    for (let pass = 0; pass < 2; pass++) {
+      xs.forEach((x) => {
+        const dy = x.A.y(x.sa) - x.B.y(x.sb);
+        if (Math.abs(dy) < 0.02) return;
+        const ramp = Math.max(90, Math.abs(dy) / 0.04);
+        const ba = busyness(x.A, x.sa, ramp), bb = busyness(x.B, x.sb, ramp);
+        if (ba > bb) lift(x.B, x.sb, dy, ramp);          // (B comes to A's height)
+        else if (bb > ba) lift(x.A, x.sa, -dy, ramp);    // (A comes to B's)
+        else { lift(x.A, x.sa, -dy / 2, ramp); lift(x.B, x.sb, dy / 2, ramp); }
+      });
+    }
+    xs.forEach((x) => {
+      const fa = x.A.frame(x.sa), fb = x.B.frame(x.sb);
+      const sin = Math.max(0.25, Math.abs(fa.fx * fb.fz - fa.fz * fb.fx));
+      // (the minor road a hair above the other inside the junction, so their
+      // surfaces never flicker)
+      const minor = x.A.main ? x.B : x.B.main ? x.A : (x.A.half || ROAD_HALF) >= (x.B.half || ROAD_HALF) ? x.B : x.A;
+      lift(minor, minor === x.A ? x.sa : x.sb, 0.025, 30);
+      x.A.junctions.push({ s: x.sa, side: 0, other: x.B, cross: true, open: ((x.B.half || ROAD_HALF) + 2.5) / sin });
+      x.B.junctions.push({ s: x.sb, side: 0, other: x.A, cross: true, open: ((x.A.half || ROAD_HALF) + 2.5) / sin });
     });
-    // the railings along the cutting's edges and the overpass parapets
-    CUTS.forEach((c) => {
-      const HL = c.L.half || ROAD_HALF, HU = c.U.half || ROAD_HALF;
-      for (let s = c.su - c.span; s <= c.su + c.span; s += 6) {
-        const f = c.U.frame(s);
-        [-1, 1].forEach((sd) => {
-          const q = c.U.at(s, sd * (HU + 0.35));
-          // (only where they stand over the cutting, never across the road below)
-          const pl = c.L.project(q.x, q.z);
-          if (pl.d > HL + 1.5) Hw.addCollider({ type: 'box', x: q.x, z: q.z, hw: 0.2, hd: 3.2, rot: f.heading, minY: c.U.y(s) - 2 });
-        });
-      }
-    });
+    Hw.crossroads = xs;
   }
   function overpass(c) {
     const g = new T.Group(), U = c.U, HU = U.half || ROAD_HALF, HL = c.L.half || ROAD_HALF;

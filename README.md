@@ -655,11 +655,10 @@ dead-end lane that would run into a channel is not built.
 Where two roads cross with no junction (the Kayamkulam highway and the main
 highway south of Alappuzha, the Vadakara highway near Kozhikode, and the
 Kovalam road over MG Road and the Neyyattinkara road in Thiruvananthapuram),
-the lower one runs under the other through a grassy cutting, and the upper
-one crosses on a concrete overpass with parapets. There are at least 6.8 m
-between them: the lower road dips, or the upper one rises where the lower
-has a junction close by. You and the traffic can drive both levels, and
-things up on the overpass never block the road underneath.
+they meet on the level as a crossroads. The less busy road (never the NH)
+eases up or down to the other's height on long, gentle ramps, so the two
+surfaces meet smoothly with no walls or parapets in the way, and the kerbs
+open on all four corners so you can turn from one road onto the other.
 
 Wheels turn. Every car, auto-rickshaw, lorry and scooter (yours and the
 traffic's) has a proper wheel rig (tyre, rim, hub cap and bolts) that spins
