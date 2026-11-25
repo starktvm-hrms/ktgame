@@ -1694,7 +1694,10 @@
   function buildUnderpasses() {
     const xs = findCrossings();
     const busyness = (R, s, ramp) => R.junctions.filter((j) => Math.abs(j.s - s) < ramp + 25).length + (s < ramp || s > R.len - ramp ? 2 : 0) + (R.main ? 100 : 0);
-    for (let pass = 0; pass < 2; pass++) {
+    // (crossings close together on one road pull at each other: go round
+    // until they all meet)
+    for (let pass = 0; pass < 8; pass++) {
+      if (xs.every((x) => Math.abs(x.A.y(x.sa) - x.B.y(x.sb)) < 0.02)) break;
       xs.forEach((x) => {
         const dy = x.A.y(x.sa) - x.B.y(x.sb);
         if (Math.abs(dy) < 0.02) return;
@@ -1705,6 +1708,13 @@
         else { lift(x.A, x.sa, -dy / 2, ramp); lift(x.B, x.sb, dy / 2, ramp); }
       });
     }
+    // (whatever is left closes on the road not shared with a crossing nearby)
+    xs.forEach((x) => {
+      const dy = x.A.y(x.sa) - x.B.y(x.sb);
+      if (Math.abs(dy) < 0.02) return;
+      const shared = (R, s) => xs.filter((o) => o !== x && ((o.A === R && Math.abs(o.sa - s) < 150) || (o.B === R && Math.abs(o.sb - s) < 150))).length;
+      if (shared(x.B, x.sb) <= shared(x.A, x.sa)) lift(x.B, x.sb, dy, 40); else lift(x.A, x.sa, -dy, 40);
+    });
     xs.forEach((x) => {
       const fa = x.A.frame(x.sa), fb = x.B.frame(x.sb);
       const sin = Math.max(0.25, Math.abs(fa.fx * fb.fz - fa.fz * fb.fx));
