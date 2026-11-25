@@ -543,31 +543,49 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
   - a gatekeeper's hut.
 
   The road's kerbs, poles and stalls stay clear of the crossing.
-- **Stations**, 55 in all, at every main station on the map:
-  - platforms with yellow name boards in Malayalam and English, a shelter,
-    benches, lamps and a tea stall (chaya, vada, snacks);
+- **Stations**, 55 in all, at every main station on the map, built after
+  Kerala's platforms:
+  - red-oxide tiled platforms with the white edge and the yellow line a
+    step in, a red face to the track, and yellow concrete name slabs in
+    Malayalam, Hindi and English with red-and-white picket fences;
+  - blue sheet shelters on yellow steel columns with tube lights, platform
+    number boards and "WAY OUT / പുറത്തേക്ക്" signs hanging under them;
+  - benches, lamps and a tea stall (chaya, vada, snacks); black-and-white
+    posts with pipe rails between the tracks; overhead-wire portals at
+    both ends;
+  - on the double lines a roofed foot overbridge with stairs down to each
+    platform;
   - people: passengers waiting on the benches, others walking up and down
-    the platform with their bags, the tea seller at his counter;
-  - a cream station building under a tiled roof, with a foot overbridge at
-    the junctions;
-  - a lane from the nearest road.
+    the platform with their bags, knots of people standing talking under
+    the shelter, the tea seller at his counter;
+  - a cream station building under a tiled roof, and a lane from the
+    nearest road.
 - **Trains**: an electric engine with six to eight coaches (blue, grey or
-  red-and-grey) running up and down every line to a timetable, a train
+  red-and-grey, with barred windows and their coach numbers by the doors)
+  running up and down every line to a timetable, a train
   every few minutes at every station. A train sounds its horn as it pulls
   out, and the station chime plays as one draws in.
-- **Riding a train**: at any station, press E on the platform and pick your
-  station. Your train comes in to the platform (at Thampanoor it waits
-  there), you take a window seat, and it carries you down the line:
-  - inside the coach there are bench seats in bays, luggage racks, open
-    windows and other passengers; look around freely with the mouse, or
-    press **V** to watch the train from outside;
-  - it stops at every station on the way (the name comes up; press **E**
-    while it stands to get off there), and at a junction you change to the
-    next train when your station is on another line;
-  - the route bar shows the line's stations, your train and the next stop,
-    the distance to it and the speed;
-  - press **R** on a long stretch to skip ahead to just before your stop;
-  - a save made mid-ride puts you on the platform you are riding to.
+- **Getting into a train**: walk up to a door of any train standing at a
+  station and press **E** to get in (a train on its timetable takes you on
+  down its line); or press E on the platform to book a train to a station
+  of your choice: it comes in to the platform (at Thampanoor it waits
+  there), its doors open, and you get in by a door.
+- **Inside**: every coach has a floor you walk on (W A S D), cream walls
+  with open barred windows, blue bench seats in bays facing each other,
+  luggage racks, vestibule doors at both ends into the next coach, and
+  other passengers in some of the seats. Walk the aisle from coach to
+  coach (the engine's door is locked); stand by a free seat and press E to
+  sit down, by the window or on the aisle; sitting, move the mouse to look
+  out of the window and around the coach; E again to stand up. Press **V**
+  to watch the train from outside.
+- **The ride**: a booked train runs to your station, stopping at every
+  station on the way (the name comes up), and at a junction it waits while
+  you change to the next train when your station is on another line. At
+  any stop, walk to a door at the end of the coach and press E to step
+  off onto the platform. The route bar shows the line's stations, your
+  train and the next stop, the distance to it and the speed; press **R**
+  on a long stretch to skip ahead to just before your stop; a save made
+  mid-ride puts you on the platform you are riding to.
 - The railway is drawn on the minimap and the big map.
 
 ### Trees and grass

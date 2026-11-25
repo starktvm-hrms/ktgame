@@ -719,7 +719,7 @@
     if (I.consume('recover') && P.mode === 'bus') { recoverVehicle(); return; }
     if (I.consume('recover') && P.mode === 'train') { KT.Rail.skip(); return; }
     if (I.consume('interact')) {
-      if (P.mode === 'train') { KT.Rail.getOff(); return; }
+      if (P.mode === 'train') { KT.Rail.action(); return; }
       if (P.mode === 'canoe') { P.leaveCanoe(); return; }
       if (P.mode === 'climb') { P.climbAction(); return; }
       if (P.mode === 'bus' && P.bus.stuckT > 1.5) { recoverVehicle(); return; }
@@ -775,7 +775,7 @@
       else if (P.mode === 'bus') KT.UI.prompt(Math.abs(P.bus.speed) > 1.5 ? 'W/S drive \u2022 A/D steer \u2022 H ' + (P.bus.type === 'bicycle' ? 'bell' : 'horn') + ' \u2022 stop to get off' : key + 'Get off the ' + P.bus.spec.name);
       else KT.UI.prompt(best ? key + best.label : null);
     } else KT.UI.prompt(null);
-    $('btn-action').classList.toggle('glow', !!best || P.mode === 'canoe' || P.mode === 'bus' || (P.mode === 'train' && KT.Rail.ride && KT.Rail.ride.state === 'stop'));
+    $('btn-action').classList.toggle('glow', !!best || P.mode === 'canoe' || P.mode === 'bus' || (P.mode === 'train' && KT.Rail.ride && KT.Rail.ride.aboard && (KT.Rail.ride.aboard.seat || KT.Rail.ride.state !== 'go')));
   }
 
   // ------------------------------------------------- home: KSRTC stand
