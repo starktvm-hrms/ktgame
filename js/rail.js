@@ -61,6 +61,9 @@
 
   // ------------------------------------------------------------ planning
   const unit = (x, z) => { const l = Math.hypot(x, z) || 1; return { x: x / l, z: z / l }; };
+  // the railway keeps back from the sea: the beach slopes down to the water
+  // on its own, and never ends in a cliff under an embankment
+  const COAST_ST = 280, COAST_LINE = 150, COAST_PUSH = 210;
   Rail.plan = function () {
     const Hw = KT.Highway, M = Hw._mk;
     const hubs = KT.DISTRICTS.map((d, i) => Hw.at(Hw.hubS(i), 0));
@@ -80,13 +83,14 @@
     Object.keys(ST).forEach((k) => {
       if (k === 'tvm' && tvmFrame) { where[k] = { x: tvmFrame.x, z: tvmFrame.z }; return; }
       const p = Hw.geo(ST[k][3], ST[k][2]);
-      for (let it = 0; it < 4; it++) {
-        const E = p.x - Hw.coastX(p.z);
-        if (E < 150) p.x += 150 - E;
+      for (let it = 0; it < 5; it++) {
         hubs.forEach((h) => { const d = Math.hypot(p.x - h.x, p.z - h.z); if (d < 330) { const u = unit(p.x - h.x, p.z - h.z); p.x = h.x + u.x * 330; p.z = h.z + u.z * 330; } });
         sights.forEach((sg) => { const d = Math.hypot(p.x - sg.x, p.z - sg.z), m = sg.r + 90; if (d < m) { const u = unit(p.x - sg.x, p.z - sg.z); p.x = sg.x + u.x * m; p.z = sg.z + u.z * m; } });
         // (and off the roads: a station stands beside them, not on them)
         Hw.roads.forEach((V) => { if (!V.near(p.x, p.z, 60)) return; const q = V.project(p.x, p.z), m = (V.half || 5.5) + 45; if (q.d < m && q.s > 0 && q.s < V.len) { const f = V.frame(q.s), sd = q.lat < 0 ? -1 : 1; p.x = f.x + f.rx * sd * m; p.z = f.z + f.rz * sd * m; } });
+        // (and well back from the sea: the station's ground, not a cliff over the beach)
+        const E = p.x - Hw.coastX(p.z);
+        if (E < COAST_ST) p.x += COAST_ST - E;
       }
       where[k] = p;
     });
@@ -128,6 +132,11 @@
         for (let i = 40; i < cv.PX.length - 40 && fixes.length < 6; i += 5) {
           if (fixes.length && i - fixes[fixes.length - 1].i < 90) continue;
           const x = cv.PX[i], z = cv.PZ[i];
+          // (never out over the beach or the sea, except Thampanoor's own tracks)
+          if (x - Hw.coastX(z) < COAST_LINE && !((first && i * M.STEP < 160) || (last && (cv.PX.length - i) * M.STEP < 160))) {
+            fixes.push({ i, x: Hw.coastX(z) + COAST_PUSH, z });
+            continue;
+          }
           const h = hubs.find((q) => Math.hypot(x - q.x, z - q.z) < 250);
           const sg = !h && sights.find((q) => q.kind !== 'thampanoor' && Math.hypot(x - q.x, z - q.z) < q.r + 14);
           const o = h ? { x: h.x, z: h.z, r: 320 } : sg ? { x: sg.x, z: sg.z, r: sg.r + 50 } : null;
@@ -306,9 +315,12 @@
     const L = cellLines(x, z);
     if (!L) return h;
     let keep = 1, sw = 0, sy = 0;
+    // (the beach keeps its slope: no embankment holds the land up over the sea)
+    const cw = KT.smoothstep(35, 95, x - KT.Highway.coastX(z));
+    if (cw <= 0) return h;
     for (let i = 0; i < L.length; i++) {
       const R = L[i], p = R.project(x, z);
-      const w = 1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d);
+      const w = cw * (1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d));
       if (w <= 0) continue;
       keep *= 1 - w; sw += w; sy += w * (R.y(KT.clamp(p.s, 0, R.len)) - 0.8);
     }

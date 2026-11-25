@@ -93,7 +93,7 @@
     } else if (look && type === 'scooter') obj = KT.Models.scooter(look.col, null);
     else obj = spec.make();
     scene.add(obj);
-    const veh = { obj, type, spec, scene, level: spec.water ? 'highway' : KT.L.id, heading: heading || 0, speed: 0, steer: 0, odo: 0, occupied: false, y: 0 };
+    const veh = { obj, type, spec, scene, look: look || null, level: spec.water ? 'highway' : KT.L.id, heading: heading || 0, speed: 0, steer: 0, odo: 0, occupied: false, y: 0 };
     obj.position.set(x, KT.L.groundY(x, z).y, z);
     obj.rotation.y = veh.heading;
     if (spec.water) veh.home = { x, z, heading: veh.heading };

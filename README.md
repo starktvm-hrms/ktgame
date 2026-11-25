@@ -27,8 +27,9 @@ world is ready. A remembered player goes straight on.
 Continue puts you back at the exact spot where you left the game, facing the
 same way:
 
-- **On the highway**: you are on foot where you stood, or where your
-  vehicle was. If you were up on a platform, a bridge or the Thampanoor
+- **On the highway**: on foot where you stood, or back at the wheel of the
+  vehicle you were in, where it stood: the KSRTC bus, or your own ride with
+  the same paint. If you were up on a platform, a bridge or the Thampanoor
   skywalk, you come back up on it.
 - **Inside the Kovalam or Thangassery lighthouse**: just outside its door.
 - **In the home village**: where you last walked.
@@ -526,7 +527,9 @@ Kerala's railway runs across the map, after the Kerala railway map (js/rail.js):
   The lines start from Thampanoor's own platforms.
 - **Track**: rails on concrete sleepers on a ballast embankment (the land is
   shaped to it), girder bridges on piers over rivers, backwaters and dips,
-  and overhead electric masts and wires.
+  and overhead electric masts and wires. The lines and the stations keep
+  well back from the sea, so the beach slopes down to the water as it
+  always does: no station stands on a cliff over it.
 - **Lines and roads**: the lines are laid clear of the roads. Where a line
   would run along or over a road, near a junction or on a road bridge, it
   bends away.

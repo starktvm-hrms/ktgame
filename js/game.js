@@ -306,7 +306,7 @@
     // back where you left off: the exact spot on the highway (else its nearest bus stand)
     if (saved && Game.data.map === 'highway') {
       const p = Game.data.hwPos;
-      if (p && isFinite(p.x) && isFinite(p.z)) Game.goHighway({ spot: { x: p.x, z: p.z, y: p.y, heading: Game.data.hwHeading || 0 }, quiet: true });
+      if (p && isFinite(p.x) && isFinite(p.z)) Game.goHighway({ spot: { x: p.x, z: p.z, y: p.y, heading: Game.data.hwHeading || 0, veh: Game.data.hwVeh || null }, quiet: true });
       else Game.goHighway({ hub: Game.data.hwHub, board: false, quiet: true });
     }
     setTimeout(Game.checkUnlocks, 2500);
@@ -340,11 +340,13 @@
       d.heading = o.heading;
     } else {
       // on the highway: the exact spot (in a vehicle, where the vehicle is)
-      const Hw = KT.Highway, at = P.mode !== 'foot' && P.bus && P.bus.obj ? P.bus.obj.position : P.pos;
+      const Hw = KT.Highway, veh = P.mode === 'bus' && P.bus && P.bus.obj ? P.bus : null, at = veh ? veh.obj.position : P.pos;
       d.hwHub = Hw.status(at).nearest;
-      if (Hw.built && !Hw.isWater(at.x, at.z)) {
+      if (Hw.built && (!Hw.isWater(at.x, at.z) || (veh && veh.spec.water))) {
         d.hwPos = { x: Math.round(at.x * 100) / 100, y: Math.round(at.y * 100) / 100, z: Math.round(at.z * 100) / 100 };
-        d.hwHeading = P.mode !== 'foot' && P.bus ? P.bus.heading : P.heading;
+        d.hwHeading = veh ? veh.heading : P.heading;
+        // (and the vehicle you were in: the KSRTC bus, or your own ride and its paint)
+        d.hwVeh = veh ? { type: veh.type, look: veh.look || null, ksrtc: veh === Hw.bus } : null;
       }
     }
     // (inside a highway lighthouse, resume by its door on the highway)
@@ -951,6 +953,22 @@
     switchLevel(Hw, Hw.scene);
     KT.Traffic.initHighway();
     if (opts.board !== false && !opts.spot) P.boardBus(Hw.bus);
+    // back in the vehicle you were in when you left (where it stood)
+    const sv = opts.spot && opts.spot.veh;
+    if (sv && KT.Vehicle.TYPES[sv.type] && !Hw.noVehicles) {
+      let ride = null;
+      if (sv.ksrtc || sv.type === 'bus') {
+        ride = Hw.bus;
+        ride.obj.position.set(foot.x, P.pos.y, foot.z);
+        ride.heading = P.heading; ride.speed = 0;
+      } else {
+        if (Game.ride) { KT.Vehicle.remove(Game.ride); Game.ride = null; }
+        Game.ride = ride = KT.Vehicle.create(Hw.scene, foot.x, foot.z, P.heading, sv.type, sv.look || undefined);
+        ride.obj.position.y = P.pos.y;
+      }
+      KT.Vehicle.settle(ride);
+      P.boardBus(ride);
+    }
     KT.CameraRig.yaw = P.heading + Math.PI;
     Game.lastHub = idx;
     Hw.update(0.016, P, Game.camera);
