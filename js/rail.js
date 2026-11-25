@@ -329,7 +329,7 @@
     const wl = c.BW + 3.8;                               // (the abutment walls stand this far out from the line)
     const span = Math.min(60, (wl + 1.2) / sin + 2);    // (the deck, along the road)
     const reachS = Math.min(140, (HU + 34) / sin);      // (the walled cutting, along the line)
-    const rob = { R, s: c.s, V, vs: c.vs, x: c.x, z: c.z, BW: c.BW, wl, span, reachS, sin, built: null };
+    const rob = { R, s: c.s, V, vs: c.vs, x: c.x, z: c.z, BW: c.BW, wl, cut: wl + 7.5, span, reachS, sin, built: null };
     Rail.robs.push(rob);
     // the highway draws the deck and its parapets, and knows what is under it
     Hw.cuts.push({ U: V, su: c.vs, L: R, sl: c.s, x: c.x, z: c.z, span, len: 0, w1: wl, reach: span + 30, depth: V.y(c.vs) - R.y(c.s), rail: true });
@@ -385,7 +385,9 @@
       let w;
       if (b) {
         const e = KT.smoothstep(b.reachS * 0.75, b.reachS, Math.abs(p.s - b.s));
-        const sheer = p.d < b.wl + 0.2 ? 1 : 0, soft = 1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d);
+        // (the ground is cut flat a little past the walls, so the land's
+        // coarse mesh can only rise behind them, never in front)
+        const sheer = p.d < b.cut ? 1 : 0, soft = 1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d);
         w = cw * KT.lerp(sheer, soft, e);
       } else w = cw * (1 - KT.smoothstep(bedHalf(R) + 1.5, bedHalf(R) + 16 + 20 * gh, p.d));
       if (w <= 0) continue;
@@ -563,22 +565,41 @@
       }, true);
       robBlock = KT.mat('robBlock', { map: tex, roughness: 0.92, side: T.DoubleSide });
     }
-    const wall = L(), cope = new T.Group(), coping = KT.mat('robCoping', { color: 0xb9b6ae, roughness: 0.85 });
+    const wall = L(), shelf = Object.assign(L(), { col: [] }), cope = new T.Group(), coping = KT.mat('robCoping', { color: 0xb9b6ae, roughness: 0.85 });
     [-1, 1].forEach((sd) => {
-      const lat = sd * b.wl, base = wall.pos.length / 3;
+      const lat = sd * b.wl, base = wall.pos.length / 3, sbase = shelf.pos.length / 3;
       let n = 0;
       for (let s = b.s - b.reachS; s <= b.s + b.reachS + 0.01; s += 2) {
         const ss = KT.clamp(s, 0, R.len), f = R.frame(ss), y0 = R.y(ss) - 0.9;
-        const o = R.at(ss, sd * (b.wl + 0.9)), top = Math.max(y0 + 0.2, Hw.height(o.x, o.z) + 0.15);
-        const q = R.at(ss, lat);
+        // the wall's top: the land beyond the cut, easing to the bank's own
+        // height where the cutting ends
+        const e = KT.smoothstep(b.reachS * 0.75, b.reachS, Math.abs(ss - b.s));
+        const o1 = R.at(ss, sd * (b.cut + 6)), o2 = R.at(ss, sd * (b.wl + 0.9));
+        const top = Math.max(y0 + 0.2, KT.lerp(Hw.height(o1.x, o1.z), Hw.height(o2.x, o2.z), e) + 0.15);
+        const q = R.at(ss, lat), out = R.at(ss, sd * (b.cut + 6.5));
         wall.pos.push(q.x, y0, q.z, q.x, top, q.z);
         wall.uv.push(ss / 4, 0, ss / 4, (top - y0) / 2);
         if (n) { const a = base + (n - 1) * 2, c2 = base + n * 2; wall.idx.push(a, c2, a + 1, a + 1, c2, c2 + 1); }
+        // (a grassy shelf at the wall's top over the cut behind it)
+        shelf.pos.push(q.x, top - 0.02, q.z, out.x, top - 0.02, out.z);
+        shelf.uv.push(q.x / 7, q.z / 7, out.x / 7, out.z / 7);
+        [q, out].forEach((p) => { const c = Hw.groundColor(p.x, p.z, top); shelf.col.push(c.r, c.g, c.b); });
+        if (n) { const a = sbase + (n - 1) * 2, c2 = sbase + n * 2; shelf.idx.push(a, c2, a + 1, a + 1, c2, c2 + 1); }
         if (top - y0 > 0.6) part(cope, G.box(0.7, 0.18, 2.05), coping, q.x + f.rx * sd * 0.2, top + 0.05, q.z + f.rz * sd * 0.2, 0, f.heading, 0);
         n++;
       }
     });
     const wm = meshOf(wall, robBlock); wm.castShadow = true; g.add(wm);
+    // (each side's shelf faces up: flip any side whose triangles face down)
+    const half = shelf.idx.length / 2;
+    for (let k = 0; k < 2; k++) {
+      const i0 = k * half, a = shelf.idx[i0] * 3, b2 = shelf.idx[i0 + 1] * 3, c3 = shelf.idx[i0 + 2] * 3, P = shelf.pos;
+      const ny = (P[b2 + 2] - P[a + 2]) * (P[c3] - P[a]) - (P[b2] - P[a]) * (P[c3 + 2] - P[a + 2]);
+      if (ny < 0) for (let i = i0; i < i0 + half; i += 3) { const t = shelf.idx[i + 1]; shelf.idx[i + 1] = shelf.idx[i + 2]; shelf.idx[i + 2] = t; }
+    }
+    const sm = meshOf(shelf, Hw.terrainMat());
+    sm.geometry.setAttribute('color', new T.Float32BufferAttribute(shelf.col, 3));
+    g.add(sm);
     g.add(KT.bake(cope));
     b.built = g;
     return g;
@@ -610,7 +631,7 @@
       part(g, G.box(0.18, 0.95, 0.18), postStripe, rest.x, y + 0.48, rest.z);
       const pivot = new T.Group();
       pivot.position.set(q.x, y + 1.1, q.z);
-      pivot.rotation.y = f.heading + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+      pivot.rotation.y = f.heading + (side > 0 ? Math.PI / 2 : -Math.PI / 2); // (across the road, from its post)
       part(pivot, G.box(0.16, 0.16, boomLen), striped, 0, 0, boomLen / 2 - 0.2).castShadow = true;
       part(pivot, G.box(0.5, 0.5, 0.7), MT.gatePost, 0, 0, -0.75); // (the counterweight)
       for (let k = 1.1; k < boomLen - 0.6; k += 0.95) part(pivot, G.box(0.05, 0.62, 0.2), red, 0, -0.42, k);

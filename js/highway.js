@@ -3442,6 +3442,9 @@
     Hw.built = true;
   };
 
+  // the land's own material and colour at a point (for ground other modules lay)
+  Hw.terrainMat = () => mats.terrain;
+  Hw.groundColor = (x, z, h) => { const pr = Hw.nearestRoad(x, z, 900); return tileColor(x, z, h, pr.d, pr.road.y(pr.s), pr.road.half); };
   // (for js/rail.js, which lays its lines the way the roads are laid)
   Hw._mk = { makeRoad, curveThrough, heightProfile, levelAt, leave, STEP, HUB_XZ, ROAD_HALF };
 
