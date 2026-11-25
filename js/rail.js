@@ -147,7 +147,10 @@
             fixes.push({ i, x: Hw.coastX(z) + COAST_PUSH, z });
             continue;
           }
-          const h = hubs.find((q) => Math.hypot(x - q.x, z - q.z) < 250);
+          // (a line out of Thampanoor starts inside the capital: it does not
+          // bend round its own town, only the others)
+          const nearTvm = tvmFrame && ((first && Math.hypot(x - tvmFrame.x, z - tvmFrame.z) < 900) || (last && Math.hypot(x - tvmFrame.x, z - tvmFrame.z) < 900));
+          const h = !nearTvm && hubs.find((q) => Math.hypot(x - q.x, z - q.z) < 250);
           const sg = !h && sights.find((q) => q.kind !== 'thampanoor' && Math.hypot(x - q.x, z - q.z) < q.r + 14);
           const o = h ? { x: h.x, z: h.z, r: 320 } : sg ? { x: sg.x, z: sg.z, r: sg.r + 50 } : null;
           if (o) {
@@ -178,6 +181,32 @@
           while (k < C.length - 1 && cv.S[k + 1] < sAt) k++;
           C.splice(k + 1, 0, { x: fx.x, z: fx.z });
         });
+      }
+      // no knots: wherever the line turns more than 150 degrees within 400 m,
+      // the bend point that made it is dropped and the line laid again
+      const turnAt = () => {
+        const n = cv.PX.length, W = Math.max(8, Math.round(400 / M.STEP));
+        // (the running total of the turning, so each window is one subtraction)
+        const cum = new Float64Array(n);
+        let prev = Math.atan2(cv.PX[1] - cv.PX[0], cv.PZ[1] - cv.PZ[0]);
+        for (let i = 1; i + 1 < n; i++) {
+          const h = Math.atan2(cv.PX[i + 1] - cv.PX[i], cv.PZ[i + 1] - cv.PZ[i]);
+          let d = h - prev; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+          cum[i] = cum[i - 1] + d; prev = h;
+        }
+        let best = { t: 0, i: 0 };
+        for (let i = 0; i + W < n - 1; i++) { const t = cum[i + W] - cum[i]; if (Math.abs(t) > Math.abs(best.t)) best = { t, i: i + (W >> 1) }; }
+        return best;
+      };
+      for (let k = 0; k < 14; k++) {
+        const w = turnAt();
+        if (Math.abs(w.t) < 150 * Math.PI / 180) break;
+        const x = cv.PX[w.i], z = cv.PZ[w.i];
+        let bi = -1, bd = 1e9;
+        C.forEach((c, i) => { if (c.stop !== undefined || c.t) return; const d = Math.hypot(c.x - x, c.z - z); if (d < bd) { bd = d; bi = i; } });
+        if (bi < 0 || bd > 600) break;
+        C.splice(bi, 1);
+        cv = M.curveThrough(C, { avoidTowns: true, passes: 2, angles: 18 });
       }
       const PY = M.heightProfile(cv.PX, cv.PZ, 7000 + li * 913);
       // railways climb gently: smooth the profile more than a road's
@@ -212,6 +241,12 @@
     });
     crossings(Hw, M);
     stationSites(Hw, M, tvmFrame);
+    // (last of all, the lines at a junction station meet at its height again,
+    // whatever the water and the crossings did to them since)
+    Rail.stations.forEach((st) => {
+      if (st.tvm || st.lines.length < 2) return;
+      st.lines.forEach((l) => { if (l.R !== st.R) M.levelAt(l.R.PY, l.s, st.y, 80, 220); });
+    });
     buildGrid();
     Rail.ready = true;
   };
