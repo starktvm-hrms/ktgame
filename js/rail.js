@@ -115,6 +115,19 @@
         Object.assign(C[0], { t: { x: a.x * sg, z: a.z * sg }, back: 0, fwd: 85 });
       }
       if (last) C[C.length - 1].back = 85;
+      // at a station an earlier line already serves (a junction), this line
+      // runs through it along the same platforms, and parts from it beyond
+      // them (a single line joins on one of a double line's own tracks)
+      C.forEach((c, i) => {
+        if (c.t || c.stop === undefined) return;
+        const ex = made[L.stops[c.stop]];
+        if (!ex || ex.tvm) return;
+        const l0 = ex.lines[0], f = l0.R.frame(l0.s);
+        const o = C[i + 1] || null, p = C[i - 1] || null;
+        const dx = o ? o.x - c.x : c.x - p.x, dz = o ? o.z - c.z : c.z - p.z;
+        const sg = dx * f.fx + dz * f.fz >= 0 ? 1 : -1, lat = l0.R.double && !L.double ? -TRACK : 0;
+        Object.assign(c, { x: f.x + f.rx * lat, z: f.z + f.rz * lat, t: { x: f.fx * sg, z: f.fz * sg }, back: p ? 110 : 0, fwd: o ? 110 : 0 });
+      });
       // keep clear of the towns, the sights and the roads: bend round them.
       // A line may cross a road (a level crossing, at a good angle, away
       // from its junctions), but never runs along it or over it.
@@ -247,6 +260,17 @@
       if (st.tvm || st.lines.length < 2) return;
       st.lines.forEach((l) => { if (l.R !== st.R) M.levelAt(l.R.PY, l.s, st.y, 80, 220); });
     });
+    // and wherever two lines run side by side (leaving a junction), the later
+    // one keeps to the earlier one's height until they part
+    Rail.lines.forEach((B, ib) => Rail.lines.forEach((A, ia) => {
+      if (ia >= ib) return;
+      for (let s = 0; s <= B.len; s += 8) {
+        const f = B.frame(s), q = A.project(f.x, f.z);
+        if (q.d > 32 || q.s <= 0 || q.s >= A.len) continue;
+        const w = 1 - KT.smoothstep(18, 32, q.d), i = Math.round(s / M.STEP);
+        for (let k = Math.max(0, i - 4); k <= Math.min(B.LAST, i + 4); k++) B.PY[k] = KT.lerp(B.PY[k], A.y(q.s), w);
+      }
+    }));
     buildGrid();
     Rail.ready = true;
   };
