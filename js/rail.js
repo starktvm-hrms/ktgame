@@ -977,6 +977,7 @@
       const ch = KT.Models.character({ gender: look[0], outfit: look[1], lite: true, seed: 900 + i + (seed || 0) * 7, skin: [0xc08660, 0x8d5a3b, 0xd9a27c][(i + (seed || 0)) % 3] });
       ch.position.set(seat.x, FLOOR - 0.06, seat.z);
       ch.rotation.y = seat.fz > 0 ? 0 : Math.PI;
+      KT.Models.animateCharacter(ch, 'sit', 0.5); // (seated from the start)
       live.add(ch); people.push(ch);
     }
     g.add(live);
